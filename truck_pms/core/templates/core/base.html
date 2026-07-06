@@ -10,9 +10,11 @@
     {% load static %}
     <link rel="icon" type="image/png" href="{% static 'favicon-truck-pms.png' %}">
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <style>#page-loader{position:fixed;top:0;left:0;width:100%;height:3px;z-index:9999;background:#0d6efd;animation:loader-progress 2s ease-in-out infinite;transform-origin:left}@keyframes loader-progress{0%{transform:scaleX(0)}50%{transform:scaleX(.5)}100%{transform:scaleX(1)}}#page-loader.done{animation:none;transform:scaleX(1);opacity:0;transition:opacity .3s}</style>
     {% block extra_head %}{% endblock %}
 </head>
 <body>
+<div id="page-loader"></div>
     <nav class="sidebar d-none d-md-block">
         <div class="sidebar-brand">
             <i class="bi bi-truck-front-fill"></i>
@@ -97,6 +99,7 @@
         </div>
     </div>
 
+    <script>document.addEventListener('DOMContentLoaded',function(){var l=document.getElementById('page-loader');l&&(l.classList.add('done'),setTimeout(function(){l.remove()},400))})</script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     {% block extra_scripts %}{% endblock %}
 </body>
