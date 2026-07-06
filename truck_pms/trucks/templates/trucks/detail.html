@@ -1,5 +1,6 @@
 {% extends 'core/base.html' %}
 {% block title %}{{ truck.unit_number }}{% endblock %}
+{% block back_link %}<a href="{% url 'trucks:list' %}" class="btn btn-sm btn-outline-secondary me-2"><i class="bi bi-arrow-left"></i></a>{% endblock %}
 {% block page_title %}{{ truck.unit_number }} - {{ truck.plate_number }}{% endblock %}
 {% block content %}
 

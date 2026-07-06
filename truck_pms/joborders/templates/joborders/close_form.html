@@ -1,5 +1,6 @@
 {% extends 'core/base.html' %}
 {% block title %}Close {{ order.jo_number }}{% endblock %}
+{% block back_link %}<a href="{% url 'joborders:detail' order.pk %}" class="btn btn-sm btn-outline-secondary me-2"><i class="bi bi-arrow-left"></i></a>{% endblock %}
 {% block page_title %}Close: {{ order.jo_number }}{% endblock %}
 {% block content %}
 <div class="card">
@@ -23,7 +24,7 @@
                 {% endfor %}
             </div>
             <div class="d-flex gap-2 mt-4">
-                <button type="submit" name="status" value="CLOSED" class="btn btn-success">
+                <button type="submit" name="status" value="CLOSED" class="btn btn-success" onclick="return confirm('Close this job order? This will log service history and update PM schedules.')">
                     <i class="bi bi-check-circle"></i> Close Job Order
                 </button>
                 <button type="submit" name="status" value="IN_PROGRESS" class="btn btn-warning">

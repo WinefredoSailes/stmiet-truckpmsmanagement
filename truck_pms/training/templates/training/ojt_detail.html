@@ -1,5 +1,6 @@
 {% extends 'core/base.html' %}
 {% block title %}{{ training.ojt.get_full_name|default:training.ojt.username }} — Profile{% endblock %}
+{% block back_link %}<a href="{% url 'training:dashboard' %}" class="btn btn-sm btn-outline-secondary me-2"><i class="bi bi-arrow-left"></i></a>{% endblock %}
 {% block page_title %}{{ training.ojt.get_full_name|default:training.ojt.username }} — Training Profile{% endblock %}
 {% block content %}
 
