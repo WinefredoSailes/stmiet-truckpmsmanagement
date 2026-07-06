@@ -2,9 +2,10 @@
 {% block title %}{{ truck.unit_number }}{% endblock %}
 {% block page_title %}{{ truck.unit_number }} - {{ truck.plate_number }}{% endblock %}
 {% block content %}
-<div class="row g-4">
-    <div class="col-md-4">
-        <div class="card mb-4">
+
+<div class="row g-4 mb-4">
+    <div class="col-md-{% if cr_has_data %}6{% else %}12{% endif %}">
+        <div class="card h-100">
             <div class="card-header fw-bold">Truck Details</div>
             <div class="card-body">
                 <dl class="row mb-0 small dl-table">
@@ -30,8 +31,10 @@
                 {% endif %}
             </div>
         </div>
-        {% if truck.mv_file_no or truck.cr_number or truck.or_number or truck.denomination or truck.piston_displacement_cc or truck.no_of_cylinders or truck.series or truck.body_type or truck.body_no or truck.gross_weight_kg or truck.net_weight_kg or truck.shipping_weight_kg or truck.net_capacity_kg or truck.field_office_code or truck.lto_registered_address %}
-        <div class="card mb-4">
+    </div>
+    {% if cr_has_data %}
+    <div class="col-md-6">
+        <div class="card h-100">
             <div class="card-header fw-bold">Certificate of Registration</div>
             <div class="card-body">
                 <dl class="row mb-0 small dl-table">
@@ -51,7 +54,12 @@
                 </dl>
             </div>
         </div>
-        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<div class="row g-4">
+    <div class="col-md-6">
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <span class="fw-bold">PM Schedule</span>
@@ -80,7 +88,7 @@
             </div>
         </div>
     </div>
-    <div class="col-md-8">
+    <div class="col-md-6">
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <span class="fw-bold">Job Orders</span>

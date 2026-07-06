@@ -30,11 +30,20 @@ def truck_detail(request, pk):
     service_logs = truck.service_logs.select_related(
         'performed_by'
     ).order_by('-performed_at')[:20]
+    cr_fields = [
+        truck.mv_file_no, truck.cr_number, truck.or_number,
+        truck.denomination, truck.piston_displacement_cc,
+        truck.no_of_cylinders, truck.series, truck.body_type,
+        truck.body_no, truck.gross_weight_kg, truck.net_weight_kg,
+        truck.shipping_weight_kg, truck.net_capacity_kg,
+        truck.field_office_code, truck.lto_registered_address,
+    ]
     context = {
         'truck': truck,
         'pm_schedules': pm_schedules,
         'job_orders': job_orders,
         'service_logs': service_logs,
+        'cr_has_data': any(cr_fields),
     }
     return render(request, 'trucks/detail.html', context)
 
