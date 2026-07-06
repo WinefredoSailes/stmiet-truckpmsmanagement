@@ -1,0 +1,28 @@
+{% extends 'core/base.html' %}
+{% block title %}Mechanic KPI{% endblock %}
+{% block page_title %}Mechanic / Staff KPI{% endblock %}
+{% block content %}
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0 small">
+            <thead><tr>
+                <th>Name</th><th>Role</th><th>Specialization</th><th>Jobs Completed</th><th>Total Labor Hrs</th><th>Total Parts Cost</th>
+            </tr></thead>
+            <tbody>
+                {% for d in data %}
+                <tr>
+                    <td><strong>{{ d.mechanic.get_full_name|default:d.mechanic.username }}</strong></td>
+                    <td><span class="badge bg-secondary badge-status">{{ d.mechanic.get_role_display }}</span></td>
+                    <td>{{ d.mechanic.specialization|default:'General' }}</td>
+                    <td><span class="badge bg-success badge-status">{{ d.total_completed }}</span></td>
+                    <td>{{ d.total_labor_hours|floatformat:1 }} hrs</td>
+                    <td>P{{ d.total_parts_cost|floatformat:2 }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6" class="text-center py-4 text-muted">No data available.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

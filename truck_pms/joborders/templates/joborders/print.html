@@ -1,0 +1,122 @@
+{% load static %}<html><head><meta charset="utf-8"><title>{{ order.jo_number }} - Print</title>
+<style>
+@page{size:A4;margin:15mm}
+body{font-family:Arial,sans-serif;font-size:11px;color:#333;margin:0;padding:0}
+.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:15px;border-bottom:2px solid #1a3c6e;padding-bottom:10px}
+.logo{height:55px}
+.header-center{text-align:center}
+.header-center h1{margin:0;font-size:16px;color:#1a3c6e}
+.header-center p{margin:2px 0 0;font-size:10px;color:#666}
+.section{margin-bottom:15px}
+.section h2{font-size:13px;color:#1a3c6e;border-bottom:1px solid #ddd;padding-bottom:4px;margin:0 0 8px}
+table{width:100%;border-collapse:collapse;margin-bottom:10px}
+th{background:#1a3c6e;color:#fff;padding:5px 7px;text-align:left;font-size:10px}
+td{padding:4px 7px;border-bottom:1px solid #ddd;font-size:10px}
+tr:nth-child(even){background:#f9f9f9}
+.dl-table{width:100%}
+.dl-table dt{float:left;width:40%;font-weight:600;padding:3px 0;font-size:10px;color:#555}
+.dl-table dd{padding:3px 0;font-size:10px;border-bottom:1px solid #eee}
+.badge-status{display:inline-block;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:bold}
+.bg-info{background:#17a2b5;color:#fff}
+.bg-success{background:#28a745;color:#fff}
+.bg-warning{background:#ffc107;color:#333}
+.bg-danger{background:#dc3545;color:#fff}
+.bg-primary{background:#0d6efd;color:#fff}
+.bg-secondary{background:#6c757d;color:#fff}
+.cost-box{background:#f8f9fa;border:1px solid #dee2e6;border-radius:6px;padding:10px;margin-bottom:12px;text-align:center}
+.cost-box strong{font-size:13px}
+.footer{text-align:center;font-size:9px;color:#999;margin-top:20px;padding-top:8px;border-top:1px solid #ddd}
+.no-print{display:none}
+@media print{.no-print{display:none}}
+</style></head><body>
+<div class="header">
+    <img src="{% static 'stmiet-trans-logo.png' %}" alt="STMIET" class="logo">
+    <div class="header-center">
+        <h1>JOB ORDER</h1>
+        <p>{{ order.jo_number }} — {{ order.title }}</p>
+    </div>
+    <img src="{% static 'stpc-trans-logo.png' %}" alt="STPC" class="logo">
+</div>
+<div style="display:flex;gap:15px">
+    <div style="flex:1">
+        <div class="section">
+            <h2>Details</h2>
+            <dl class="dl-table">
+                <dt>Truck</dt><dd>{{ order.truck.unit_number }} ({{ order.truck.plate_number }})</dd>
+                <dt>Type</dt><dd><span class="badge-status bg-info">{{ order.get_job_type_display }}</span></dd>
+                <dt>Priority</dt><dd><span class="badge-status bg-{% if order.priority == 'EMERGENCY' %}danger{% elif order.priority == 'HIGH' %}warning{% elif order.priority == 'MEDIUM' %}primary{% else %}secondary{% endif %}">{{ order.get_priority_display }}</span></dd>
+                <dt>Status</dt><dd><span class="badge-status bg-{% if order.status == 'OPEN' %}primary{% elif order.status == 'IN_PROGRESS' %}warning{% else %}success{% endif %}">{{ order.get_status_display }}</span></dd>
+                <dt>Assigned To</dt><dd>{% if order.assigned_to %}{{ order.assigned_to.get_full_name|default:order.assigned_to.username }}{% else %}—{% endif %}</dd>
+                {% if order.contractor %}<dt>Contractor</dt><dd>{{ order.contractor.company_name }}</dd>{% endif %}
+                <dt>Created By</dt><dd>{{ order.created_by.get_full_name|default:order.created_by.username }}</dd>
+                <dt>Created</dt><dd>{{ order.created_at|date:"M d, Y H:i" }}</dd>
+                {% if order.completed_at %}<dt>Completed</dt><dd>{{ order.completed_at|date:"M d, Y H:i" }}</dd>{% endif %}
+            </dl>
+        </div>
+    </div>
+    <div style="flex:1">
+        <div class="cost-box">
+            <div style="font-size:10px;color:#666">Total Parts</div>
+            <strong style="color:#dc3545">P{{ order.total_parts_cost|floatformat:2 }}</strong>
+            <div style="font-size:10px;color:#666;margin-top:6px">Total Labor</div>
+            <strong style="color:#0d6efd">{{ order.total_labor_hours|floatformat:2 }} hrs</strong>
+        </div>
+    </div>
+</div>
+<div class="section">
+    <h2>Line Items</h2>
+    <table>
+        <thead><tr><th>Task</th><th>Category</th><th>Est. Hrs</th><th>Actual Hrs</th><th>Status</th><th>Parts Cost</th></tr></thead>
+        <tbody>
+            {% for item in line_items %}
+            <tr>
+                <td>{{ item.description }}</td>
+                <td>{{ item.category.name|default:'—' }}</td>
+                <td>{{ item.estimated_hours|default:'—' }}</td>
+                <td>{{ item.actual_hours|default:'—' }}</td>
+                <td><span class="badge-status bg-{% if item.status == 'DONE' %}success{% elif item.status == 'IN_PROGRESS' %}warning{% else %}secondary{% endif %}">{{ item.get_status_display }}</span></td>
+                <td>P{{ item.total_parts_cost|floatformat:2|default:'0.00' }}</td>
+            </tr>
+            {% if item.parts.all %}
+            <tr style="background:#f1f3f5"><td colspan="6" style="padding:2px 7px">
+                <strong style="font-size:9px">Parts:</strong>
+                {% for p in item.parts.all %}
+                <span style="font-size:9px;color:#555">{{ p.part_name }} ({{ p.quantity }} x P{{ p.unit_cost|floatformat:2 }}){% if not forloop.last %}, {% endif %}</span>
+                {% endfor %}
+            </td></tr>
+            {% endif %}
+            {% empty %}
+            <tr><td colspan="6" style="text-align:center;padding:10px;color:#999">No line items.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% if logs %}
+<div class="section">
+    <h2>Activity Log</h2>
+    <table>
+        <thead><tr><th>Date</th><th>Action</th><th>By</th></tr></thead>
+        <tbody>
+            {% for log in logs %}
+            <tr><td>{{ log.performed_at|date:"M d, H:i" }}</td><td>{{ log.action }}</td><td>{{ log.performed_by.get_full_name|default:log.performed_by.username|default:'—' }}</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+{% if order.description %}
+<div class="section">
+    <h2>Description</h2>
+    <p style="font-size:10px;margin:0">{{ order.description|linebreaksbr }}</p>
+</div>
+{% endif %}
+{% if order.notes %}
+<div class="section">
+    <h2>Remarks / Notes</h2>
+    <p style="font-size:10px;margin:0">{{ order.notes|linebreaksbr }}</p>
+</div>
+{% endif %}
+<div class="footer">
+    Printed {% now "F d, Y H:i" %} — Truck PMS & Servicing System
+</div>
+</body></html>

@@ -1,0 +1,82 @@
+{% extends 'core/base.html' %}
+{% block title %}PM Schedules{% endblock %}
+{% block page_title %}Preventive Maintenance Schedules{% endblock %}
+{% block content %}
+<div class="page-header">
+    <span class="text-muted">{{ page_obj.paginator.count }} schedule(s)</span>
+    {% if request.user.role == 'SUPER_ADMIN' or request.user.role == 'ADMIN' %}
+    <a href="{% url 'pms:sync_all' %}" class="btn btn-sm btn-outline-success"><i class="bi bi-arrow-repeat"></i> Sync All Trucks</a>
+    {% endif %}
+    <a href="{% url 'pms:schedule_print' %}?{% if request.GET.truck %}truck={{ request.GET.truck }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}{% endif %}" class="btn btn-sm btn-outline-secondary" target="_blank"><i class="bi bi-printer"></i> Print</a>
+    <a href="{% url 'pms:schedule_csv' %}?{% if request.GET.truck %}truck={{ request.GET.truck }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}{% endif %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-download"></i> Export CSV</a>
+</div>
+<div class="card mb-3 filter-bar">
+    <div class="card-body py-2">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-auto">
+                <select name="truck" class="form-select form-select-sm">
+                    <option value="">All Trucks</option>
+                    {% for t in trucks %}
+                    <option value="{{ t.pk }}" {% if selected_truck|stringformat:'s' == t.pk|stringformat:'s' %}selected{% endif %}>{{ t.unit_number }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-auto">
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">All Status</option>
+                    <option value="ok" {% if selected_status == 'ok' %}selected{% endif %}>OK</option>
+                    <option value="due" {% if selected_status == 'due' %}selected{% endif %}>Due</option>
+                    <option value="overdue" {% if selected_status == 'overdue' %}selected{% endif %}>Overdue</option>
+                    <option value="visual" {% if selected_status == 'visual' %}selected{% endif %}>Visual</option>
+                </select>
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-sm btn-outline-primary py-1"><i class="bi bi-funnel"></i> Filter</button>
+                <a href="{% url 'pms:schedule_list' %}" class="btn btn-sm btn-outline-secondary py-1"><i class="bi bi-x"></i> Clear</a>
+            </div>
+        </form>
+    </div>
+</div>
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead><tr>
+                <th>Truck</th><th>Task</th><th>Category</th><th>Interval</th><th>Last Done</th><th>Next Due</th><th>Status</th><th></th>
+            </tr></thead>
+            <tbody>
+                {% for s in page_obj %}
+                <tr>
+                    <td class="fw-medium">{{ s.truck.unit_number }}</td>
+                    <td>{{ s.task_template.name }}</td>
+                    <td><span class="badge bg-secondary badge-status">{{ s.task_template.category.name }}</span></td>
+                    <td>{% if s.task_template.interval_type == 'VISUAL' %}Visual{% else %}{{ s.task_template.interval_value }} {{ s.task_template.get_interval_type_display }}{% endif %}</td>
+                    <td>{{ s.last_completed_at|date:"M d, Y"|default:'Never' }}</td>
+                    <td>
+                        {% if s.task_template.interval_type == 'MILEAGE' and s.next_due_mileage %}
+                            {{ s.next_due_mileage }} km
+                        {% elif s.task_template.interval_type == 'HOURS' and s.next_due_hours %}
+                            {{ s.next_due_hours }} hrs
+                        {% elif s.task_template.interval_type == 'CALENDAR' and s.next_due_date %}
+                            {{ s.next_due_date|date:"M d, Y" }}
+                        {% else %}—{% endif %}
+                    </td>
+                    <td>
+                        <span class="badge bg-{% if s.status == 'overdue' %}danger{% elif s.status == 'due' %}warning{% elif s.status == 'ok' %}success{% elif s.status == 'visual' %}info{% else %}secondary{% endif %} badge-status">
+                            {{ s.status|upper }}
+                        </span>
+                    </td>
+                    <td class="text-end">
+                        {% if request.user.role == 'SUPER_ADMIN' or request.user.role == 'ADMIN' %}
+                        <a href="{% url 'pms:schedule_update' s.pk %}" class="btn btn-sm btn-outline-primary py-0 px-1" aria-label="Edit schedule"><i class="bi bi-pencil"></i></a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8" class="text-center py-4 text-muted">No PM schedules found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% include 'core/pagination.html' %}
+{% endblock %}

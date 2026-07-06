@@ -1,0 +1,77 @@
+{% load static %}<html><head><meta charset="utf-8"><title>PM Schedule Checklist</title>
+<style>
+@page{size:landscape;margin:15mm}
+body{font-family:Arial,sans-serif;font-size:11px;color:#333;margin:0;padding:0}
+.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;border-bottom:2px solid #1a3c6e;padding-bottom:10px}
+.logo{height:60px}
+.header-center{text-align:center}
+.header-center h1{margin:0;font-size:18px;color:#1a3c6e}
+.header-center p{margin:2px 0 0;font-size:11px;color:#666}
+.header-right{text-align:right;font-size:10px;color:#666}
+table{width:100%;border-collapse:collapse;margin-top:10px}
+th{background:#1a3c6e;color:#fff;padding:6px 8px;text-align:left;font-size:10px;text-transform:uppercase}
+td{padding:5px 8px;border-bottom:1px solid #ddd;vertical-align:top}
+tr:nth-child(even){background:#f9f9f9}
+.status{display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:bold;color:#fff}
+.s-ok{background:#28a745}
+.s-due{background:#ffc107;color:#333}
+.s-overdue{background:#dc3545}
+.s-visual{background:#17a2b8}
+.s-no_data{background:#6c757d}
+.remarks-row td{height:32px}
+.remarks-line{border-bottom:1px solid #ccc;width:100%;display:block;height:24px}
+.footer{text-align:center;font-size:9px;color:#999;margin-top:20px;padding-top:10px;border-top:1px solid #ddd}
+@media print{.no-print{display:none}}
+</style>
+</head><body>
+<div class="header">
+    <img src="{% static 'stmiet-trans-logo.png' %}" alt="STMIET" class="logo">
+    <div class="header-center">
+        <h1>PREVENTIVE MAINTENANCE SCHEDULE</h1>
+        <p>PM Schedule Checklist — {{ now|date:"F d, Y" }}</p>
+    </div>
+    <img src="{% static 'stpc-trans-logo.png' %}" alt="STPC" class="logo">
+</div>
+<table>
+    <thead><tr>
+        <th style="width:8%">Truck</th>
+        <th style="width:22%">Task</th>
+        <th style="width:12%">Category</th>
+        <th style="width:8%">Interval</th>
+        <th style="width:10%">Last Done</th>
+        <th style="width:10%">Next Due</th>
+        <th style="width:6%">Status</th>
+        <th style="width:24%">Remarks / Findings</th>
+    </tr></thead>
+    <tbody>
+        {% for s in schedules %}
+        <tr>
+            <td class="fw-medium">{{ s.truck.unit_number }}</td>
+            <td>{{ s.task_template.name }}</td>
+            <td>{{ s.task_template.category.name }}</td>
+            <td>{% if s.task_template.interval_type == 'VISUAL' %}Visual{% else %}{{ s.task_template.interval_value }} {{ s.task_template.get_interval_type_display }}{% endif %}</td>
+            <td>{{ s.last_completed_at|date:"Y-m-d"|default:'—' }}</td>
+            <td>
+                {% if s.task_template.interval_type == 'MILEAGE' and s.next_due_mileage %}
+                    {{ s.next_due_mileage }} km
+                {% elif s.task_template.interval_type == 'HOURS' and s.next_due_hours %}
+                    {{ s.next_due_hours }} hrs
+                {% elif s.task_template.interval_type == 'CALENDAR' and s.next_due_date %}
+                    {{ s.next_due_date|date:"Y-m-d" }}
+                {% else %}—{% endif %}
+            </td>
+            <td><span class="status s-{{ s.status }}">{{ s.status|upper }}</span></td>
+            <td><span class="remarks-line"></span></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8" style="text-align:center;padding:20px;color:#999">No PM schedules found.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+<div class="footer">
+    Printed {{ now|date:"F d, Y H:i" }} — Truck Preventive Maintenance &amp; Servicing System
+</div>
+<div class="no-print" style="text-align:center;margin-top:15px">
+    <button onclick="window.print()" style="padding:8px 24px;font-size:14px;cursor:pointer">Print / Save PDF</button>
+</div>
+</body></html>

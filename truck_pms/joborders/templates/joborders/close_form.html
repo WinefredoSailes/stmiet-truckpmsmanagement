@@ -1,0 +1,37 @@
+{% extends 'core/base.html' %}
+{% block title %}Close {{ order.jo_number }}{% endblock %}
+{% block page_title %}Close: {{ order.jo_number }}{% endblock %}
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger py-2 small">{{ form.non_field_errors|join:', ' }}</div>
+            {% endif %}
+            <div class="alert alert-info py-2 small mb-4">
+                <i class="bi bi-info-circle"></i>
+                Closing will mark all pending line items as Done, update PM schedules, and log to service history.
+            </div>
+            <div class="row g-3">
+                {% for field in form %}
+                <div class="col-md-6 mb-1">
+                    <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.errors %}<div class="text-danger small mt-1">{{ field.errors|join:', ' }}</div>{% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            <div class="d-flex gap-2 mt-4">
+                <button type="submit" name="status" value="CLOSED" class="btn btn-success">
+                    <i class="bi bi-check-circle"></i> Close Job Order
+                </button>
+                <button type="submit" name="status" value="IN_PROGRESS" class="btn btn-warning">
+                    <i class="bi bi-play-circle"></i> Mark In Progress
+                </button>
+                <a href="{% url 'joborders:detail' order.pk %}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

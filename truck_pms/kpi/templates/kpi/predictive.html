@@ -1,0 +1,96 @@
+{% extends 'core/base.html' %}{% load static %}{% block title %}Predictive Analytics{% endblock %}{% block page_title %}Predictive Analytics{% endblock %}{% block content %}
+<div class="row g-3">
+    <div class="col-md-6">
+        <div class="card h-100"><div class="card-header fw-bold">Failure Frequency</div>
+        <div class="card-body"><canvas id="failureChart" height="200"></canvas>
+        {% if not failure_labels %}<p class="text-muted text-center mb-0">No breakdown data yet.</p>{% endif %}
+        </div></div>
+    </div>
+    <div class="col-md-3">
+        <div class="card h-100"><div class="card-header fw-bold">PM Compliance</div>
+        <div class="card-body"><canvas id="complianceChart" height="200"></canvas></div></div>
+    </div>
+    <div class="col-md-3">
+        <div class="card h-100"><div class="card-header fw-bold">Overdue Alerts</div>
+        <div class="card-body"><canvas id="overdueChart" height="200"></canvas>
+        {% if not overdue_trucks %}<p class="text-muted text-center mb-0">No overdue PMs.</p>{% endif %}
+        </div></div>
+    </div>
+    <div class="col-md-8">
+        <div class="card h-100"><div class="card-header fw-bold">Cost Trends (Parts & Labor)</div>
+        <div class="card-body"><canvas id="costChart" height="200"></canvas>
+        {% if not cost_labels %}<p class="text-muted text-center mb-0">No cost data yet.</p>{% endif %}
+        </div></div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100"><div class="card-header fw-bold">Top Replaced Parts</div>
+        <div class="card-body"><canvas id="partsChart" height="200"></canvas>
+        {% if not part_labels %}<p class="text-muted text-center mb-0">No part data yet.</p>{% endif %}
+        </div></div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script>
+const COLORS = ['#dc3545','#fd7e14','#ffc107','#20c997','#0d6efd','#6610f2','#d63384','#198754','#0dcaf0','#6f42c1'];
+{% if failure_labels %}
+new Chart(document.getElementById('failureChart'), {
+    type: 'bar', data: {
+        labels: {{ failure_labels|safe }},
+        datasets: [{ label: 'Breakdowns', data: {{ failure_counts|safe }}, backgroundColor: COLORS }]
+    }, options: { responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+    }
+});
+{% endif %}
+new Chart(document.getElementById('complianceChart'), {
+    type: 'doughnut', data: {
+        labels: ['OK ({{ ok_pm }})', 'Due ({{ due_pm }})', 'Overdue ({{ overdue_pm }})', 'No Data ({{ no_data_pm }})'],
+        datasets: [{
+            data: [{{ ok_pm }}, {{ due_pm }}, {{ overdue_pm }}, {{ no_data_pm }}],
+            backgroundColor: ['#198754','#ffc107','#dc3545','#6c757d']
+        }]
+    }, options: { responsive: true,
+        plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } }
+    }
+});
+{% if overdue_trucks %}
+new Chart(document.getElementById('overdueChart'), {
+    type: 'bar', data: {
+        labels: {{ overdue_trucks|safe }},
+        datasets: [{ label: 'Overdue', data: {{ overdue_counts|safe }}, backgroundColor: '#dc3545' }]
+    }, options: { responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+        indexAxis: 'y'
+    }
+});
+{% endif %}
+{% if cost_labels %}
+new Chart(document.getElementById('costChart'), {
+    type: 'line', data: {
+        labels: {{ cost_labels|safe }},
+        datasets: [
+            { label: 'Parts Cost', data: {{ parts_cost|safe }}, borderColor: '#dc3545', tension: 0.3, fill: false },
+            { label: 'Labor Cost (est.)', data: {{ labor_cost|safe }}, borderColor: '#0d6efd', tension: 0.3, fill: false }
+        ]
+    }, options: { responsive: true,
+        scales: { y: { beginAtZero: true, ticks: { callback: function(v){return 'P'+v.toLocaleString();} } } }
+    }
+});
+{% endif %}
+{% if part_labels %}
+new Chart(document.getElementById('partsChart'), {
+    type: 'bar', data: {
+        labels: {{ part_labels|safe }},
+        datasets: [{ label: 'Times Replaced', data: {{ part_counts|safe }}, backgroundColor: COLORS }]
+    }, options: { responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+        indexAxis: 'y'
+    });
+{% endif %}
+</script>
+{% endblock %}

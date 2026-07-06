@@ -1,0 +1,46 @@
+{% extends 'core/base.html' %}
+{% block title %}{{ contractor.company_name }}{% endblock %}
+{% block page_title %}{{ contractor.company_name }}{% endblock %}
+{% block content %}
+<div class="row g-4">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header fw-bold">Details</div>
+            <div class="card-body small">
+                <dl class="row mb-0 dl-table">
+                    <dt class="col-5">Contact</dt><dd class="col-7">{{ contractor.contact_person|default:'-' }}</dd>
+                    <dt class="col-5">Mobile</dt><dd class="col-7">{{ contractor.mobile|default:'-' }}</dd>
+                    <dt class="col-5">Email</dt><dd class="col-7">{{ contractor.email|default:'-' }}</dd>
+                    <dt class="col-5">Status</dt><dd class="col-7">{% if contractor.is_active %}<span class="text-success">Active</span>{% else %}<span class="text-danger">Inactive</span>{% endif %}</dd>
+                </dl>
+                {% if contractor.skills %}<strong>Skills:</strong><p class="mb-0">{{ contractor.skills }}</p>{% endif %}
+                {% if contractor.address %}<strong>Address:</strong><p class="mb-0">{{ contractor.address|linebreaks }}</p>{% endif %}
+                <a href="{% url 'contractors:update' contractor.pk %}" class="btn btn-outline-primary btn-sm mt-2 w-100"><i class="bi bi-pencil"></i> Edit</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header fw-bold">Job Orders</div>
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0 small">
+                    <thead><tr><th>JO #</th><th>Truck</th><th>Title</th><th>Status</th><th>Date</th></tr></thead>
+                    <tbody>
+                        {% for jo in job_orders %}
+                        <tr>
+                            <td><a href="{% url 'joborders:detail' jo.pk %}">{{ jo.jo_number }}</a></td>
+                            <td>{{ jo.truck.unit_number }}</td>
+                            <td>{{ jo.title|truncatechars:30 }}</td>
+                            <td><span class="badge bg-{% if jo.status == 'OPEN' %}primary{% elif jo.status == 'IN_PROGRESS' %}warning{% else %}success{% endif %} badge-status">{{ jo.get_status_display }}</span></td>
+                            <td>{{ jo.created_at|date:"M d, Y" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5" class="text-center py-3 text-muted">No job orders assigned.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

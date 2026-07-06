@@ -1,0 +1,52 @@
+{% extends 'core/base.html' %}
+{% block title %}Service Ledger{% endblock %}
+{% block page_title %}Service Ledger{% endblock %}
+{% block content %}
+<div class="card mb-3 filter-bar">
+    <div class="card-body py-2">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-auto">
+                <select name="truck" class="form-select form-select-sm">
+                    <option value="">All Trucks</option>
+                    {% for t in trucks %}
+                    <option value="{{ t.pk }}" {% if selected_truck|stringformat:'s' == t.pk|stringformat:'s' %}selected{% endif %}>{{ t.unit_number }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-auto">
+                <input type="text" name="action" class="form-control form-control-sm" placeholder="Action filter" value="{{ selected_action|default:'' }}">
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-sm btn-outline-primary py-1"><i class="bi bi-funnel"></i> Filter</button>
+                <a href="{% url 'service_log:full_ledger' %}" class="btn btn-sm btn-outline-secondary py-1"><i class="bi bi-x"></i> Clear</a>
+            </div>
+        </form>
+    </div>
+</div>
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead><tr>
+                <th>Date</th><th>Truck</th><th>JO #</th><th>Action</th><th>Description</th><th>By</th><th>Labor</th><th>Cost</th>
+            </tr></thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td>{{ log.performed_at|date:"M d, H:i" }}</td>
+                    <td class="fw-medium">{{ log.truck.unit_number }}</td>
+                    <td><a href="{% url 'joborders:detail' log.job_order.pk %}" class="text-decoration-none">{{ log.job_order.jo_number }}</a></td>
+                    <td><span class="badge bg-secondary badge-status">{{ log.action }}</span></td>
+                    <td>{{ log.description|truncatechars:35 }}</td>
+                    <td>{{ log.performed_by.get_full_name|default:log.performed_by.username|default:'—' }}</td>
+                    <td>{{ log.labor_hours|default:'—' }} hrs</td>
+                    <td>{% if log.parts_cost %}P{{ log.parts_cost|floatformat:2 }}{% else %}—{% endif %}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8" class="text-center py-4 text-muted">No records found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% include 'core/pagination.html' %}
+{% endblock %}

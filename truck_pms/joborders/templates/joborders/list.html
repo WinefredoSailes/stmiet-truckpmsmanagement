@@ -1,0 +1,74 @@
+{% extends 'core/base.html' %}
+{% block title %}Job Orders{% endblock %}
+{% block page_title %}Job Orders{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <a href="{% url 'joborders:create' %}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg"></i> New Job Order</a>
+    </div>
+</div>
+{% if request.user.role != 'MECHANIC' and request.user.role != 'CONTRACTOR' %}
+<div class="card mb-3 filter-bar">
+    <div class="card-body py-2">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-auto">
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">All Status</option>
+                    <option value="OPEN" {% if selected_status == 'OPEN' %}selected{% endif %}>Open</option>
+                    <option value="IN_PROGRESS" {% if selected_status == 'IN_PROGRESS' %}selected{% endif %}>In Progress</option>
+                    <option value="CLOSED" {% if selected_status == 'CLOSED' %}selected{% endif %}>Closed</option>
+                </select>
+            </div>
+            <div class="col-auto">
+                <select name="job_type" class="form-select form-select-sm">
+                    <option value="">All Types</option>
+                    <option value="PM" {% if selected_job_type == 'PM' %}selected{% endif %}>PM</option>
+                    <option value="REPAIR" {% if selected_job_type == 'REPAIR' %}selected{% endif %}>Repair</option>
+                    <option value="INSPECTION" {% if selected_job_type == 'INSPECTION' %}selected{% endif %}>Inspection</option>
+                    <option value="CONTRACTOR" {% if selected_job_type == 'CONTRACTOR' %}selected{% endif %}>Contractor</option>
+                </select>
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-sm btn-outline-primary py-1"><i class="bi bi-funnel"></i> Filter</button>
+                <a href="{% url 'joborders:list' %}" class="btn btn-sm btn-outline-secondary py-1"><i class="bi bi-x"></i> Clear</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead><tr>
+                <th>JO #</th><th>Truck</th><th>Title</th><th>Type</th><th>Priority</th><th>Status</th><th>Assigned</th><th>Created</th><th></th>
+            </tr></thead>
+            <tbody>
+                {% for jo in orders %}
+                <tr>
+                    <td class="fw-medium"><a href="{% url 'joborders:detail' jo.pk %}" class="text-decoration-none">{{ jo.jo_number }}</a></td>
+                    <td>{{ jo.truck.unit_number }}</td>
+                    <td>{{ jo.title|truncatechars:28 }}</td>
+                    <td><span class="badge bg-info badge-status">{{ jo.get_job_type_display }}</span></td>
+                    <td>
+                        <span class="badge bg-{% if jo.priority == 'EMERGENCY' %}danger{% elif jo.priority == 'HIGH' %}warning{% elif jo.priority == 'MEDIUM' %}primary{% else %}secondary{% endif %} badge-status">
+                            {{ jo.get_priority_display }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge bg-{% if jo.status == 'OPEN' %}primary{% elif jo.status == 'IN_PROGRESS' %}warning{% else %}success{% endif %} badge-status">
+                            {{ jo.get_status_display }}
+                        </span>
+                    </td>
+                    <td>{% if jo.assigned_to %}{{ jo.assigned_to.get_full_name|default:jo.assigned_to.username }}{% elif jo.contractor %}{{ jo.contractor.company_name }}{% else %}—{% endif %}</td>
+                    <td>{{ jo.created_at|date:"M d, H:i" }}</td>
+                    <td class="text-end"><a href="{% url 'joborders:detail' jo.pk %}" class="btn btn-sm btn-outline-primary py-0 px-1" aria-label="View job order"><i class="bi bi-eye"></i></a></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="9" class="text-center py-4 text-muted">No job orders found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% include 'core/pagination.html' %}
+{% endblock %}

@@ -1,0 +1,32 @@
+{% extends 'core/base.html' %}
+{% block title %}My Assignments{% endblock %}
+{% block page_title %}My Assignments{% endblock %}
+{% block content %}
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0 small">
+            <thead><tr>
+                <th>JO #</th><th>Truck</th><th>Title</th><th>Type</th><th>Priority</th><th>Status</th><th>Created</th><th></th>
+            </tr></thead>
+            <tbody>
+                {% for jo in orders %}
+                <tr>
+                    <td><strong><a href="{% url 'joborders:detail' jo.pk %}">{{ jo.jo_number }}</a></strong></td>
+                    <td>{{ jo.truck.unit_number }}</td>
+                    <td>{{ jo.title|truncatechars:30 }}</td>
+                    <td><span class="badge bg-info badge-status">{{ jo.get_job_type_display }}</span></td>
+                    <td><span class="badge bg-{% if jo.priority == 'EMERGENCY' %}danger{% elif jo.priority == 'HIGH' %}warning{% elif jo.priority == 'MEDIUM' %}primary{% else %}secondary{% endif %} badge-status">{{ jo.get_priority_display }}</span></td>
+                    <td><span class="badge bg-{% if jo.status == 'OPEN' %}primary{% elif jo.status == 'IN_PROGRESS' %}warning{% else %}success{% endif %} badge-status">{{ jo.get_status_display }}</span></td>
+                    <td>{{ jo.created_at|date:"M d, H:i" }}</td>
+                    <td><a href="{% url 'joborders:detail' jo.pk %}" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i></a></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8" class="text-center py-4 text-muted">
+                    <i class="bi bi-inbox me-2"></i>No active assignments.
+                </td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

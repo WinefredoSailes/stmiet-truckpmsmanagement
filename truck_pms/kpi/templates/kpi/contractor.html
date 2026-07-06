@@ -1,0 +1,32 @@
+{% extends 'core/base.html' %}
+{% block title %}Contractor KPI{% endblock %}
+{% block page_title %}Contractor Performance{% endblock %}
+{% block content %}
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0 small">
+            <thead><tr>
+                <th>Company</th><th>Contact</th><th>Total Jobs</th><th>Completed</th><th>Open</th><th>Completion Rate</th>
+            </tr></thead>
+            <tbody>
+                {% for d in data %}
+                <tr>
+                    <td><strong>{{ d.contractor.company_name }}</strong></td>
+                    <td>{{ d.contractor.contact_person|default:'-' }}</td>
+                    <td>{{ d.total_jobs }}</td>
+                    <td><span class="badge bg-success badge-status">{{ d.completed }}</span></td>
+                    <td><span class="badge bg-warning badge-status">{{ d.open }}</span></td>
+                    <td>
+                        {% if d.total_jobs > 0 %}
+                        {{ d.completed|floatformat:0|divisibleby:d.total_jobs|yesno:"100," }}{% widthratio d.completed d.total_jobs 100 %}%
+                        {% else %}-{% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6" class="text-center py-4 text-muted">No contractor data.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

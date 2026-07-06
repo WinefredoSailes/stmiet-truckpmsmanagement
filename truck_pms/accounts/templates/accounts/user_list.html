@@ -1,0 +1,54 @@
+{% extends 'core/base.html' %}
+{% block title %}User Management{% endblock %}
+{% block page_title %}User Management{% endblock %}
+{% block content %}
+<div class="page-header">
+    <span class="text-muted">{{ page_obj.paginator.count }} user(s)</span>
+    <a href="{% url 'accounts:user_create' %}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg"></i> Add User</a>
+</div>
+<div class="card mb-3 filter-bar">
+    <div class="card-body py-2">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-auto">
+                <select name="role" class="form-select form-select-sm">
+                    <option value="">All Roles</option>
+                    <option value="SUPER_ADMIN" {% if selected_role == 'SUPER_ADMIN' %}selected{% endif %}>Super Admin</option>
+                    <option value="ADMIN" {% if selected_role == 'ADMIN' %}selected{% endif %}>Admin</option>
+                    <option value="STAFF" {% if selected_role == 'STAFF' %}selected{% endif %}>Staff</option>
+                    <option value="MECHANIC" {% if selected_role == 'MECHANIC' %}selected{% endif %}>Mechanic</option>
+                    <option value="CONTRACTOR" {% if selected_role == 'CONTRACTOR' %}selected{% endif %}>Contractor</option>
+                </select>
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-sm btn-outline-primary py-1"><i class="bi bi-funnel"></i> Filter</button>
+                <a href="{% url 'accounts:user_list' %}" class="btn btn-sm btn-outline-secondary py-1"><i class="bi bi-x"></i> Clear</a>
+            </div>
+        </form>
+    </div>
+</div>
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead><tr>
+                <th>Username</th><th>Name</th><th>Role</th><th>Specialization</th><th>Active</th><th></th>
+            </tr></thead>
+            <tbody>
+                {% for u in users %}
+                <tr>
+                    <td class="fw-medium">{{ u.username }}</td>
+                    <td>{{ u.get_full_name|default:'—' }}</td>
+                    <td><span class="badge bg-secondary badge-status">{{ u.get_role_display }}</span></td>
+                    <td>{{ u.specialization|default:'—' }}</td>
+                    <td>{% if u.is_active %}<span class="text-success"><i class="bi bi-check-circle"></i></span>{% else %}<span class="text-danger"><i class="bi bi-x-circle"></i></span>{% endif %}</td>
+                    <td class="text-end">
+                        <a href="{% url 'accounts:user_update' u.pk %}" class="btn btn-sm btn-outline-primary py-0 px-1" aria-label="Edit user"><i class="bi bi-pencil"></i></a>
+                        <a href="{% url 'admin:accounts_user_change' u.pk %}" class="btn btn-sm btn-outline-warning py-0 px-1" aria-label="Reset password in admin"><i class="bi bi-key"></i></a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% include 'core/pagination.html' %}
+{% endblock %}

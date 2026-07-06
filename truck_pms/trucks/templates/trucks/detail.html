@@ -1,0 +1,109 @@
+{% extends 'core/base.html' %}
+{% block title %}{{ truck.unit_number }}{% endblock %}
+{% block page_title %}{{ truck.unit_number }} - {{ truck.plate_number }}{% endblock %}
+{% block content %}
+<div class="row g-4">
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header fw-bold">Truck Details</div>
+            <div class="card-body">
+                <dl class="row mb-0 small dl-table">
+                    <dt class="col-6">Make</dt><dd class="col-6">{{ truck.make }}</dd>
+                    <dt class="col-6">Model</dt><dd class="col-6">{{ truck.model }}</dd>
+                    <dt class="col-6">Year</dt><dd class="col-6">{{ truck.year }}</dd>
+                    <dt class="col-6">Chassis #</dt><dd class="col-6">{{ truck.chassis_number|default:'-' }}</dd>
+                    <dt class="col-6">Engine #</dt><dd class="col-6">{{ truck.engine_number|default:'-' }}</dd>
+                    <dt class="col-6">Tank Capacity</dt><dd class="col-6">{{ truck.tank_capacity_liters|default:'-' }} L</dd>
+                    <dt class="col-6">Fuel Type</dt><dd class="col-6">{{ truck.fuel_type|default:'-' }}</dd>
+                    <dt class="col-6">Status</dt><dd class="col-6">
+                        <span class="badge bg-{% if truck.status == 'ACTIVE' %}success{% elif truck.status == 'DOWN' %}danger{% else %}secondary{% endif %} badge-status">{{ truck.get_status_display }}</span>
+                    </dd>
+                    <dt class="col-6">Mileage</dt><dd class="col-6">{{ truck.current_mileage_km }} km</dd>
+                    <dt class="col-6">Engine Hours</dt><dd class="col-6">{{ truck.current_engine_hours }} hrs</dd>
+                </dl>
+                {% if request.user.role == 'SUPER_ADMIN' or request.user.role == 'ADMIN' %}
+                <a href="{% url 'trucks:update' truck.pk %}" class="btn btn-outline-primary btn-sm mt-2 w-100"><i class="bi bi-pencil"></i> Edit</a>
+                {% endif %}
+            </div>
+        </div>
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="fw-bold">PM Schedule</span>
+                <div class="d-flex gap-1">
+                    {% if request.user.role == 'SUPER_ADMIN' or request.user.role == 'ADMIN' %}
+                    <a href="{% url 'pms:sync_truck' truck.pk %}" class="btn btn-sm btn-outline-success py-0 px-1" title="Sync all templates"><i class="bi bi-arrow-repeat"></i></a>
+                    {% endif %}
+                    <a href="{% url 'pms:schedule_print' %}?truck={{ truck.pk }}" class="btn btn-sm btn-outline-secondary py-0 px-1" title="Print checklist" target="_blank"><i class="bi bi-printer"></i></a>
+                    <a href="{% url 'pms:schedule_csv' %}?truck={{ truck.pk }}" class="btn btn-sm btn-outline-secondary py-0 px-1" title="Export CSV"><i class="bi bi-download"></i></a>
+                    <a href="{% url 'pms:schedule_list' %}?truck={{ truck.pk }}" class="btn btn-sm btn-outline-primary py-0 px-1"><i class="bi bi-arrow-right"></i></a>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush small">
+                    {% for pm in pm_schedules %}
+                    <li class="list-group-item py-2 d-flex justify-content-between align-items-center">
+                        <span>{{ pm.task_template.name }}</span>
+                        <span class="badge bg-{% if pm.status == 'overdue' %}danger{% elif pm.status == 'due' %}warning{% elif pm.status == 'ok' %}success{% else %}secondary{% endif %} badge-status">
+                            {{ pm.status|upper }}
+                        </span>
+                    </li>
+                    {% empty %}
+                    <li class="list-group-item text-center py-3 text-muted">No PM schedules.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="fw-bold">Job Orders</span>
+                <a href="{% url 'joborders:create' %}?truck={{ truck.pk }}" class="btn btn-sm btn-primary"><i class="bi bi-plus-lg"></i> New JO</a>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0 small">
+                    <thead><tr><th>JO #</th><th>Title</th><th>Type</th><th>Status</th><th>Assigned</th><th>Date</th></tr></thead>
+                    <tbody>
+                        {% for jo in job_orders %}
+                        <tr>
+                            <td><a href="{% url 'joborders:detail' jo.pk %}">{{ jo.jo_number }}</a></td>
+                            <td>{{ jo.title|truncatechars:25 }}</td>
+                            <td><span class="badge bg-info badge-status">{{ jo.get_job_type_display }}</span></td>
+                            <td><span class="badge bg-{% if jo.status == 'OPEN' %}primary{% elif jo.status == 'IN_PROGRESS' %}warning{% else %}success{% endif %} badge-status">{{ jo.get_status_display }}</span></td>
+                            <td>{% if jo.assigned_to %}{{ jo.assigned_to.get_full_name|default:jo.assigned_to.username }}{% else %}-{% endif %}</td>
+                            <td>{{ jo.created_at|date:"M d" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="6" class="text-center py-3 text-muted">No job orders.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="fw-bold">Service History</span>
+                <a href="{% url 'service_log:truck_ledger' truck.pk %}" class="btn btn-sm btn-outline-primary"><i class="bi bi-arrow-right"></i> Full Ledger</a>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0 small">
+                    <thead><tr><th>Date</th><th>Action</th><th>By</th><th>Labor</th><th>Parts Cost</th></tr></thead>
+                    <tbody>
+                        {% for log in service_logs %}
+                        <tr>
+                            <td>{{ log.performed_at|date:"M d, H:i" }}</td>
+                            <td>{{ log.action }}</td>
+                            <td>{{ log.performed_by.get_full_name|default:log.performed_by.username|default:'-' }}</td>
+                            <td>{{ log.labor_hours|default:'-' }} hrs</td>
+                            <td>{% if log.parts_cost %}P{{ log.parts_cost|floatformat:2 }}{% else %}-{% endif %}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5" class="text-center py-3 text-muted">No service history.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

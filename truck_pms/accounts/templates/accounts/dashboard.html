@@ -1,0 +1,137 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Dashboard - Truck PMS{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="row g-4 mb-4">
+    <div class="col-xl-3 col-md-6">
+        <div class="card stat-card border-start border-primary border-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <div class="text-muted text-uppercase small fw-bold">Open Job Orders</div>
+                        <div class="h3 mt-2 mb-0 fw-bold">{{ open_jo_count }}</div>
+                    </div>
+                    <div class="stat-icon"><i class="bi bi-clipboard-check text-primary"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="card stat-card border-start border-success border-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <div class="text-muted text-uppercase small fw-bold">Active Trucks</div>
+                        <div class="h3 mt-2 mb-0 fw-bold">{{ active_truck_count }}</div>
+                    </div>
+                    <div class="stat-icon"><i class="bi bi-truck text-success"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="card stat-card border-start border-warning border-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <div class="text-muted text-uppercase small fw-bold">My Assignments</div>
+                        <div class="h3 mt-2 mb-0 fw-bold">{{ my_assigned_count }}</div>
+                    </div>
+                    <div class="stat-icon"><i class="bi bi-person-workspace text-warning"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="card stat-card border-start border-danger border-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <div class="text-muted text-uppercase small fw-bold">Overdue PM</div>
+                        <div class="h3 mt-2 mb-0 fw-bold">{{ overdue_pm_count }}</div>
+                    </div>
+                    <div class="stat-icon"><i class="bi bi-exclamation-triangle text-danger"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="fw-bold"><i class="bi bi-clock-history me-2"></i>Recent Job Orders</span>
+                <a href="{% url 'joborders:list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>JO #</th>
+                                <th>Truck</th>
+                                <th>Title</th>
+                                <th>Status</th>
+                                <th>Assigned To</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for jo in recent_jobs %}
+                            <tr>
+                                <td><a href="{% url 'joborders:detail' jo.pk %}">{{ jo.jo_number }}</a></td>
+                                <td>{{ jo.truck.unit_number }}</td>
+                                <td>{{ jo.title|truncatechars:30 }}</td>
+                                <td>
+                                    <span class="badge bg-{% if jo.status == 'OPEN' %}primary{% elif jo.status == 'IN_PROGRESS' %}warning{% else %}success{% endif %} badge-status">
+                                        {{ jo.get_status_display }}
+                                    </span>
+                                </td>
+                                <td>{% if jo.assigned_to %}{{ jo.assigned_to.get_full_name|default:jo.assigned_to.username }}{% else %}-{% endif %}</td>
+                                <td class="small">{{ jo.created_at|date:"M d, H:i" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="6" class="text-center py-4 text-muted">No job orders yet.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <span class="fw-bold"><i class="bi bi-calendar-exclamation me-2"></i>PM Due / Overdue</span>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    {% for pm in due_pm_list %}
+                    <li class="list-group-item py-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ pm.truck.unit_number }}</strong>
+                                <br>
+                                <small class="text-muted">{{ pm.task_template.name }}</small>
+                            </div>
+                            <span class="badge bg-{% if pm.status == 'overdue' %}danger{% else %}warning{% endif %} badge-status">
+                                {{ pm.status|upper }}
+                            </span>
+                        </div>
+                    </li>
+                    {% empty %}
+                    <li class="list-group-item text-center py-4 text-muted">All PMs are on schedule.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div class="card-footer text-center p-2">
+                <a href="{% url 'pms:schedule_list' %}" class="small">View All PM Schedules</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
