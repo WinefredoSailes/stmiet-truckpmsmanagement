@@ -12,4 +12,5 @@ urlpatterns = [
     path('service-log/', include('service_log.urls')),
     path('contractors/', include('contractors.urls')),
     path('kpi/', include('kpi.urls')),
+    path('training/', include('training.urls')),
 ]

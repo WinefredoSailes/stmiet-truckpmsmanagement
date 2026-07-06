@@ -1,0 +1,51 @@
+{% extends 'core/base.html' %}
+{% block title %}New Weekly Review{% endblock %}
+{% block page_title %}New Weekly Review{% endblock %}
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">OJT</label>
+                    <select name="training" class="form-select" required>
+                        <option value="">— Select —</option>
+                        {% for t in trainees %}
+                        <option value="{{ t.pk }}">{{ t.ojt.get_full_name|default:t.ojt.username }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Week Start</label>
+                    <input type="date" name="week_start" class="form-control" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Week End</label>
+                    <input type="date" name="week_end" class="form-control" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Overall Score (1-5)</label>
+                    <input type="number" name="overall_score" class="form-control" min="1" max="5" step="0.1" required>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Strengths</label>
+                    <textarea name="strengths" class="form-control" rows="2"></textarea>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Areas for Improvement</label>
+                    <textarea name="areas_for_improvement" class="form-control" rows="2"></textarea>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Supervisor Notes</label>
+                    <textarea name="supervisor_notes" class="form-control" rows="3"></textarea>
+                </div>
+            </div>
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> Save Review</button>
+                <a href="{% url 'training:dashboard' %}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

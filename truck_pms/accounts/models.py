@@ -9,6 +9,7 @@ class User(AbstractUser):
         STAFF = 'STAFF', 'Staff'
         MECHANIC = 'MECHANIC', 'Mechanic'
         CONTRACTOR = 'CONTRACTOR', 'Contractor'
+        TRAINEE = 'TRAINEE', 'OJT / Trainee'
 
     role = models.CharField(max_length=20, choices=Role.choices, default=Role.STAFF)
     mobile = models.CharField(max_length=20, blank=True)

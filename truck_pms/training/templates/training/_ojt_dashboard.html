@@ -1,0 +1,97 @@
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-header fw-bold">Attendance</div>
+            <div class="card-body text-center">
+                {% if attendance_today %}
+                    <p class="mb-1"><span class="text-success"><i class="bi bi-check-circle-fill"></i> Checked in</span></p>
+                    <p class="small text-muted mb-2">{{ attendance_today.time_in|time:"h:i A" }}</p>
+                    {% if attendance_today.time_out %}
+                        <p class="small">Checked out: {{ attendance_today.time_out|time:"h:i A" }}</p>
+                    {% else %}
+                        <form method="post" action="{% url 'training:attendance_check_out' %}">
+                            {% csrf_token %}
+                            <button class="btn btn-outline-warning btn-sm"><i class="bi bi-box-arrow-right"></i> Check Out</button>
+                        </form>
+                    {% endif %}
+                {% else %}
+                    <form method="post" action="{% url 'training:attendance_check_in' %}">
+                        {% csrf_token %}
+                        <button class="btn btn-primary"><i class="bi bi-box-arrow-in-right"></i> Check In</button>
+                    </form>
+                {% endif %}
+            </div>
+            <div class="card-footer text-center small">
+                <a href="{% url 'training:attendance_list' %}" class="text-decoration-none">View History</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-header fw-bold">My Ratings</div>
+            <div class="card-body text-center">
+                <p class="display-6 mb-0">{{ avg_score }}</p>
+                <p class="small text-muted">/ 5 ({{ total_ratings }} ratings)</p>
+            </div>
+            <div class="card-footer text-center small">
+                <a href="{% url 'training:rating_list' %}" class="text-decoration-none">View All Ratings</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-header fw-bold">Training Info</div>
+            <div class="card-body">
+                <p class="mb-1 small">Started: {{ training.start_date|date:"M d, Y" }}</p>
+                <p class="mb-1 small">Supervisor: {{ training.supervisor.get_full_name|default:training.supervisor.username }}</p>
+                <p class="mb-0 small">Status: <span class="badge bg-success">{{ training.status }}</span></p>
+            </div>
+            <div class="card-footer text-center small">
+                <a href="{% url 'training:ojt_detail' training.pk %}" class="text-decoration-none">Full Profile</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header fw-bold">Recent Ratings</div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush small">
+                    {% for r in recent_ratings %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-2">
+                        <span>{{ r.task_name }}</span>
+                        <span class="badge bg-{% if r.rating >= 4 %}success{% elif r.rating >= 3 %}warning{% else %}danger{% endif %}">
+                            {{ r.rating }}/5
+                        </span>
+                    </li>
+                    {% empty %}
+                    <li class="list-group-item text-center py-3 text-muted">No ratings yet.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header fw-bold">Weekly Reviews</div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush small">
+                    {% for r in recent_reviews %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-2">
+                        <a href="{% url 'training:review_detail' r.pk %}" class="text-decoration-none">
+                            Week of {{ r.week_start|date:"M d" }}
+                        </a>
+                        <span class="badge bg-{% if r.overall_score >= 4 %}success{% elif r.overall_score >= 3 %}warning{% else %}danger{% endif %}">
+                            {{ r.overall_score }}/5
+                        </span>
+                    </li>
+                    {% empty %}
+                    <li class="list-group-item text-center py-3 text-muted">No reviews yet.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>

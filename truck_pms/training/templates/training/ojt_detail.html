@@ -1,0 +1,77 @@
+{% extends 'core/base.html' %}
+{% block title %}{{ training.ojt.get_full_name|default:training.ojt.username }} — Profile{% endblock %}
+{% block page_title %}{{ training.ojt.get_full_name|default:training.ojt.username }} — Training Profile{% endblock %}
+{% block content %}
+
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-header fw-bold">OJT Info</div>
+            <div class="card-body small">
+                <p class="mb-1"><strong>Name:</strong> {{ training.ojt.get_full_name|default:training.ojt.username }}</p>
+                <p class="mb-1"><strong>Supervisor:</strong> {{ training.supervisor.get_full_name|default:training.supervisor.username }}</p>
+                <p class="mb-1"><strong>Started:</strong> {{ training.start_date|date:"M d, Y" }}</p>
+                <p class="mb-1"><strong>Status:</strong> <span class="badge bg-success">{{ training.status }}</span></p>
+                <p class="mb-0"><strong>Avg Rating:</strong> <span class="badge bg-primary">{{ avg_score }}/5</span></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="fw-bold">Recent Ratings ({{ ratings|length }})</span>
+                <a href="{% url 'training:ojt_rating_list' training.pk %}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush small">
+                    {% for r in ratings %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-2">
+                        <span>{{ r.task_name }} <span class="text-muted">— {{ r.supervisor.get_full_name|default:r.supervisor.username }}</span></span>
+                        <span class="badge bg-{% if r.rating >= 4 %}success{% elif r.rating >= 3 %}warning{% else %}danger{% endif %}">{{ r.rating }}/5</span>
+                    </li>
+                    {% empty %}
+                    <li class="list-group-item text-center py-3 text-muted">No ratings yet.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="fw-bold">Weekly Reviews ({{ reviews|length }})</span>
+                <a href="{% url 'training:ojt_review_list' training.pk %}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0 small">
+                        <thead><tr><th>Week</th><th>Score</th><th>Status</th><th>Created</th></tr></thead>
+                        <tbody>
+                            {% for r in reviews %}
+                            <tr>
+                                <td><a href="{% url 'training:review_detail' r.pk %}">{{ r.week_start|date:"M d" }} — {{ r.week_end|date:"M d" }}</a></td>
+                                <td><span class="badge bg-{% if r.overall_score >= 4 %}success{% elif r.overall_score >= 3 %}warning{% else %}danger{% endif %}">{{ r.overall_score }}/5</span></td>
+                                <td><span class="badge bg-{% if r.status == 'SUBMITTED' %}success{% else %}secondary{% endif %}">{{ r.status }}</span></td>
+                                <td>{{ r.created_at|date:"M d, Y" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="4" class="text-center py-3 text-muted">No reviews.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if request.user.role != 'TRAINEE' %}
+<div class="mt-3 d-flex gap-2">
+    <a href="{% url 'training:rating_create' %}?ojt={{ training.pk }}" class="btn btn-sm btn-primary"><i class="bi bi-plus-lg"></i> Add Rating</a>
+    <a href="{% url 'training:review_create' %}?ojt={{ training.pk }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-plus-lg"></i> Add Weekly Review</a>
+</div>
+{% endif %}
+{% endblock %}

@@ -21,6 +21,9 @@ class CustomLoginView(LoginView):
         if user.role == User.Role.CONTRACTOR:
             login(self.request, user)
             return redirect('joborders:my_assignments')
+        if user.role == User.Role.TRAINEE:
+            login(self.request, user)
+            return redirect('training:dashboard')
         return super().form_valid(form)
 
 

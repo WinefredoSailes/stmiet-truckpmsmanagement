@@ -1,0 +1,26 @@
+{% extends 'core/base.html' %}
+{% block title %}Weekly Review{% endblock %}
+{% block page_title %}Weekly Review{% endblock %}
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <dl class="row mb-0 small">
+            <dt class="col-3">OJT</dt><dd class="col-9">{{ review.training.ojt.get_full_name|default:review.training.ojt.username }}</dd>
+            <dt class="col-3">Week</dt><dd class="col-9">{{ review.week_start|date:"M d, Y" }} — {{ review.week_end|date:"M d, Y" }}</dd>
+            <dt class="col-3">Overall Score</dt><dd class="col-9"><span class="badge bg-{% if review.overall_score >= 4 %}success{% elif review.overall_score >= 3 %}warning{% else %}danger{% endif %}">{{ review.overall_score }}/5</span></dd>
+            <dt class="col-3">Status</dt><dd class="col-9"><span class="badge bg-{% if review.status == 'SUBMITTED' %}success{% else %}secondary{% endif %}">{{ review.status }}</span></dd>
+            {% if review.strengths %}
+            <dt class="col-3">Strengths</dt><dd class="col-9">{{ review.strengths }}</dd>
+            {% endif %}
+            {% if review.areas_for_improvement %}
+            <dt class="col-3">Areas to Improve</dt><dd class="col-9">{{ review.areas_for_improvement }}</dd>
+            {% endif %}
+            {% if review.supervisor_notes %}
+            <dt class="col-3">Supervisor Notes</dt><dd class="col-9">{{ review.supervisor_notes }}</dd>
+            {% endif %}
+            <dt class="col-3">Created</dt><dd class="col-9">{{ review.created_at|date:"M d, Y h:i A" }}</dd>
+        </dl>
+    </div>
+</div>
+<a href="{% url 'training:review_list' %}" class="btn btn-outline-secondary btn-sm mt-3">Back</a>
+{% endblock %}

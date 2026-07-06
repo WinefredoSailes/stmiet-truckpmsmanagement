@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     'contractors',
     'kpi',
     'core',
+    'training',
 ]
 
 MIDDLEWARE = [

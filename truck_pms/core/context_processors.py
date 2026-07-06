@@ -10,6 +10,7 @@ def sidebar_menu(request):
     is_staff_or_above = role in (User.Role.SUPER_ADMIN, User.Role.ADMIN, User.Role.STAFF)
     is_mechanic = role == User.Role.MECHANIC
     is_contractor_user = role == User.Role.CONTRACTOR
+    is_trainee = role == User.Role.TRAINEE
 
     menu = [
         {'label': 'Dashboard', 'url': 'accounts:dashboard', 'icon': 'bi-speedometer2'},
@@ -36,5 +37,17 @@ def sidebar_menu(request):
 
     if role == User.Role.SUPER_ADMIN:
         menu.append({'label': 'User Management', 'url': 'accounts:user_list', 'icon': 'bi-people'})
+
+    if is_trainee:
+        menu.append({'label': 'Training', 'url': 'training:dashboard', 'icon': 'bi-mortarboard-fill'})
+
+    if is_staff_or_above:
+        menu.append({'label': 'Training', 'url': 'training:dashboard', 'icon': 'bi-mortarboard-fill'})
+
+    if is_admin:
+        menu.append({'label': 'Assign Training', 'url': 'training:assign', 'icon': 'bi-person-plus'})
+
+    if is_trainee:
+        menu = [m for m in menu if m['label'] != 'Job Orders']
 
     return {'sidebar_menu': menu}

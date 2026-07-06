@@ -1,0 +1,69 @@
+{% extends 'core/base.html' %}
+{% block title %}Assign Training{% endblock %}
+{% block page_title %}Assign OJT to Training{% endblock %}
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">OJT / Trainee</label>
+                    <select name="ojt" class="form-select" required>
+                        <option value="">— Select —</option>
+                        {% for t in trainees %}
+                        <option value="{{ t.pk }}">{{ t.get_full_name|default:t.username }} ({{ t.employee_id|default:'no ID' }})</option>
+                        {% empty %}
+                        <option disabled>No unassigned OJTs available</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Supervisor</label>
+                    <select name="supervisor" class="form-select" required>
+                        <option value="">— Select —</option>
+                        {% for s in supervisors %}
+                        <option value="{{ s.pk }}">{{ s.get_full_name|default:s.username }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Start Date</label>
+                    <input type="date" name="start_date" class="form-control" value="{% now 'Y-m-d' %}" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Notes (optional)</label>
+                    <input type="text" name="notes" class="form-control" placeholder="Any remarks">
+                </div>
+            </div>
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> Assign</button>
+                <a href="{% url 'training:dashboard' %}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card mt-4">
+    <div class="card-header fw-bold">Already Assigned (Active)</div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 small">
+                <thead><tr><th>OJT</th><th>Supervisor</th><th>Started</th><th>Actions</th></tr></thead>
+                <tbody>
+                    {% for a in assigned %}
+                    <tr>
+                        <td>{{ a.ojt.get_full_name|default:a.ojt.username }}</td>
+                        <td>{{ a.supervisor.get_full_name|default:a.supervisor.username }}</td>
+                        <td>{{ a.start_date|date:"M d, Y" }}</td>
+                        <td><a href="{% url 'training:ojt_detail' a.pk %}" class="btn btn-sm btn-outline-primary">View</a></td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4" class="text-center py-3 text-muted">No active training assignments.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

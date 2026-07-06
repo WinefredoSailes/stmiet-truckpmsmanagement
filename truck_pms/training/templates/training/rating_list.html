@@ -1,0 +1,33 @@
+{% extends 'core/base.html' %}
+{% block title %}Ratings{% endblock %}
+{% block page_title %}{% if ojt_name %}{{ ojt_name }} — {% endif %}Ratings{% endblock %}
+{% block content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span class="fw-bold">Task Ratings</span>
+        {% if request.user.role != 'TRAINEE' and not ojt_name %}
+        <a href="{% url 'training:rating_create' %}" class="btn btn-sm btn-primary"><i class="bi bi-plus-lg"></i> New Rating</a>
+        {% endif %}
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 small">
+                <thead><tr><th>OJT</th><th>Task</th><th>Rating</th><th>Supervisor</th><th>Date</th></tr></thead>
+                <tbody>
+                    {% for r in ratings %}
+                    <tr>
+                        <td>{{ r.training.ojt.get_full_name|default:r.training.ojt.username }}</td>
+                        <td><a href="{% url 'training:rating_detail' r.pk %}">{{ r.task_name }}</a></td>
+                        <td><span class="badge bg-{% if r.rating >= 4 %}success{% elif r.rating >= 3 %}warning{% else %}danger{% endif %}">{{ r.rating }}/5</span></td>
+                        <td>{{ r.supervisor.get_full_name|default:r.supervisor.username }}</td>
+                        <td>{{ r.created_at|date:"M d, Y" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="5" class="text-center py-3 text-muted">No ratings.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

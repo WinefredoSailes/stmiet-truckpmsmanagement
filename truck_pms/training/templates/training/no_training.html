@@ -1,0 +1,12 @@
+{% extends 'core/base.html' %}
+{% block title %}No Training Profile{% endblock %}
+{% block page_title %}No Training Profile{% endblock %}
+{% block content %}
+<div class="card">
+    <div class="card-body text-center py-5">
+        <i class="bi bi-mortarboard display-1 text-muted"></i>
+        <p class="mt-3">No active training profile found. Contact your supervisor or admin.</p>
+        <a href="{% url 'accounts:dashboard' %}" class="btn btn-outline-primary">Back to Dashboard</a>
+    </div>
+</div>
+{% endblock %}

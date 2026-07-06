@@ -1,0 +1,53 @@
+{% extends 'core/base.html' %}
+{% block title %}New Rating{% endblock %}
+{% block page_title %}Rate OJT{% endblock %}
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">OJT</label>
+                    <select name="training" class="form-select" required>
+                        <option value="">— Select —</option>
+                        {% for t in trainees %}
+                        <option value="{{ t.pk }}">{{ t.ojt.get_full_name|default:t.ojt.username }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Rating</label>
+                    <select name="rating" class="form-select" required>
+                        <option value="">— Select —</option>
+                        {% for i in "12345" %}
+                        <option value="{{ i }}">{{ i }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">PM Task (optional)</label>
+                    <select name="task_template" class="form-select">
+                        <option value="">— None —</option>
+                        {% for tmpl in templates %}
+                        <option value="{{ tmpl.pk }}">{{ tmpl.category.name }} — {{ tmpl.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Or custom task name</label>
+                    <input type="text" name="task_name" class="form-control" placeholder="e.g. Pre-trip inspection">
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Comments</label>
+                    <textarea name="comments" class="form-control" rows="3"></textarea>
+                </div>
+            </div>
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> Save Rating</button>
+                <a href="{% url 'training:dashboard' %}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
