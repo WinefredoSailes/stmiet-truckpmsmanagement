@@ -8,13 +8,17 @@
             <div class="card-header fw-bold">Truck Details</div>
             <div class="card-body">
                 <dl class="row mb-0 small dl-table">
+                    <dt class="col-6">Plate #</dt><dd class="col-6">{{ truck.plate_number }}</dd>
                     <dt class="col-6">Make</dt><dd class="col-6">{{ truck.make }}</dd>
                     <dt class="col-6">Model</dt><dd class="col-6">{{ truck.model }}</dd>
-                    <dt class="col-6">Year</dt><dd class="col-6">{{ truck.year }}</dd>
+                    <dt class="col-6">Year Model</dt><dd class="col-6">{{ truck.year }}</dd>
+                    <dt class="col-6">Series</dt><dd class="col-6">{{ truck.series|default:'-' }}</dd>
                     <dt class="col-6">Chassis #</dt><dd class="col-6">{{ truck.chassis_number|default:'-' }}</dd>
                     <dt class="col-6">Engine #</dt><dd class="col-6">{{ truck.engine_number|default:'-' }}</dd>
-                    <dt class="col-6">Tank Capacity</dt><dd class="col-6">{{ truck.tank_capacity_liters|default:'-' }} L</dd>
+                    <dt class="col-6">Body Type</dt><dd class="col-6">{{ truck.body_type|default:'-' }}</dd>
+                    <dt class="col-6">Body No.</dt><dd class="col-6">{{ truck.body_no|default:'-' }}</dd>
                     <dt class="col-6">Fuel Type</dt><dd class="col-6">{{ truck.fuel_type|default:'-' }}</dd>
+                    <dt class="col-6">Tank Capacity</dt><dd class="col-6">{{ truck.tank_capacity_liters|default:'-' }} L</dd>
                     <dt class="col-6">Status</dt><dd class="col-6">
                         <span class="badge bg-{% if truck.status == 'ACTIVE' %}success{% elif truck.status == 'DOWN' %}danger{% else %}secondary{% endif %} badge-status">{{ truck.get_status_display }}</span>
                     </dd>
@@ -26,6 +30,28 @@
                 {% endif %}
             </div>
         </div>
+        {% if truck.mv_file_no or truck.cr_number or truck.or_number %}
+        <div class="card mb-4">
+            <div class="card-header fw-bold">Certificate of Registration</div>
+            <div class="card-body">
+                <dl class="row mb-0 small dl-table">
+                    <dt class="col-6">MV File No.</dt><dd class="col-6">{{ truck.mv_file_no|default:'-' }}</dd>
+                    <dt class="col-6">CR Number</dt><dd class="col-6">{{ truck.cr_number|default:'-' }}</dd>
+                    <dt class="col-6">OR Number</dt><dd class="col-6">{{ truck.or_number|default:'-' }}</dd>
+                    <dt class="col-6">OR Expiry</dt><dd class="col-6">{{ truck.or_expiry|date:'M d, Y'|default:'-' }}</dd>
+                    <dt class="col-6">Denomination</dt><dd class="col-6">{{ truck.denomination|default:'-' }}</dd>
+                    <dt class="col-6">Piston Displacement</dt><dd class="col-6">{{ truck.piston_displacement_cc|default:'-' }} cc</dd>
+                    <dt class="col-6">No. of Cylinders</dt><dd class="col-6">{{ truck.no_of_cylinders|default:'-' }}</dd>
+                    <dt class="col-6">Gross Weight</dt><dd class="col-6">{{ truck.gross_weight_kg|default:'-' }} kg</dd>
+                    <dt class="col-6">Net Weight</dt><dd class="col-6">{{ truck.net_weight_kg|default:'-' }} kg</dd>
+                    <dt class="col-6">Shipping Weight</dt><dd class="col-6">{{ truck.shipping_weight_kg|default:'-' }} kg</dd>
+                    <dt class="col-6">Net Capacity</dt><dd class="col-6">{{ truck.net_capacity_kg|default:'-' }} kg</dd>
+                    <dt class="col-6">Field Office Code</dt><dd class="col-6">{{ truck.field_office_code|default:'-' }}</dd>
+                    <dt class="col-6">LTO Reg'd Address</dt><dd class="col-6">{{ truck.lto_registered_address|default:'-' }}</dd>
+                </dl>
+            </div>
+        </div>
+        {% endif %}
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <span class="fw-bold">PM Schedule</span>
