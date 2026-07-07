@@ -285,3 +285,25 @@ def add_line_item_part(request, item_pk):
     return render(request, 'joborders/part_form.html', {
         'form': form, 'item': item
     })
+
+
+@login_required
+@role_required(User.Role.SUPER_ADMIN, User.Role.ADMIN, User.Role.STAFF)
+def job_order_add_line_item(request, pk):
+    order = get_object_or_404(JobOrder, pk=pk)
+    if order.status == 'CLOSED':
+        messages.warning(request, 'Cannot add line items to a closed JO.')
+        return redirect('joborders:detail', pk=pk)
+    if request.method == 'POST':
+        form = JobOrderLineItemForm(request.POST)
+        if form.is_valid():
+            item = form.save(commit=False)
+            item.job_order = order
+            item.save()
+            messages.success(request, f'Line item "{item.description}" added.')
+            return redirect('joborders:detail', pk=pk)
+    else:
+        form = JobOrderLineItemForm()
+    return render(request, 'joborders/line_item_form.html', {
+        'form': form, 'order': order, 'creating': True
+    })

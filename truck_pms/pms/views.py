@@ -3,7 +3,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.paginator import Paginator
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.http import HttpResponse
 from django.utils import timezone
 from accounts.decorators import role_required
@@ -101,11 +101,17 @@ def template_update(request, pk):
 def schedule_list(request):
     truck_id = request.GET.get('truck')
     status_filter = request.GET.get('status')
+    search = request.GET.get('search', '').strip()
     schedules = PMSchedule.objects.select_related(
         'truck', 'task_template__category'
     ).all()
     if truck_id:
         schedules = schedules.filter(truck_id=truck_id)
+    if search:
+        schedules = schedules.filter(
+            Q(task_template__name__icontains=search) |
+            Q(task_template__category__name__icontains=search)
+        )
     if status_filter:
         filtered = []
         for s in schedules:
@@ -124,6 +130,7 @@ def schedule_list(request):
         'trucks': trucks,
         'selected_truck': truck_id,
         'selected_status': status_filter,
+        'search': search,
     })
 
 
@@ -150,11 +157,17 @@ def schedule_update(request, pk):
 def schedule_csv(request):
     truck_id = request.GET.get('truck')
     status_filter = request.GET.get('status')
+    search = request.GET.get('search', '').strip()
     schedules = PMSchedule.objects.select_related(
         'truck', 'task_template__category'
     ).all()
     if truck_id:
         schedules = schedules.filter(truck_id=truck_id)
+    if search:
+        schedules = schedules.filter(
+            Q(task_template__name__icontains=search) |
+            Q(task_template__category__name__icontains=search)
+        )
     if status_filter:
         filtered = []
         for s in schedules:
@@ -210,11 +223,17 @@ def schedule_csv(request):
 def schedule_print(request):
     truck_id = request.GET.get('truck')
     status_filter = request.GET.get('status')
+    search = request.GET.get('search', '').strip()
     schedules = PMSchedule.objects.select_related(
         'truck', 'task_template__category'
     ).all()
     if truck_id:
         schedules = schedules.filter(truck_id=truck_id)
+    if search:
+        schedules = schedules.filter(
+            Q(task_template__name__icontains=search) |
+            Q(task_template__category__name__icontains=search)
+        )
     if status_filter:
         filtered = []
         for s in schedules:

@@ -13,4 +13,5 @@ urlpatterns = [
     path('my-assignments/', views.my_assignments, name='my_assignments'),
     path('line-item/<int:pk>/update/', views.update_line_item, name='update_line_item'),
     path('line-item/<int:item_pk>/add-part/', views.add_line_item_part, name='add_line_item_part'),
+    path('<int:pk>/add-line-item/', views.job_order_add_line_item, name='add_line_item'),
 ]
