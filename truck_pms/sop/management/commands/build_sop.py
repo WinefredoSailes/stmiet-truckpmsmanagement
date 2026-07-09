@@ -1,7 +1,7 @@
+from pathlib import Path
 from django.core.management.base import BaseCommand, CommandError
 from django.template.loader import render_to_string
 from django.conf import settings
-from pathlib import Path
 
 
 class Command(BaseCommand):
@@ -9,7 +9,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         try:
-            from weasyprint import HTML
+            from weasyprint import HTML as WeasyprintHTML
         except ImportError:
             raise CommandError(
                 'WeasyPrint is not installed. Run: pip install weasyprint\n'
@@ -40,9 +40,15 @@ class Command(BaseCommand):
             html_path = output_dir / f'{lang_code}.html'
             html_path.write_text(html_string, encoding='utf-8')
 
+            # Resolve static paths for PDF generation
+            static_url = settings.STATIC_URL
+            static_dir = str((settings.BASE_DIR / 'static').resolve())
+            file_prefix = 'file:///' + static_dir.replace('\\', '/')
+            pdf_html = html_string.replace(static_url, file_prefix + '/')
+
             pdf_path = output_dir / filename
             self.stdout.write(f'  Generating PDF: {pdf_path}...')
-            HTML(string=html_string, encoding='utf-8').write_pdf(str(pdf_path))
+            WeasyprintHTML(string=pdf_html, encoding='utf-8').write_pdf(str(pdf_path))
 
             file_size = pdf_path.stat().st_size
             self.stdout.write(self.style.SUCCESS(
