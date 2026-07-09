@@ -1,37 +1,35 @@
 <div class="procedure no-break">
-<h4>{{ title }}</h4>
+<h4>{{ p_title }}</h4>
 <div class="proc-meta">
-    <div><strong>Purpose:</strong> {{ purpose }}</div>
-    <div><strong>Scope:</strong> {{ scope }}</div>
-    <div><strong>Frequency:</strong> {{ frequency }}</div>
-    <div><strong>PPE Required:</strong> {{ ppe }}</div>
-    <div><strong>Tools & Materials:</strong> {{ tools }}</div>
+    <div><strong>Purpose:</strong> {{ p_purpose }}</div>
+    <div><strong>Scope:</strong> {{ p_scope }}</div>
+    <div><strong>Frequency:</strong> {{ p_frequency }}</div>
+    <div><strong>PPE Required:</strong> {{ p_ppe }}</div>
+    <div><strong>Tools & Materials:</strong> {{ p_tools }}</div>
 </div>
 
 <strong>Step-by-Step Procedure:</strong>
 <ol class="steps">
-{% for step in steps %}
-    <li>{{ step }}</li>
-{% endfor %}
+{{ p_steps|safe }}
 </ol>
 
-{% if acceptance %}
-<div class="criteria"><strong>Acceptance Criteria:</strong> {{ acceptance }}</div>
+{% if p_acceptance %}
+<div class="criteria"><strong>Acceptance Criteria:</strong> {{ p_acceptance }}</div>
 {% endif %}
 
-{% if danger %}
-<div class="danger-note"><strong>⚠ SAFETY:</strong> {{ danger }}</div>
+{% if p_danger %}
+<div class="danger-note"><strong>⚠ SAFETY:</strong> {{ p_danger }}</div>
 {% endif %}
 
-{% if tip %}
-<div class="tip-note"><strong>Tip:</strong> {{ tip }}</div>
+{% if p_tip %}
+<div class="tip-note"><strong>Tip:</strong> {{ p_tip }}</div>
 {% endif %}
 
-{% if documentation %}
-<div class="info-note"><strong>Documentation:</strong> {{ documentation }}</div>
+{% if p_documentation %}
+<div class="info-note"><strong>Documentation:</strong> {{ p_documentation }}</div>
 {% endif %}
 
-{% if signoff %}
-<div class="signoff-line">{{ signoff }}</div>
+{% if p_signoff %}
+<div class="signoff-line">{{ p_signoff }}</div>
 {% endif %}
 </div>
