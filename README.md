@@ -1,6 +1,19 @@
 # Truck PMS & Servicing System
 
-A Django-based Preventive Maintenance System for fuel tanker fleet management. Tracks repair/PMS history, job orders, contractor services, and mechanic KPI.
+A Django-based Preventive Maintenance System for internal fuel tanker fleet management. Tracks maintenance schedules, job orders (repairs/PMS), parts usage, contractor services, mechanic KPI, and OJT training — all in one system.
+
+**Live:** https://stmiet-truckpmsmanagement.onrender.com
+
+---
+
+## Table of Contents
+
+- [Setup Guide](#setup-guide)
+- [Default Accounts](#default-accounts)
+- [Quick Start](#quick-start-script)
+- [Deployment to Render](#deployment-to-render)
+- [Architecture](#architecture)
+- [User Guide](#user-guide)
 
 ---
 
@@ -10,7 +23,7 @@ A Django-based Preventive Maintenance System for fuel tanker fleet management. T
 - Python 3.11+
 - pip
 
-### Installation
+### Local Installation
 
 ```bash
 # 1. Navigate to project
@@ -31,7 +44,7 @@ pip install -r requirements.txt
 # 5. Run migrations
 python manage.py migrate
 
-# 6. Seed initial data
+# 6. Seed initial data (users, trucks, PM templates, etc.)
 python manage.py seed_data
 
 # 7. Start server
@@ -40,160 +53,64 @@ python manage.py runserver 0.0.0.0:8000
 
 ### Default Accounts
 
-| Username | Password | Role |
-|---|---|---|
-| `admin` | `admin123` | Super Admin |
-| `miguel` | `password123` | Admin |
-| `juan` | `password123` | Staff |
-| `pedro` | `password123` | Mechanic |
-| `andres` | `password123` | Mechanic |
-| `contractor1` | `password123` | Contractor |
+| Username | Password | Role | Notes |
+|---|---|---|---|
+| `admin` | `admin123` | **Super Admin** | Full access + User Management |
+| `miguel` | `password123` | **Admin** | Can manage trucks, PM, JOs, contractors |
+| `juan` | `password123` | **Staff** | Can create/manage JOs, view PM |
+| `pedro` | `password123` | **Mechanic** | Engine specialist — sees assigned JOs only |
+| `andres` | `password123` | **Mechanic** | Brakes specialist |
+| `contractor1` | `password123` | **Contractor** | Limited to contractor-assigned JOs |
+
+> **Note:** OJT/Trainee accounts must be created manually via User Management since they need a supervisor assignment.
 
 ### Quick Start Script
 
 ```powershell
-# Windows — run from project root
+# Windows — run from project root (creates venv, installs deps, migrates, seeds)
 .\start.ps1
 ```
 
 ---
 
-## User Guide
+## Deployment to Render
 
-### 1. Roles & Access
+### Prerequisites
+1. Push your code to a GitHub repository.
+2. Create a **Render account** at https://render.com.
+3. Create a **PostgreSQL** database on Render (free tier works).
 
-| Role | Permissions |
+### Steps
+
+1. **Dashboard → New → Web Service**
+2. Connect your GitHub repo.
+3. Configure:
+
+| Setting | Value |
 |---|---|
-| **Super Admin** | Full system access + User Management + Django admin (`/admin/`) |
-| **Admin** | All except User Management. Can create/edit trucks, PM configs, contractors, view KPI |
-| **Staff** | Create and manage job orders, view PM schedules |
-| **Mechanic** | Views only assigned job orders. Can mark line items as Done, log hours/parts |
-| **Contractor** | Same as Mechanic but limited to contractor-assigned JOs |
+| **Name** | `stmiet-truckpms` (or your choice) |
+| **Region** | Singapore (or nearest to fleet) |
+| **Branch** | `main` |
+| **Root Directory** | `truck_pms` |
+| **Runtime** | `Python 3` |
+| **Build Command** | `pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate && python manage.py seed_data` |
+| **Start Command** | `gunicorn truck_pms.wsgi --log-file -` |
+| **Plan** | Free |
 
-### 2. Fleet Management (Trucks)
+4. Add **Environment Variables**:
 
-**Navigation:** Sidebar → Trucks
-
-- **Add Truck** — Register a new fuel tanker. Auto-creates all 45 PM schedules.
-- **Edit Truck** — Update specs, mileage, engine hours, status (Active/Down/Retired).
-- **Truck Detail** — Shows:
-  - Specs (make, model, tank capacity, etc.)
-  - PM Schedule status per task (OK / Due / Overdue / Visual)
-  - Job Order history
-  - Service history log
-
-### 3. Preventive Maintenance Scheduling
-
-**Navigation:** Sidebar → PMS Schedules
-
-#### Task Categories & Templates
-
-Defined in **PMS Schedules > Categories** and **Templates**:
-- **23 categories** — Engine PM, Brakes, Tires, Tank Integrity, Valves, Vapor Recovery, etc.
-- **45 task templates** — Each has:
-  - **Interval types:** Mileage (km), Engine Hours, Calendar (days), Visual Inspection
-  - **Values:** e.g., Oil change every 5,000 km; Tank test every 365 days
-  - **Specialist flag:** Some tasks require electricians, welders, etc.
-
-#### Schedule Management
-
-- Each truck has its own PMSchedule for every template.
-- Status auto-calculates:
-  - **OK** — not yet due
-  - **Due** — within 10% of interval
-  - **Overdue** — past interval
-  - **Visual** — visual inspection (no auto-schedule)
-  - **No Data** — never completed
-- **Sync All Trucks** button on PM Schedules page — applies any new templates to all trucks
-- **Refresh icon** on truck detail — syncs just that truck
-
-### 4. Job Orders
-
-**Navigation:** Sidebar → Job Orders
-
-#### States (3-state workflow)
-
-```
-Open → In Progress → Closed
-```
-
-#### Creating a Job Order
-
-1. Click **New Job Order**
-2. Select **Truck**, enter **Title/Description**
-3. Set **Type**: PM / Repair / Inspection / Contractor Service
-4. Set **Priority**: Low / Medium / High / Emergency
-5. **Assign To**: Select a mechanic, or for Contractor type select a contractor company
-6. Save → Add line items on the detail page
-
-#### Line Items
-
-Each JO can have multiple line items:
-- **Task** description
-- **Category** (Engine PM, Brakes, etc.)
-- **Estimated / Actual hours**
-- **Status**: Pending → In Progress → Done
-- **Parts**: Add part name, quantity, unit cost
-
-#### Mechanics / Contractors Flow
-
-1. User assigned to a JO sees it in **My Assignments**
-2. Opens JO → clicks green checkmark on a line item → marks Done, logs actual hours
-3. Clicks box icon → adds parts used
-
-#### Closing a Job Order
-
-1. Admin/Staff opens the JO → clicks **Close Job Order**
-2. Auto-closes all pending line items
-3. Records current truck mileage/engine hours
-4. Auto-updates PM schedules (resets next due)
-5. Logs everything to Service History
-
-### 5. Contractors
-
-**Navigation:** Sidebar → Contractors
-
-Register external service providers:
-- Company name, contact person, mobile, email
-- Skills/services (comma-separated)
-- Track all JOs assigned to each contractor
-
-### 6. Service Ledger
-
-**Navigation:** Sidebar → Service Ledger
-
-Immutable audit trail of every action:
-- Filter by truck and action type
-- View full history or per-truck from truck detail
-- Shows: Date, Truck, JO#, Action, Description, Performed By, Labor Hours, Parts Cost
-
-### 7. KPI Reports
-
-**Navigation:** Sidebar → KPI Reports
-
-| Report | What it shows |
+| Variable | Value |
 |---|---|
-| **Mechanic KPI** | Workers, specialization, jobs completed, total labor hours, parts cost |
-| **Contractor KPI** | Companies, total jobs, completed vs open, completion rate |
-| **Truck Frequency** | Per-truck: service count, cost, labor hours, most frequent actions, job type breakdown |
+| `DATABASE_URL` | Your PostgreSQL internal connection string (from Render PostgreSQL dashboard) |
+| `DJANGO_SECRET_KEY` | A long random string |
+| `DJANGO_DEBUG` | `False` |
+| `DJANGO_ALLOWED_HOSTS` | `.onrender.com,localhost,127.0.0.1` |
+| `DJANGO_CSRF_TRUSTED_ORIGINS` | `https://*.onrender.com,http://localhost` |
 
-### 8. User Management (Super Admin only)
+5. Click **Create Web Service**. Render will build and deploy automatically.
+6. Your app is live at `https://your-service-name.onrender.com`.
 
-**Navigation:** Sidebar → User Management
-
-- Create / Edit users
-- Filter by role
-- **Password reset** → click key icon → redirects to Django admin
-- Roles: Super Admin, Admin, Staff, Mechanic, Contractor
-
-### 9. Django Admin
-
-**URL:** `http://127.0.0.1:8000/admin/` (Super Admin only)
-
-Full CRUD for all models — use this for:
-- Password resets
-- Bulk operations
-- Direct database management
+> **Auto-deploy is OFF** by default. After pushing changes, trigger **Manual Deploy → Deploy Latest Commit** from the Render dashboard.
 
 ---
 
@@ -203,28 +120,63 @@ Full CRUD for all models — use this for:
 
 | App | Purpose |
 |---|---|
-| `accounts` | Custom User model with roles (SUPER_ADMIN, ADMIN, STAFF, MECHANIC, CONTRACTOR) |
-| `trucks` | Truck/fleet asset management |
-| `pms` | Task categories, task templates, per-truck PM schedules |
-| `joborders` | Job Orders, line items, parts tracking |
-| `service_log` | Immutable audit trail of all work done |
-| `contractors` | External vendor registry |
-| `kpi` | Computed tabular reports |
-| `core` | Base template, shared CSS, form mixin |
+| `accounts` | Custom User model with 6 roles (SUPER_ADMIN, ADMIN, STAFF, MECHANIC, CONTRACTOR, TRAINEE) |
+| `trucks` | Truck/fleet asset management with 17 Certificate of Registration fields |
+| `pms` | Task categories (23), task templates (154), per-truck PM schedules with auto-status |
+| `joborders` | Job Orders, line items, parts tracking, close-flow with PM schedule update |
+| `service_log` | Immutable audit trail of all work done (populated on JO close) |
+| `contractors` | External vendor registry (skills, contact, history) |
+| `kpi` | Computed reports: mechanic KPI, contractor rates, truck frequency, predictive analytics |
+| `training` | OJT onboarding: attendance check-in/out, task ratings (1-5), weekly reviews |
+| `core` | Base template, shared CSS, form mixin, request-timing middleware, sidebar context processor |
 
-### Key Models
+### Key Model Relationships
 
 ```
 TaskCategory ──1:N── TaskTemplate ──1:N── PMSchedule ──N:1── Truck
                                                     │
+                                                    ▼
 JobOrder ──1:N── JobOrderLineItem ──1:N── LineItemPart
     │
     └──1:N── ServiceLogEntry
+
+Training ──1:N── Attendance
+         ├── TaskRating (links to TaskTemplate)
+         └── WeeklyReview
 ```
+
+### Status Calculation (PM Schedule)
+
+Each PMSchedule's `status()` method runs live (no stored field):
+
+- **MILEAGE**: compares `truck.current_mileage_km` against `last_mileage_km + interval_value`
+- **HOURS**: compares `truck.current_engine_hours` against `last_engine_hours + interval_value`
+- **CALENDAR**: compares current datetime against `last_completed_at + interval_value` days
+- **VISUAL**: always returns `"visual"` (no auto-calculation)
+- **"Due" threshold**: within 10% of the interval value
 
 ### Tech Stack
 
-- **Backend:** Django 6.0 + SQLite
+- **Backend:** Django 6.0 + PostgreSQL (production) / SQLite (local)
 - **Frontend:** Django Templates + Bootstrap 5.3 + Bootstrap Icons
 - **Font:** Inter (Google Fonts)
 - **CSS:** Custom stylesheet with CSS variables
+- **Static:** WhiteNoise for production static file serving
+- **Server:** Gunicorn
+
+---
+
+## User Guide
+
+> **Full user documentation** is available in [USER_GUIDE.md](USER_GUIDE.md) — covers every feature, role-by-role workflow, and step-by-step procedures for the SOP handbook.
+
+### Quick Reference by Role
+
+| Role | Login Redirect | Key Features Available |
+|---|---|---|
+| **Super Admin** | Dashboard | Everything + User Management + Django Admin |
+| **Admin** | Dashboard | All ops + Training (Assign + Supervise) + KPI + Predictive Analytics |
+| **Staff** | Dashboard | Create/manage JOs, view PM, Training (Supervise OJTs) |
+| **Mechanic** | Dashboard | My Assignments, line item status updates, parts logging |
+| **Contractor** | My Assignments | Same as Mechanic, limited to own JOs |
+| **OJT / Trainee** | Training Dashboard | Check-in/out, view ratings & reviews |
