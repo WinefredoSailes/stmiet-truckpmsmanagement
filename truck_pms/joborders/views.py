@@ -70,14 +70,26 @@ def job_order_detail(request, pk):
     return render(request, 'joborders/detail.html', context)
 
 
-@login_required
-def job_order_print(request, pk):
+def _resolve_job_order(pk, user):
+    """Fetch a job order with mechanic/contractor access check."""
     order = get_object_or_404(
         JobOrder.objects.select_related(
             'truck', 'assigned_to', 'created_by', 'contractor'
         ),
         pk=pk
     )
+    if user.role in (User.Role.MECHANIC, User.Role.CONTRACTOR):
+        if order.assigned_to != user:
+            return None
+    return order
+
+
+@login_required
+def job_order_print(request, pk):
+    order = _resolve_job_order(pk, request.user)
+    if order is None:
+        messages.error(request, 'You can only view job orders assigned to you.')
+        return redirect('joborders:my_assignments')
     line_items = order.line_items.select_related(
         'category', 'task_template'
     ).prefetch_related('parts')
@@ -91,12 +103,10 @@ def job_order_print(request, pk):
 
 @login_required
 def job_order_pdf(request, pk):
-    order = get_object_or_404(
-        JobOrder.objects.select_related(
-            'truck', 'assigned_to', 'created_by', 'contractor'
-        ),
-        pk=pk
-    )
+    order = _resolve_job_order(pk, request.user)
+    if order is None:
+        messages.error(request, 'You can only view job orders assigned to you.')
+        return redirect('joborders:my_assignments')
     line_items = order.line_items.select_related(
         'category', 'task_template'
     ).prefetch_related('parts')
