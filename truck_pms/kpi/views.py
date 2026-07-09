@@ -1,3 +1,4 @@
+import json
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Sum, Q
@@ -156,18 +157,18 @@ def predictive_analytics(request):
     part_counts = [p['count'] for p in top_parts]
 
     return render(request, 'kpi/predictive.html', {
-        'failure_labels': failure_labels,
-        'failure_counts': failure_counts,
+        'failure_labels': json.dumps(failure_labels),
+        'failure_counts': json.dumps(failure_counts),
         'total_pm': total_pm,
         'ok_pm': ok_pm,
         'overdue_pm': overdue_pm,
         'due_pm': due_pm,
         'no_data_pm': no_data_pm,
-        'cost_labels': cost_labels,
-        'parts_cost': parts_cost,
-        'labor_cost': labor_cost,
-        'overdue_trucks': overdue_trucks,
-        'overdue_counts': overdue_counts,
-        'part_labels': part_labels,
-        'part_counts': part_counts,
+        'cost_labels': json.dumps(cost_labels),
+        'parts_cost': json.dumps(parts_cost),
+        'labor_cost': json.dumps(labor_cost),
+        'overdue_trucks': json.dumps(overdue_trucks),
+        'overdue_counts': json.dumps(overdue_counts),
+        'part_labels': json.dumps(part_labels),
+        'part_counts': json.dumps(part_counts),
     })

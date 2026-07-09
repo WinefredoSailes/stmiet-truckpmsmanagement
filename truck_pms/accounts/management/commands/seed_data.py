@@ -1,3 +1,5 @@
+import os
+import secrets
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
 from django.utils import timezone
@@ -6,6 +8,7 @@ from trucks.models import Truck
 from contractors.models import Contractor
 
 User = get_user_model()
+DEV_PASSWORD = os.environ.get('SEED_DEV_PASSWORD', 'dev-change-me-in-production')
 
 
 class Command(BaseCommand):
@@ -16,15 +19,16 @@ class Command(BaseCommand):
 
         # Create superuser
         if not User.objects.filter(username='admin').exists():
+            pwd = os.environ.get('SEED_ADMIN_PASSWORD') or DEV_PASSWORD
             User.objects.create_superuser(
                 username='admin',
                 email='admin@truckpms.local',
-                password='admin123',
+                password=pwd,
                 role=User.Role.SUPER_ADMIN,
                 first_name='System',
                 last_name='Admin',
             )
-            self.stdout.write('  Created superuser: admin / admin123')
+            self.stdout.write(f'  Created superuser: admin / (set via SEED_ADMIN_PASSWORD or SEED_DEV_PASSWORD)')
 
         # Create sample users
         users_data = [
@@ -38,13 +42,13 @@ class Command(BaseCommand):
             if not User.objects.filter(username=username).exists():
                 User.objects.create_user(
                     username=username,
-                    password='password123',
+                    password=DEV_PASSWORD,
                     first_name=fn,
                     last_name=ln,
                     role=role,
                     specialization=spec,
                 )
-                self.stdout.write(f'  Created user: {username} / password123')
+                self.stdout.write(f'  Created user: {username} / (from SEED_DEV_PASSWORD)')
 
         # Create task categories
         categories = [

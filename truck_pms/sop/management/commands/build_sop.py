@@ -29,6 +29,7 @@ class Command(BaseCommand):
 
         editions = [
             ('en', 'sop/sop_manual_en.html', 'Truck_PMS_SOP_Manual_EN.pdf'),
+            ('tl', 'sop/sop_manual_tl.html', 'Truck_PMS_SOP_Manual_TL.pdf'),
         ]
 
         for lang_code, template_name, filename in editions:

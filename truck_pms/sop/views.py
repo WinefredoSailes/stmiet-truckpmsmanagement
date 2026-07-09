@@ -9,8 +9,18 @@ def download_page(request):
     return render(request, 'sop/download/download_page.html')
 
 
-def _serve_pdf_or_html(request, filename, html_template):
-    """Try PDF first, fall back to HTML browser-print view."""
+def view_en(request):
+    """Render English SOP manual in browser (HTML/print view)."""
+    return render(request, 'sop/sop_manual_en.html')
+
+
+def view_tl(request):
+    """Render Tagalog SOP manual in browser (HTML/print view)."""
+    return render(request, 'sop/sop_manual_tl.html')
+
+
+def _serve_pdf(request, filename):
+    """Serve PDF file directly; 404 if not found."""
     pdf_path = Path(settings.BASE_DIR) / 'static' / 'sop' / filename
     if pdf_path.exists():
         return FileResponse(
@@ -19,21 +29,12 @@ def _serve_pdf_or_html(request, filename, html_template):
             filename=filename,
             content_type='application/pdf',
         )
-    # Fallback: render HTML for browser printing
-    return render(request, html_template)
+    raise Http404('PDF not found. Run `python manage.py build_sop` to generate it.')
 
 
 def download_en(request):
-    return _serve_pdf_or_html(
-        request,
-        'Truck_PMS_SOP_Manual_EN.pdf',
-        'sop/sop_manual_en.html',
-    )
+    return _serve_pdf(request, 'Truck_PMS_SOP_Manual_EN.pdf')
 
 
 def download_tl(request):
-    return _serve_pdf_or_html(
-        request,
-        'Truck_PMS_SOP_Manual_TL.pdf',
-        'sop/sop_manual_tl.html',
-    )
+    return _serve_pdf(request, 'Truck_PMS_SOP_Manual_TL.pdf')
