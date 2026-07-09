@@ -93,7 +93,7 @@ python manage.py runserver 0.0.0.0:8000
 | **Branch** | `main` |
 | **Root Directory** | `truck_pms` |
 | **Runtime** | `Python 3` |
-| **Build Command** | `pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate && python manage.py seed_data` |
+| **Build Command** | `pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate && python manage.py seed_data && python manage.py build_sop` |
 | **Start Command** | `gunicorn truck_pms.wsgi --log-file -` |
 | **Plan** | Free |
 
