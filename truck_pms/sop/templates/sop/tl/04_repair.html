@@ -1,0 +1,338 @@
+<h1 id="vol4">Bolyum 4 — Repair Operations</h1>
+
+<h2 id="ch10">Kabanata 10: Initial Assessment at Triage</h2>
+
+<h3>10.1 Pagtanggap ng Trak para sa Repair</h3>
+
+<p>Kapag dumating ang isang trak sa workshop na may reported na problema, sundin itong standard intake procedure:</p>
+
+<ol>
+    <li><strong>Driver Report:</strong> Kausapin ang driver o ang nag-report ng issue. Itanong ang limang key questions:
+        <ul>
+            <li>Ano ang problema? (maging specific — ano ang ginagawa, o hindi ginagawa?)</li>
+            <li>Kailan ito nagsimula? (biglaan o unti-unti?)</li>
+            <li>Sa anong kondisyon ito nangyayari? (speed, load, temperature, gear, turning?)</li>
+            <li>May warning lights ba? (alin, kailan sila umilaw?)</li>
+            <li>May kamakailang repairs o changes ba? (ano ang huling ginalaw?)</li>
+        </ul>
+    </li>
+    <li><strong>Visual Walk-Around:</strong> Maglibot sa trak at tingnan ang mga obvious signs: fluid leaks (kulay, lokasyon, dami), damaged components, maluwag o hanging parts, abnormal tire wear, sirang ilaw, damaged hoses.</li>
+    <li><strong>Fluid Check:</strong> Suriin ang lahat ng fluid levels at conditions — engine oil, coolant, transmission oil, power steering, brake fluid (kung applicable), windshield washer. Tandaan ang anumang fluid na mababa, contaminated, o may kakaibang amoy.</li>
+    <li><strong>Functional Check:</strong> Habang tumatakbo ang makina (kung safe), i-verify ang: warning lights sa instrument panel, kakaibang ingay (knocking, squealing, hissing, grinding), kakaibang amoy (burning oil, fuel, rubber, electrical), brake function (pedal feel, air pressure buildup at leak-down rate), steering response (free play, pulling).</li>
+    <li><strong>Diagnostic Scan:</strong> Ikabit ang diagnostic scan tool (kung available) para tingnan ang stored fault codes. Itala ang lahat ng active at historic codes.</li>
+    <li><strong>Triage Decision:</strong> Base sa initial assessment, i-classify ang repair:
+        <ul>
+            <li><strong>Emergency / Safety-Critical:</strong> Hindi pwedeng paandarin nang ligtas ang trak. Dapat ayusin bago galawin. Halimbawa: brake failure, steering failure, malaking fuel/oil leak, tire blowout, walang ilaw sa gabi.</li>
+            <li><strong>Routine:</strong> Pwedeng paandarin ang trak pero dapat i-schedule para sa repair sa loob ng linggo. Halimbawa: minor oil leak, worn belt, isang burned-out marker light, maliit na air leak.</li>
+            <li><strong>Deferred:</strong> Hindi naaapektuhan ang kaligtasan o operasyon pero dapat i-monitor at i-address sa susunod na scheduled PM. Halimbawa: minor cosmetic damage, slight oil seepage mula sa gasket, worn pero hindi critical na gulong.</li>
+        </ul>
+    </li>
+</ol>
+
+<h3>10.2 Repair vs. Replace Decision</h3>
+
+<p>Para sa anumang failed o worn component, i-evaluate ang mga sumusunod na factors bago magdesisyon kung repair o replace:</p>
+
+<table>
+<thead><tr><th>Factor</th><th>Pabor sa Repair</th><th>Pabor sa Replace</th></tr></thead>
+<tbody>
+<tr><td>Cost</td><td>Repair cost &lt; 50% ng replacement cost</td><td>Repair cost &ge; 50% ng replacement cost</td></tr>
+<tr><td>Age / Wear</td><td>Relatively bago pa ang component (&lt;50% ng expected life ang nagamit)</td><td>Malapit na o lampas na sa expected service life</td></tr>
+<tr><td>Availability</td><td>Hindi agad available ang replacement part pero posible ang repair</td><td>Available agad ang replacement part</td></tr>
+<tr><td>Reliability</td><td>Nababalik ng repair ang component sa like-new condition (hal., rebuild)</td><td>Temporary fix lang ang repair; malamang mauulit ang failure</td></tr>
+<tr><td>Labor</td><td>Mas mababa ang repair labor kumpara sa replacement labor</td><td>Pareho o mas mababa ang labor ng replacement kaysa disassembly/repair</td></tr>
+<tr><td>Safety</td><td>Natutugunan o nahihigitan ng repair ang safety standards</td><td>Hindi naaabot ng repaired component ang original safety margin</td></tr>
+<tr><td>Warranty</td><td>Covered ng existing warranty ang repair</td><td>May fresh warranty ang bagong part</td></tr>
+</tbody>
+</table>
+
+<div class="info-note"><strong>Rule of thumb:</strong> Kapag may pagdududa sa safety-critical components (brakes, steering, suspension, gulong, wheel bearings), replace kaysa repair. Maliit lang ang difference sa cost kumpara sa consequences ng field failure.</div>
+
+<h3>10.3 Paggawa ng Job Order mula sa Assessment</h3>
+
+<ol>
+    <li>Pumunta sa <strong>Sidebar → Job Orders → New Job Order</strong>.</li>
+    <li>Piliin ang <strong>Truck</strong> mula sa dropdown.</li>
+    <li>Ilagay ang descriptive na <strong>Title</strong> — maging specific tungkol sa issue. Mga halimbawa:
+        <ul>
+            <li>❌ "Problema ng trak" — masyadong vague.</li>
+            <li>✅ "Engine overheating — coolant leak sa upper radiator hose" — actionable.</li>
+            <li>✅ "Brake air leak — driver-side rear chamber sumisitsit sa 100 psi" — specific.</li>
+        </ul>
+    </li>
+    <li>Piliin ang <strong>Type:</strong> PM / Repair / Inspection / Contractor Service.</li>
+    <li>Itakda ang <strong>Priority:</strong> Low / Medium / High / Emergency. Gamitin ang Emergency para lang sa safety-critical issues na nangangailangan ng agarang atensyon (trak ay down at nakaharang sa operasyon).</li>
+    <li><strong>Assign To:</strong> Piliin ang mechanic na pinaka-kwalipikado para sa trabaho (ayon sa specialization kung posible). Para sa contractor service, piliin ang <strong>Contractor</strong> sa halip na indibidwal na mechanic.</li>
+    <li>I-click ang <strong>"Save"</strong>.</li>
+    <li>Sa Job Order detail page, magdagdag ng <strong>Line Items</strong> para sa bawat specific task na kailangan (tingnan ang Kabanata 11 para sa line item details).</li>
+</ol>
+
+<div class="page-break"></div>
+
+<h2 id="ch11">Kabanata 11: Paggawa at Pagtatalaga ng Job Order</h2>
+
+<h3>11.1 Pag-unawa sa 3-State Workflow</h3>
+
+<p>Bawat Job Order ay dumadaan sa tatlong states:</p>
+
+<p><strong>OPEN ➔ IN PROGRESS ➔ CLOSED</strong></p>
+
+<table>
+<thead><tr><th>State</th><th>Kahulugan</th><th>Sino ang Pwedeng Magbago</th><th>Mga Pinapayagang Aksyon</th></tr></thead>
+<tbody>
+<tr><td><strong>OPEN</strong></td><td>Nagawa na ang JO pero wala pang nasisimulang trabaho. Katumbas ng "pending assignment."</td><td>Admin/Staff</td><td>Edit, magdagdag ng line items, mag-assign ng mechanic, magpalit ng priority, delete (kung walang nagawang trabaho). Pwedeng tingnan ng mechanic pero hindi pwedeng baguhin ang status.</td></tr>
+<tr><td><strong>IN PROGRESS</strong></td><td>Aktibong ginagawa ang trabaho. Tinanggap na ng mechanic ang assignment.</td><td>Mechanic (nagbabago ng line item status), Admin/Staff (lahat ng aksyon)</td><td>Pwedeng i-mark ang line items bilang Done, In Progress, o Not Applicable. Pwedeng magdagdag ng parts. Pwedeng i-edit ang JO.</td></tr>
+<tr><td><strong>CLOSED</strong></td><td>Tapos na ang lahat ng trabaho. Finalized na ang JO at hindi na pwedeng baguhin.</td><td>Admin/Staff (nag-i-initiate ng close)</td><td>Read-only. Awtomatikong nagagawa ang service log entries. Awtomatikong nag-a-update ang PM schedules.</td></tr>
+</tbody>
+</table>
+
+<h3>11.2 Paggawa ng Job Order — Step by Step</h3>
+
+<ol>
+    <li>Pumunta sa <strong>Sidebar → Job Orders</strong>.</li>
+    <li>I-click ang <strong>"New Job Order"</strong>.</li>
+    <li>Kumpletuhin ang <strong>Job Order Form:</strong>
+        <ul>
+            <li><strong>Truck:</strong> Piliin mula sa fleet list. Nagfi-filter ang search bar ayon sa plate number o unit number.</li>
+            <li><strong>Title:</strong> Maikli pero descriptive (max 200 characters). Magsimula sa isang verb: "Replace," "Inspect," "Repair," "Adjust," "Investigate."</li>
+            <li><strong>Description:</strong> Opsyonal. Magdagdag ng context, complaint ng driver, troubleshooting notes.</li>
+            <li><strong>Job Type:</strong> Isa sa: PM, Repair, Inspection, Contractor Service. Ang type ay nakakaapekto sa reporting pero hindi nito nililimitahan ang line items na pwedeng idagdag.</li>
+            <li><strong>Priority:</strong> Default ay Medium. Gamitin ang High o Emergency nang wasto — kung lahat ay high priority, walang high priority.</li>
+            <li><strong>Assigned To:</strong> Para sa PM/Repair/Inspection: pumili ng specific na mechanic. Para sa Contractor Service: piliin ang contractor company.</li>
+            <li><strong>PMS Line Items (opsyonal):</strong> Kung ang JO ay na-trigger ng isa o higit pang PM schedule items na due, pwede mong piliin ang mga ito mula sa multi-select list. I-link nito ang JO sa mga specific na PM schedules para mag-update ang mga ito kapag nag-close ang JO.</li>
+        </ul>
+    </li>
+    <li>I-click ang <strong>"Save"</strong>.</li>
+    <li>Ire-redirect ka sa <strong>Job Order Detail Page</strong>. Ang JO ay may OPEN status na ngayon.</li>
+</ol>
+
+<h3>11.3 Pagtatalaga ng Trabaho sa Mechanic</h3>
+
+<p>Ang trabaho ay itinatalaga sa paggawa ng JO (sa pamamagitan ng pagpili ng mechanic). Para mag-reassign pagkatapos gawin:</p>
+
+<ol>
+    <li>Buksan ang Job Order detail page.</li>
+    <li>I-click ang <strong>"Edit"</strong>.</li>
+    <li>Palitan ang <strong>Assigned To</strong> field sa bagong mechanic.</li>
+    <li>I-click ang <strong>"Save"</strong>.</li>
+    <li>Makikita ng bagong mechanic ang JO sa kanilang <strong>My Assignments</strong> list.</li>
+    <li><strong>Komunikasyon:</strong> Pagkatapos mag-assign o mag-reassign, sabihan ang mechanic nang personal o sa pamamagitan ng communication channel para malaman nilang tingnan ang sistema. Hindi nagpapadala ang sistema ng automatic notifications.</li>
+</ol>
+
+<h3>11.4 Pagdagdag ng Line Items (Tasks) sa Job Order</h3>
+
+<p>Ang line items ay ang mga indibidwal na tasks na bumubuo sa trabaho. Ang isang JO ay pwedeng magkaroon ng isa o maraming line items.</p>
+
+<ol>
+    <li>Mula sa JO Detail page, i-click ang <strong>"Add"</strong> button sa Line Items section.</li>
+    <li>Punan ang bawat field:
+        <ul>
+            <li><strong>Task Template:</strong> Opsyonal. Kung ang task na ito ay tumutugma sa existing na PM template, piliin ito. Ili-link nito ang line item sa PM schedule para sa auto-update sa pag-close.</li>
+            <li><strong>Category:</strong> Opsyonal. Ang PM category kung saan nabibilang ang task na ito (ginagamit sa reporting).</li>
+            <li><strong>Description:</strong> Ano ang kailangang gawin. Maging specific — isama ang quantities, locations, o special instructions. Halimbawa: "Replace upper radiator hose — Cummins ISX engine, driver side" sa halip na "Ayusin ang hose."</li>
+            <li><strong>Estimated Hours:</strong> Gaano katagal mo inaasahan na tatagal ang task na ito. Ginagamit sa workload planning at KPI comparison.</li>
+            <li><strong>Notes:</strong> Special instructions, safety precautions, o part numbers.</li>
+        </ul>
+    </li>
+    <li>I-click ang <strong>"Add"</strong>.</li>
+    <li>Ulitin para sa bawat task na kailangan.</li>
+    <li>Pwedeng i-reorder o i-delete ang line items (kung hindi pa nasimulan) gamit ang icons sa line item list.</li>
+</ol>
+
+<div class="page-break"></div>
+
+<h2 id="ch12">Kabanata 12: Work Execution at Parts Tracking</h2>
+
+<h3>12.1 Mechanic Workflow — Pagsisimula ng Trabaho</h3>
+
+<ol>
+    <li>Mag-login sa sistema.</li>
+    <li>Pumunta sa <strong>Sidebar → My Assignments</strong>.</li>
+    <li>Makikita mo ang lahat ng Job Orders na nakatalaga sa iyo, sorted by priority (Emergency → High → Medium → Low) at pagkatapos ay ayon sa creation date (pinakaluma una).</li>
+    <li>I-click ang JO title para buksan ang detail page at makita ang lahat ng line items.</li>
+    <li>Suriin ang line items at anumang supporting information (notes, attached images kung applicable).</li>
+    <li>Itakda ang JO status sa <strong>"In Progress"</strong> sa pamamagitan ng pag-click sa status button sa itaas ng page. Ito ay nag-signal sa admin/Staff na nagsimula na ang trabaho.</li>
+</ol>
+
+<h3>12.2 Pagkumpleto ng Line Items</h3>
+
+<ol>
+    <li>Habang kinukumpleto mo ang bawat task, i-update ang status nito sa sistema.</li>
+    <li>Para sa bawat line item, i-click ang <strong>✅ (green checkmark)</strong> icon para i-mark ito bilang <strong>"Done."</strong></li>
+    <li>Magbubukas ang isang maliit na form kung saan dapat mong ilagay:
+        <ul>
+            <li><strong>Actual Hours:</strong> Ang totoong oras na ginugol sa task na ito. Maging tapat — ang data na ito ay nagfe-feed sa KPI reports at tumutulong sa future estimating. Kung mas matagal ang trabaho kaysa sa estimated, tandaan kung bakit sa notes field.</li>
+            <li><strong>Notes:</strong> Anumang observations, challenges, o dapat bantayan sa susunod. Ito ay mahalagang institutional knowledge para sa susunod na mechanic na gagawa sa trak na ito.</li>
+        </ul>
+    </li>
+    <li>I-click ang <strong>"Save."</strong></li>
+    <li>Kung hindi mo makumpleto ang isang task, pwede mo itong itakda sa <strong>"Not Applicable"</strong> (kung nagbago ang circumstances) o iwan itong <strong>"Open"</strong> (kung naghihintay ang task ng parts o clarification).</li>
+</ol>
+
+<h3>12.3 Pagtatala ng Parts na Ginamit</h3>
+
+<p>Ang parts tracking ay mahalaga para sa cost analysis. Bawat part na ginamit sa isang Job Order ay dapat itala sa sistema.</p>
+
+<ol>
+    <li>Sa JO detail page, hanapin ang line item na gumamit ng part.</li>
+    <li>I-click ang <strong>📦 (box) icon</strong> sa tabi ng line item na iyon para i-expand ang parts section.</li>
+    <li>I-click ang <strong>"Add Part"</strong>.</li>
+    <li>Kumpletuhin ang form:
+        <ul>
+            <li><strong>Part Name:</strong> Tumpak na paglalarawan. Gamitin ang pangalan ng manufacturer at part number kung available. Halimbawa: "Oil Filter — Fleetguard LF16001" (hindi lang "oil filter").</li>
+            <li><strong>Quantity:</strong> Bilang ng units na ginamit. Kung ang part ay ibinebenta bilang kit, itala ang "1" para sa kit.</li>
+            <li><strong>Unit Cost:</strong> Ang halaga bawat unit sa local currency. <strong>Mahalaga:</strong> Maging tumpak — ang mga cost na ito ay nagfe-feed sa KPI reports, cost trend analysis, at predictive analytics. Kung hindi alam ang exact cost sa oras ng pagdagdag, itala ang best estimate at i-update kapag dumating ang invoice.</li>
+        </ul>
+    </li>
+    <li>I-click ang <strong>"Save."</strong></li>
+    <li>Lumalabas ang part sa expanded section na may calculated total cost (quantity × unit cost).</li>
+    <li>Para magdagdag ng iba pang parts, i-click muli ang <strong>"Add Part"</strong>.</li>
+    <li>Para i-edit o i-delete ang isang part, i-click ang pencil o trash icon sa tabi ng part entry.</li>
+</ol>
+
+<div class="tip-note"><strong>Best Practice:</strong> Itala ang parts habang ini-install mo ang mga ito — huwag maghintay hanggang matapos ang trabaho. Pinipigilan nito ang nakalimutang parts at pinapanatiling nakikita ng admin ang running total ng cost. Isama ang source ng part kung relevant (hal., "from parts stock" vs. "bought at AutoSupply Co.").</div>
+
+<h3>12.4 Multi-Mechanic / Team Work</h3>
+
+<p>Kung ang isang Job Order ay nangangailangan ng maraming mechanics (hal., isang mechanic sa brakes, isa sa gulong), ang kasalukuyang system structure ay nagtatalaga ng JO sa isang primary mechanic. Mga coordination options:</p>
+
+<ul>
+    <li><strong>Option A:</strong> Gumawa ng separate JOs para sa bawat bahagi ng mechanic, i-cross-reference sa description.</li>
+    <li><strong>Option B:</strong> I-assign ang JO sa lead mechanic. Sila ang mag-u-update ng line items habang kinukumpleto ng team. Ang bawat line item ay pwedeng mag-record ng actual hours ng taong gumawa ng task na iyon sa notes field.</li>
+</ul>
+
+<p>Ang admin/staff supervisor ang dapat mag-coordinate ng work assignment para maiwasan ang kalituhan.</p>
+
+<div class="page-break"></div>
+
+<h2 id="ch13">Kabanata 13: Quality Control at Pre-Return Inspection</h2>
+
+<h3>13.1 Layunin ng Quality Control</h3>
+
+<p>Bago ibalik ang anumang trak sa serbisyo pagkatapos ng repair o PM, dapat gawin ang quality control inspection. Tinitiyak nito:</p>
+<ul>
+    <li>Lahat ng trabaho ay natapos nang tama at ligtas.</li>
+    <li>Walang tools, parts, o materyales na naiwan sa loob o ibabaw ng trak.</li>
+    <li>Lahat ng fasteners ay properly tightened.</li>
+    <li>Lahat ng fluids ay nasa tamang lebel.</li>
+    <li>Walang bagong issues na na-introduce sa panahon ng repair.</li>
+    <li>Ligtas ang trak na paandarin sa public roads.</li>
+</ul>
+
+<h3>13.2 QC Inspection Checklist</h3>
+
+<p><strong>Responsableng Role:</strong> Lead Mechanic o Supervisor (hindi ang taong gumawa ng trabaho)</p>
+
+<ol>
+    <li><strong>Walk-around inspection:</strong> Maglibot nang buo sa trak. Hanapin ang: tools o basahan na naiwan sa fenders, steps, o cab roof, maluwag na parts o fasteners, fluid leaks (anumang bagong tulo mula sa mga lugar na ginawan), component alignment (hoses, wiring, brackets na hindi dumadampi o nagkakasagasaan), lahat ng access panels at covers ay naibalik at naka-secure.</li>
+    <li><strong>Under-hood / Under-truck check:</strong> I-verify na ang lahat ng connections ay mahigpit (hose clamps, electrical connectors, bolts). Suriin na ang lahat ng fluid caps/dipsticks ay naka-install at secure. Alisin ang anumang basahan, gloves, o basura na naiwan sa engine compartment o cab. Kumpirmahin na ang lahat ng tinanggal na guards at shields ay naibalik.</li>
+    <li><strong>Functional test:</strong> Paandarin ang makina at hayaan itong idle ng 2-3 minuto. Suriin ang: kakaibang ingay mula sa mga lugar na ginawan, warning lights (lahat dapat naka-off pagkatapos ng initial bulb check), abnormal na usok mula sa exhaust, fluid leaks sa mga connections na niluwagan. Subukan ang mga system na inayos: brake application at release (kung ginalaw ang brakes), steering lock-to-lock (kung ginalaw ang steering components), light operation (kung ginalaw ang electrical), horn, windshield wipers.</li>
+    <li><strong>Road test (kung applicable):</strong> I-drive ang trak sa safe na lugar. Suriin ang: tamang operasyon ng naayos na system (hal., brakes na humihinto nang tuwid, transmission na pumapalit nang maayos, makina na tumatakbo nang walang missing), kakaibang ingay, vibrations, o amoy, gauges na normal ang basa (temperature, oil pressure, air pressure).</li>
+    <li><strong>Documentation check:</strong> I-verify na ang lahat ng line items ay naka-marka ng Done (o Not Applicable). I-verify na ang lahat ng parts na ginamit ay na-enter na, may tamang quantities at costs. I-verify na ang actual hours na na-enter ay reasonable at tugma sa trabahong ginawa. Siguraduhin na ang Job Order notes field ay naglalaman ng anumang mahalagang observations o follow-up recommendations.</li>
+</ol>
+
+<div class="danger-note"><strong>⚠ Critical:</strong> Kung ang QC inspection ay nagpapakita ng anumang deficiency, ang trak ay HINDI dapat ibalik sa serbisyo hanggang sa maayos ang issue. Ang mechanic na gumawa ng trabaho ay dapat mag-re-address ng deficiency at dapat ulitin ang QC. Walang exceptions — kahit para sa "minor" issues.</div>
+
+<h3>13.3 Mga Karaniwang QC Failures at Paano Maiiwasan ang mga Ito</h3>
+
+<table>
+<thead><tr><th>QC Failure</th><th>Root Cause</th><th>Pag-iwas</th></tr></thead>
+<tbody>
+<tr><td>Fluid leak pagkatapos ng oil change</td><td>Drain plug hindi na-torque, filter hindi hinigpitan, lumang gasket hindi pinalitan</td><td>Palaging palitan ang drain plug gasket. Hand-tighten filter + 3/4 turn. Paandarin ang makina at siyasatin bago ibalik sa serbisyo.</td></tr>
+<tr><td>Wheel lug nuts lumuwag pagkatapos ng 50 km</td><td>Hindi na-re-torque ang lugs pagkatapos ng initial tightening</td><td>Palaging i-re-torque ang wheel lug nuts pagkatapos ng 50 km ng byahe. Markahan ng torque seal para ma-verify nang visual.</td></tr>
+<tr><td>Electrical connector naiwang hindi naka-plug</td><td>Pagmamadali, distraction sa panahon ng reassembly</td><td>Gumamit ng systematic approach: i-DISCONNECT ang isang connector sa isang pagkakataon sa diagnosis, i-reconnect agad pagkatapos ng testing. Gamitin ang "connect all connectors" check bilang huling hakbang bago isara ang hood.</td></tr>
+<tr><td>Wiring o hose na mali ang routing (chafing risk)</td><td>Reassembly na walang reference photos</td><td>Kumuha ng litrato bago mag-disassembly para sa complex routing. Palaging gumamit ng zip ties para i-secure ang wiring palayo sa gumagalaw na parts at heat sources.</td></tr>
+<tr><td>Tools na naiwan sa engine bay</td><td>Walang tool inventory check</td><td>Gumawa ng tool count bago at pagkatapos ng bawat trabaho. Gumamit ng shadow boards (tool outlines) sa toolbox para makita agad ang nawawalang tool.</td></tr>
+</tbody>
+</table>
+
+<div class="page-break"></div>
+
+<h2 id="ch14">Kabanata 14: Job Order Close-out at Service Logging</h2>
+
+<h3>14.1 Kailan Isasara ang Job Order</h3>
+
+<p>Ang isang Job Order ay dapat isara lamang kapag <strong>lahat</strong> ng sumusunod ay totoo:</p>
+
+<ol>
+    <li>Lahat ng line items ay naka-marka ng Done o Not Applicable.</li>
+    <li>Lahat ng parts na ginamit ay na-enter na sa sistema.</li>
+    <li>Lahat ng actual hours ay na-record na para sa bawat line item.</li>
+    <li>QC inspection ay pasado na.</li>
+    <li>Road test (kung kailangan) ay matagumpay nang natapos.</li>
+    <li>Ang trak ay handa nang ibalik sa serbisyo.</li>
+</ol>
+
+<h3>14.2 Pagsasara ng Job Order — Step by Step</h3>
+
+<p><strong>Responsableng Role:</strong> Admin, Staff, o Super Admin lamang (hindi ang mechanic na gumagawa ng trabaho)</p>
+
+<ol>
+    <li>Buksan ang Job Order detail page.</li>
+    <li>Suriin ang lahat ng line items at parts entries para sa completeness at accuracy.</li>
+    <li>I-click ang <strong>"Close Job Order"</strong> button.</li>
+    <li>Lilitaw ang confirmation dialog na nagpapaliwanag na ang pagsasara ay irreversible — basahin at kumpirmahin.</li>
+    <li>Magbubukas ang close form na nagpapakita ng:
+        <ul>
+            <li><strong>Current Mileage:</strong> Pre-filled mula sa kasalukuyang odometer reading ng trak. I-verify at i-adjust kung kailangan (baka nai-drive ang trak simula noong huling update ng reading).</li>
+            <li><strong>Current Engine Hours:</strong> Pre-filled mula sa kasalukuyang hour meter ng trak. I-verify.</li>
+            <li><strong>Notes:</strong> Opsyonal na closing notes — ibuod ang trabahong ginawa, anumang follow-up recommendations, o parts na kailangang i-order para sa susunod na serbisyo.</li>
+        </ul>
+    </li>
+    <li>I-click ang <strong>"Close Job Order"</strong> para i-finalize.</li>
+</ol>
+
+<h3>14.3 Ano ang Awtomatikong Nangyayari sa Pag-close</h3>
+
+<p>Kapag ang isang Job Order ay na-close, ang sistema ay awtomatikong gumagawa ng mga sumusunod:</p>
+
+<ol>
+    <li><strong>Nagbabago ang status</strong> sa CLOSED. Ang JO ay nagiging read-only.</li>
+    <li><strong>Ang mileage at engine hours ng trak</strong> ay ina-update mula sa values na na-enter sa close form.</li>
+    <li><strong>Ang anumang open line items</strong> ay awtomatikong nami-marka bilang Done (may note na "Auto-completed on JO close").</li>
+    <li><strong>Service Log Entries</strong> ay nagagawa sa immutable service ledger para sa:
+        <ul>
+            <li>Bawat line item na natapos.</li>
+            <li>Ang JO creation at close events.</li>
+        </ul>
+    </li>
+    <li><strong>PM Schedule update:</strong> Ang anumang line item na naka-link sa PM template ay mag-u-update ng corresponding PM schedule na may:
+        <ul>
+            <li><code>last_completed_at</code> = close timestamp.</li>
+            <li><code>last_mileage_km</code> = mileage sa pag-close.</li>
+            <li><code>last_engine_hours</code> = hours sa pag-close.</li>
+            <li>Awtomatikong kinakalkula muli ang susunod na due date.</li>
+        </ul>
+    </li>
+</ol>
+
+<h3>14.4 Service Ledger — Immutable Audit Trail</h3>
+
+<p>Ang Service Ledger ay isang permanente, hindi nababagong talaan ng bawat aksyon na ginawa. Ito ay nagsisilbing:</p>
+<ul>
+    <li><strong>Legal record</strong> ng maintenance na ginawa sa bawat trak.</li>
+    <li><strong>Audit trail</strong> para sa compliance sa depot access requirements.</li>
+    <li><strong>Historical reference</strong> para sa mga paulit-ulit na issues sa isang specific na trak.</li>
+    <li><strong>Mechanic accountability</strong> — bawat entry ay naka-link sa taong gumawa ng trabaho.</li>
+</ul>
+
+<p><strong>Pag-access sa Service Ledger:</strong></p>
+<ul>
+    <li><strong>Full Ledger:</strong> Sidebar → Service Ledger (Admin+). Ipinapakita ang lahat ng entries, filterable ayon sa truck at action type.</li>
+    <li><strong>Per-Truck Ledger:</strong> Buksan ang anumang truck detail page → I-click ang "Full Ledger" button sa Service History section.</li>
+</ul>
+
+<div class="info-note"><strong>Mahalaga:</strong> Ang Service Ledger ay hindi pwedeng i-edit o i-delete — kahit ng Super Admin sa pamamagitan ng Django Admin interface. Ang immutability na ito ay sinadyang design feature para tiyakin ang integridad ng maintenance record. Kung may natuklasang error sa isang closed JO, dapat gumawa ng bagong JO para itama ito, at ang original record ay mananatiling ganito.</div>
+
+<h3>14.5 Pagbubukas muli ng Closed Job Order (Hindi Posible)</h3>
+
+<p>Kapag ang isang Job Order ay na-close na, hindi na ito pwedeng buksan muli. Kung kailangan ng karagdagang trabaho sa parehong trak:</p>
+<ol>
+    <li>Gumawa ng <strong>bagong Job Order</strong> para sa bagong trabaho.</li>
+    <li>Sa description, i-reference ang original JO number: "Continuation ng trabaho mula JO-2026-0042 — hindi na-resolve na brake pull issue."</li>
+    <li>Pinapanatili nito ang malinis na audit trail at pinipigilan ang data integrity issues.</li>
+</ol>
+
+<h3>14.6 Archived / Historical Job Orders</h3>
+
+<p>Ang mga closed Job Orders ay nananatiling visible sa Job Orders list na may "Closed" status. Gamitin ang status filter para tingnan lamang ang closed JOs kapag nagre-research ng history. Hindi awtomatikong nag-a-archive o nagde-delete ang sistema ng lumang JOs — ang data ay retained indefinitely para sa historical reporting.</p>

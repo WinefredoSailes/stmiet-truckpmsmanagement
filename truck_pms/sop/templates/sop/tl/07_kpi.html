@@ -1,0 +1,157 @@
+<h1 id="vol7">Bolyum 7 — Performance at Analytics</h1>
+
+<h2 id="ch22">Kabanata 22: Mechanic KPI Reports</h2>
+
+<h3>22.1 Layunin ng KPI Tracking</h3>
+
+<p>Ang Key Performance Indicators (KPIs) ay nagbibigay ng objective data sa indibidwal at team performance. Awtomatikong nagge-generate ang sistema ng KPI reports mula sa data na na-enter sa panahon ng Job Order execution (line items, hours, parts). Ipinapaliwanag ng kabanatang ito ang bawat KPI metric at kung paano ito i-interpret.</p>
+
+<h3>22.2 Mechanic / Staff KPI Table</h3>
+
+<p>Pumunta sa <strong>Sidebar → KPI Reports</strong> para tingnan ang Mechanic KPI table. Ang table ay nagpapakita ng mga sumusunod na columns para sa bawat mechanic:</p>
+
+<table>
+<thead><tr><th>Column</th><th>Source Data</th><th>Ano ang Sinusukat</th></tr></thead>
+<tbody>
+<tr><td><strong>Mechanic</strong></td><td>User profile — pangalan at specialization</td><td>Kung kanino nabibilang ang data</td></tr>
+<tr><td><strong>Jobs Completed</strong></td><td>Bilang ng closed JOs na nakatalaga sa mechanic na ito</td><td>Workload volume — ilang trabaho ang natapos ng mechanic</td></tr>
+<tr><td><strong>Total Labor Hours</strong></td><td>Kabuuan ng actual hours na na-record sa lahat ng line items</td><td>Kabuuang oras na ginugol sa lahat ng natapos na trabaho</td></tr>
+<tr><td><strong>Average Hours per Job</strong></td><td>Total Labor Hours ÷ Jobs Completed</td><td>Average na laki ng trabaho — mas malaking bilang ay maaaring magpahiwatig ng complex work o mas mabagal na performance</td></tr>
+<tr><td><strong>Total Parts Cost</strong></td><td>Kabuuan ng lahat ng part costs (qty × unit cost) sa lahat ng JOs</td><td>Kabuuang halaga ng materials na ginamit ng mechanic na ito</td></tr>
+<tr><td><strong>Average Parts Cost per Job</strong></td><td>Total Parts Cost ÷ Jobs Completed</td><td>Typical parts spend bawat trabaho — kapaki-pakinabang para sa benchmarking</td></tr>
+</tbody>
+</table>
+
+<h3>22.3 Pag-interpret ng Mechanic KPI Data</h3>
+
+<p><strong>Kapag nag-e-evaluate ng performance, isaalang-alang ang mga tanong na ito:</strong></p>
+
+<ul>
+    <li><strong>Volume:</strong> Nakakakumpleto ba ang mechanic ng reasonable na bilang ng trabaho kumpara sa kanilang mga kasamahan? Ang isang mechanic na may mas kaunting closed JOs ay maaaring: masyadong matagal sa bawat trabaho (inefficiency), nakatalaga sa mas complex na trabaho (tingnan ang job types), o madalas na naghihintay ng parts o instructions.</li>
+    <li><strong>Efficiency:</strong> Ikumpara ang Estimated Hours (mula sa line items) vs. Actual Hours (na-record nang i-mark ang line item bilang Done). Ang mechanic na consistent na lumalampas sa estimated hours ay maaaring nangangailangan ng: karagdagang training sa specific na task, mas magagandang tools o equipment, o mas realistic na estimation practices.</li>
+    <li><strong>Cost:</strong> Ikumpara ang parts cost sa mga mechanics na gumagawa ng parehong trabaho. Ang isang mechanic na consistent na mas mataas ang parts cost ay maaaring: nagpapalit ng parts na pwedeng ayusin, hindi nagdi-diagnose ng root causes (pinapalitan ang symptoms sa halip), o gumagawa sa mga trak na may mas matinding wear (hindi kasalanan ng mechanic — imbestigahan pa).</li>
+    <li><strong>Quality:</strong> Kahit hindi direktang natatrack sa KPI numbers, hanapin ang: rework (parehong trak na bumalik sa shop na may parehong issue sa loob ng 30 araw — nagpapahiwatig ng hindi kumpletong diagnosis o repair), QC failures (trabaho na na-flag sa QC inspection).</li>
+</ul>
+
+<div class="tip-note"><strong>Best Practice:</strong> Ang KPI data ay pinaka-kapaki-pakinabang para sa pagtukoy ng trends sa paglipas ng panahon, hindi para sa pag-evaluate ng isang punto sa oras. Suriin ang KPIs buwan-buwan at hanapin ang patterns. Ang isang buwan ng mababang bilang ay hindi concern. Ang tatlong buwan ng bumababang bilang ay nararapat sa isang pag-uusap.</div>
+
+<h3>22.4 Contractor Performance View</h3>
+
+<p>Ang KPI page ay nagpapakita rin ng Contractor Performance table na may:</p>
+
+<ul>
+    <li><strong>Company:</strong> Pangalan ng contractor company.</li>
+    <li><strong>Total Jobs:</strong> Lahat ng JOs na nakatalaga sa contractor na ito.</li>
+    <li><strong>Completed:</strong> Closed JOs.</li>
+    <li><strong>Open:</strong> JOs na kasalukuyang in progress.</li>
+    <li><strong>Completion Rate:</strong> Completed ÷ Total bilang percentage.</li>
+</ul>
+
+<p>Gamitin ang data na ito para matukoy ang mga contractor na consistent na natatapos ang trabaho sa oras at ang mga maaaring mangailangan ng follow-up sa open o overdue assignments.</p>
+
+<div class="page-break"></div>
+
+<h2 id="ch23">Kabanata 23: Predictive Analytics Interpretation</h2>
+
+<h3>23.1 Pangkalahatang-ideya</h3>
+
+<p>Ang Predictive Analytics dashboard ay nagbibigay ng visual na overview ng fleet health gamit ang limang interactive charts. Lahat ng charts ay nagge-generate mula sa live data — bawat page load ay nag-qu-query sa kasalukuyang database state. Ito ay hindi machine-learning model; ito ay real-time data visualization tool para sa informed decision-making.</p>
+
+<p>Pumunta sa <strong>Sidebar → Predictive Analytics</strong> (Admin+ access).</p>
+
+<h3>23.2 Ang Limang Charts</h3>
+
+<h4>23.2.1 Failure Frequency (Bar Chart)</h4>
+
+<p><strong>Ano ang ipinapakita:</strong> Ang top 10 trucks na may pinakamaraming Repair-type Job Orders (breakdowns).</p>
+
+<p><strong>Paano ito basahin:</strong> Mas matataas na bar = mas maraming breakdowns. Ang isang trak na consistent na lumilitaw sa chart na ito buwan-buwan ay maaaring nangangailangan ng: comprehensive diagnostic evaluation para mahanap ang root cause ng paulit-ulit na failures, konsiderasyon para sa retirement kung ang repair costs ay lumalampas sa halaga ng trak, o review ng PM schedule nito — tama ba ang mga PM tasks na nakatalaga sa tamang intervals?</p>
+
+<p><strong>Mga action items:</strong></p>
+<ul>
+    <li>Truck na nasa top 3 sa loob ng tatlong magkakasunod na buwan: i-schedule ng full diagnostic review.</li>
+    <li>Bagong entries sa top 10: imbestigahan kung ano ang nagbago (bagong routes, bagong driver, kamakailang repair?).</li>
+    <li>Isang trak na bumaba mula sa top 10: tukuyin kung ano ang positibong nagbago at ilapat ang lesson na iyon sa ibang trucks.</li>
+</ul>
+
+<h4>23.2.2 PM Compliance (Donut Chart)</h4>
+
+<p><strong>Ano ang ipinapakita:</strong> Isang donut chart na naghihiwa-hiwalay ng lahat ng PM schedules sa fleet ayon sa status: OK (berde), Due (dilaw), Overdue (pula), No Data (gray).</p>
+
+<p><strong>Paano ito basahin:</strong></p>
+<ul>
+    <li><strong>Target:</strong> ≥ 85% ng lahat ng PM schedules ay dapat nasa OK (berde) na status.</li>
+    <li>Kung ang Due (dilaw) ay lumampas sa 10%: Kailangan ng atensyon ang PM scheduling — isaalang-alang ang pagtaas ng shop capacity o pag-prioritize ng PMs kaysa repairs sa isang panahon.</li>
+    <li>Kung ang Overdue (pula) ay lumampas sa 5%: Ito ay seryosong concern. Ang mga overdue PMs ay nagpapahiwatig na ang maintenance ay na-de-defer, na nagpapataas ng risk ng breakdowns. Imbestigahan ang systemic causes: hindi sapat na mechanics, parts availability issues, o kakulangan ng prioritization mula sa operations.</li>
+    <li>Kung ang No Data (gray) ay malaki: Ang ilang PM schedules ay hindi pa natatapos kailanman. Maaaring nagpapahiwatig ito ng mga bagong template na hindi na-sync, o mga trak na hindi pa dumaan sa full PM cycle.</li>
+</ul>
+
+<p><strong>Mga action items:</strong></p>
+<ul>
+    <li>Suriin ang Overdue PMs linggu-linggo — magtalaga ng JOs para sa bawat overdue item.</li>
+    <li>Target: bawasan ang overdue sa 0% sa loob ng isang buwan sa pamamagitan ng paglaan ng isang araw bawat linggo para sa "overdue catch-up."</li>
+</ul>
+
+<h4>23.2.3 Cost Trends (Line Chart)</h4>
+
+<p><strong>Ano ang ipinapakita:</strong> Buwanang breakdown ng parts cost at labor hours cost sa nakaraang 6 na buwan.</p>
+
+<p><strong>Paano ito basahin:</strong></p>
+<ul>
+    <li><strong>Upward trend:</strong> Tumataas ang costs. Imbestigahan: Tumataas ba ang parts prices? Tumatanda ba ang fleet at nangangailangan ng mas maraming repairs? May mga bagong trak bang idinaragdag? May seasonal pattern ba (mas maraming breakdowns sa tag-ulan o tag-araw)?</li>
+    <li><strong>Downward trend:</strong> Positibong senyales — bumabuti ang kalusugan ng fleet, gumagana ang PM, o ang mga mas bagong trak ay nakakabawas ng repair needs.</li>
+    <li><strong>Spike sa isang buwan:</strong> Ano ang nangyari? Major accident? Maraming breakdowns sa parehong trak? Malaking parts purchase (hal., pinalitan ang lahat ng gulong ng maraming trak)? Tukuyin ang event na nagdulot ng spike para maintindihan kung ito ay one-time o paulit-ulit.</li>
+</ul>
+
+<p><strong>Mga action items:</strong></p>
+<ul>
+    <li>Imbestigahan ang anumang buwan-sa-buwan na pagtaas na lampas sa 15%.</li>
+    <li>Ikumpara ang parts vs. labor ratio: ang tumataas na parts ratio ay maaaring magpahiwatig ng mas maraming heavy repairs (pinapalitan ang components) kumpara sa labor-only work (adjustments, inspections).</li>
+</ul>
+
+<h4>23.2.4 Overdue Alerts (Bar Chart)</h4>
+
+<p><strong>Ano ang ipinapakita:</strong> Ang mga trak na may pinakamaraming overdue na PM schedule items.</p>
+
+<p><strong>Paano ito basahin:</strong> Bawat bar ay kumakatawan sa isang trak. Mas matangkad ang bar, mas maraming overdue items ang naipon ng trak na iyon. Ang isang trak na may maraming overdue items ay nasa mataas na risk ng breakdown at maaari ring mahirapan mag-access ng mga depot (ang ilang depot ay nagsusuri ng PM compliance bago payagan ang loading).</p>
+
+<p><strong>Mga action items:</strong></p>
+<ul>
+    <li>Para sa anumang trak na may 5+ overdue items: i-schedule ng comprehensive PM catch-up sa loob ng linggo.</li>
+    <li>Para sa mga trak na paulit-ulit na lumilitaw sa chart na ito: realistic ba ang PM schedule para sa utilization rate ng trak na ito? Isaalang-alang ang pag-adjust ng interval o pagdagdag ng shop capacity.</li>
+</ul>
+
+<h4>23.2.5 Top Replaced Parts (Bar Chart)</h4>
+
+<p><strong>Ano ang ipinapakita:</strong> Ang 10 pinakamadalas na pinalitang parts sa lahat ng Job Orders, na may kabuuang cost.</p>
+
+<p><strong>Paano ito basahin:</strong> Ang chart na ito ay tumutulong sa inventory planning. Kung ang isang specific na part ay consistent na nasa itaas, siguraduhing may sapat kang stock na available para maiwasan ang pagkaantala sa paghihintay ng parts.</p>
+
+<p><strong>Mga action items:</strong></p>
+<ul>
+    <li>Para sa top 5 parts: panatilihin ang minimum stock level (safety stock) sa parts inventory.</li>
+    <li>Kung ang isang part ay biglang lumitaw sa top 10 (hani karaniwan dati): imbestigahan — may quality issue ba sa kasalukuyang batch? May fleet-wide issue ba (hal., masamang batch ng gulong o filters)?</li>
+    <li>Gamitin ang data na ito para makipag-negotiate ng bulk pricing sa mga supplier para sa madalas na pinalitang parts.</li>
+</ul>
+
+<h3>23.3 Paggamit ng Predictive Analytics para sa Decision-Making</h3>
+
+<p><strong>Buwanang Review Process:</strong></p>
+
+<ol>
+    <li>Buksan ang Predictive Analytics dashboard.</li>
+    <li>Suriin ang lahat ng limang charts — ito ay tumatagal ng humigit-kumulang 5 minuto.</li>
+    <li>Tandaan ang anumang makabuluhang pagbabago mula sa nakaraang buwanang review.</li>
+    <li>Tukuyin ang top 3 issues na dapat tugunan (hal., "Ang Truck UNIT-004 ay may 8 overdue PM items at lumilitaw sa top 3 para sa failure frequency — unahin ito.").</li>
+    <li>Magtalaga ng action items sa specific na tao na may deadlines.</li>
+    <li>Itala ang key observations at decisions sa meeting minutes o system notes.</li>
+</ol>
+
+<p><strong>Quarterly Fleet Health Review:</strong></p>
+
+<ul>
+    <li>I-export ang data mula sa KPI Reports at Predictive Analytics para sa mas malawak na review.</li>
+    <li>Ikumpara ang quarter-over-quarter trends sa lahat ng limang chart areas.</li>
+    <li>I-evaluate kung ang fleet PM program ay nagpapabuti ng overall fleet reliability (bumababa ba ang breakdowns? Tumataas ba ang PM compliance?).</li>
+    <li>I-adjust ang PM intervals, task assignments, o shop procedures base sa data.</li>
+</ul>

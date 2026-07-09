@@ -1,0 +1,175 @@
+<h1 id="vol1">Bolyum 1 — Administrasyon ng Sistema</h1>
+
+<h2 id="ch1">Kabanata 1: Mga Tungkulin (Roles) at Access Matrix</h2>
+
+<p>Ang kabanatang ito ay naglalarawan ng bawat role sa Truck PMS system, ang kanilang mga permiso, at hangganan ng access. Dapat maintindihan ng lahat ng tauhan kung aling role sila nabibilang at kung anong mga aksyon ang pinapayagan nilang gawin.</p>
+
+<h3>1.1 Depinisyon ng mga Role</h3>
+
+<table>
+<thead>
+<tr><th>Role</th><th>System Label</th><th>Karaniwang Tauhan</th><th>Antas ng Access</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Super Admin</strong></td><td>SUPER_ADMIN</td><td>IT Manager / May-ari ng Sistema</td><td>Lahat — kabilang ang User Management at Django Admin</td></tr>
+<tr><td><strong>Admin</strong></td><td>ADMIN</td><td>Operations Manager</td><td>Lahat ng operasyon maliban sa User Management</td></tr>
+<tr><td><strong>Staff</strong></td><td>STAFF</td><td>Shop Supervisor / Lead Mechanic</td><td>Job Orders, PM view, Training supervision</td></tr>
+<tr><td><strong>Mechanic</strong></td><td>MECHANIC</td><td>Diesel Mechanic / Teknisyan</td><td>Nakatalagang JO lamang, limitadong read access</td></tr>
+<tr><td><strong>Contractor</strong></td><td>CONTRACTOR</td><td>External Vendor Technician</td><td>Contractor JO lamang, walang access sa ibang data</td></tr>
+<tr><td><strong>OJT / Trainee</strong></td><td>TRAINEE</td><td>Apprentice / Baguhan</td><td>Training dashboard at attendance lamang</td></tr>
+</tbody>
+</table>
+
+<h3>1.2 Access Matrix ayon sa Feature</h3>
+
+<table>
+<thead>
+<tr><th>Feature / Page</th><th>Super Admin</th><th>Admin</th><th>Staff</th><th>Mechanic</th><th>Contractor</th><th>OJT</th></tr>
+</thead>
+<tbody>
+<tr><td>Dashboard</td><td>&check;</td><td>&check;</td><td>&check;</td><td>&check;</td><td>&mdash;</td><td>&check;</td></tr>
+<tr><td>Trucks</td><td>&check;</td><td>&check;</td><td>&check;</td><td>&check;</td><td>&check;</td><td>&check;</td></tr>
+<tr><td>PMS Schedules</td><td>&check;</td><td>&check;</td><td>&check;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td></tr>
+<tr><td>PM Categories</td><td>&check;</td><td>&check;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td></tr>
+<tr><td>PM Templates</td><td>&check;</td><td>&check;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td></tr>
+<tr><td>Job Orders</td><td>&check;</td><td>&check;</td><td>&check;</td><td>&check;</td><td>&check;</td><td>&mdash;</td></tr>
+<tr><td>My Assignments</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&check;</td><td>&check;</td><td>&mdash;</td></tr>
+<tr><td>Service Ledger</td><td>&check;</td><td>&check;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td></tr>
+<tr><td>Contractors</td><td>&check;</td><td>&check;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td></tr>
+<tr><td>KPI Reports</td><td>&check;</td><td>&check;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td></tr>
+<tr><td>Predictive Analytics</td><td>&check;</td><td>&check;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td></tr>
+<tr><td>User Management</td><td>&check;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td></tr>
+<tr><td>Training</td><td>&check;</td><td>&check;</td><td>&check;</td><td>&mdash;</td><td>&mdash;</td><td>&check;</td></tr>
+<tr><td>Assign Training</td><td>&check;</td><td>&check;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td></tr>
+<tr><td>Django Admin</td><td>&check;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td></tr>
+</tbody>
+</table>
+
+<h3>1.3 Pag-uugali ng Login ayon sa Role</h3>
+
+<table>
+<thead><tr><th>Role</th><th>Mapupuntahan Pagkatapos Mag-login</th><th>Dahilan</th></tr></thead>
+<tbody>
+<tr><td>Super Admin</td><td>Dashboard</td><td>Pangkalahatang tanaw ng operasyon</td></tr>
+<tr><td>Admin</td><td>Dashboard</td><td>Pangkalahatang tanaw ng operasyon</td></tr>
+<tr><td>Staff</td><td>Dashboard</td><td>Tanaw ng aktibidad sa shop</td></tr>
+<tr><td>Mechanic</td><td>Dashboard</td><td>Mabilis na tanaw ng mga assignment</td></tr>
+<tr><td>Contractor</td><td>My Assignments</td><td>Agad na access sa mga work order</td></tr>
+<tr><td>OJT / Trainee</td><td>Training Dashboard</td><td>Attendance at progress tracking</td></tr>
+</tbody>
+</table>
+
+<h3>1.4 Mga Prinsipyo ng Seguridad</h3>
+<ul>
+    <li><strong>Least Privilege:</strong> Bawat role ay may pinakamababang access na kailangan para gawin ang kanilang trabaho. Walang role ang makaka-access ng feature na lampas sa kanilang antas.</li>
+    <li><strong>Data Isolation:</strong> Ang mga Mechanic at Contractor ay nakakakita lamang ng Job Orders na nakatalaga sa kanila. Hindi nila kayang tingnan ang lahat ng JO sa sistema.</li>
+    <li><strong>Immutable Audit Trail:</strong> Kapag na-close na ang isang Job Order, ang lahat ng data ay nakatakda sa Service Ledger at hindi na maaaring baguhin o burahin kailanman.</li>
+    <li><strong>Session Timeout:</strong> Awtomatikong magla-logout ang mga user pagkatapos ng 30 minutong walang ginagawa.</li>
+    <li><strong>Patakaran sa Password:</strong> Lahat ng user account ay nangangailangan ng password na hindi bababa sa 8 karakter ang haba.</li>
+</ul>
+
+<div class="page-break"></div>
+
+<h2 id="ch2">Kabanata 2: Siklo ng Buhay ng User Account</h2>
+
+<h3>2.1 Paggawa ng Bagong User</h3>
+
+<p><strong>Responsableng Role:</strong> Super Admin lamang</p>
+
+<ol>
+    <li>Mag-login bilang Super Admin.</li>
+    <li>Pumunta sa <strong>Sidebar → User Management</strong>.</li>
+    <li>I-click ang <strong>"Add User"</strong> na buton.</li>
+    <li>Kumpletuhin ang form:
+        <ul>
+            <li><strong>Username:</strong> Natatanging identifier (hal., jdelacruz). Gamitin ang unang letra ng pangalan + apelyido sa maliit na titik.</li>
+            <li><strong>Password:</strong> Pansamantalang password. Siguraduhing hindi bababa sa 8 karakter.</li>
+            <li><strong>Confirm Password:</strong> Ulatin ang parehong password.</li>
+            <li><strong>Role:</strong> Pumili mula sa anim na role na nakasaad sa Kabanata 1.</li>
+            <li><strong>First Name / Last Name:</strong> Legal na pangalan gaya ng nasa company ID.</li>
+            <li><strong>Mobile Number:</strong> Aktibong numero para sa kontak.</li>
+            <li><strong>Specialization:</strong> (Para sa Mechanics) Pangunahing lugar ng ekspertis — Engine, Brakes, Electrical, Tank at Valves, General.</li>
+            <li><strong>Employee ID:</strong> ID number na itinalaga ng kompanya.</li>
+        </ul>
+    </li>
+    <li>I-click ang <strong>"Save"</strong>.</li>
+    <li>Ibigay sa bagong user ang kanilang username at pansamantalang password. Sabihan silang palitan ang password sa unang pag-login.</li>
+</ol>
+
+<h3>2.2 Pag-edit ng User</h3>
+
+<ol>
+    <li>Pumunta sa <strong>Sidebar → User Management</strong>.</li>
+    <li>Hanapin ang user sa listahan (gamitin ang role filter kung kinakailangan).</li>
+    <li>I-click ang <strong>user row</strong> o <strong>Edit button</strong>.</li>
+    <li>I-update ang mga field na nais baguhin.</li>
+    <li>I-click ang <strong>"Save"</strong>.</li>
+</ol>
+
+<h3>2.3 Pag-reset ng Password ng User</h3>
+
+<ol>
+    <li>Pumunta sa <strong>Sidebar → User Management</strong>.</li>
+    <li>Hanapin ang user at i-click ang <strong>key icon</strong> sa Actions column.</li>
+    <li>Mare-redirect ka sa <strong>Django Admin</strong> password change form.</li>
+    <li>Ilagay ang bagong password at kumpirmahin.</li>
+    <li>I-click ang <strong>"Change password"</strong>.</li>
+    <li>Ibigay ang bagong pansamantalang password sa user nang ligtas.</li>
+</ol>
+
+<h3>2.4 Pag-deactivate ng User</h3>
+
+<ol>
+    <li>Pumunta sa <strong>Sidebar → User Management</strong>.</li>
+    <li>I-click ang user para i-edit.</li>
+    <li>Alisan ng tsek ang <strong>"Active"</strong> na checkbox.</li>
+    <li>I-click ang <strong>"Save"</strong>.</li>
+    <li>Hindi na makakapag-login ang user, ngunit nananatili ang lahat ng kanilang historical records.</li>
+</ol>
+
+<h3>2.5 Paggawa ng OJT/Trainee Account (Espesyal)</h3>
+
+<ol>
+    <li><strong>Hakbang 1:</strong> Gawin ang user account na may Role = "OJT / Trainee".</li>
+    <li><strong>Hakbang 2:</strong> Pumunta sa <strong>Sidebar → Assign Training</strong>.</li>
+    <li>Piliin ang bagong gawang OJT mula sa dropdown.</li>
+    <li>Magtalaga ng <strong>Supervisor</strong> (dapat Staff, Admin, o Super Admin).</li>
+    <li>Itakda ang <strong>Start Date</strong>.</li>
+    <li>I-click ang <strong>"Assign"</strong>.</li>
+    <li>Makakita na ngayon ang OJT ng kanilang Training Dashboard.</li>
+</ol>
+
+<div class="page-break"></div>
+
+<h2 id="ch3">Kabanata 3: Pag-navigate sa Sistema at UI Reference</h2>
+
+<h3>3.1 Pangkalahatang Layout</h3>
+
+<ol>
+    <li><strong>Sidebar (Kaliwa):</strong> Main navigation menu. Nakatago sa mobile screens. Nagpapakita ng menu items batay sa role ng user.</li>
+    <li><strong>Top Bar:</strong> Nagpapakita ng page title, back button (kung mayroon), pangalan ng user, at role badge. Ang back button (← arrow) ay bumabalik sa dating logical page.</li>
+    <li><strong>Content Area:</strong> Pangunahing katawan ng page. Naglalaman ng mga listahan, form, detail view, at action buttons.</li>
+    <li><strong>Footer:</strong> Company tagline at impormasyon ng copyright.</li>
+</ol>
+
+<h3>3.2 Page Loader</h3>
+<p>Isang manipis na asul na progress bar ang kumikilos sa itaas ng screen habang naglo-load ang page. Ito ay nagbibigay ng visual feedback sa panahon ng pag-navigate.</p>
+
+<h3>3.3 Mobile Navigation</h3>
+<p>Sa maliliit na screen, nakatago ang sidebar. I-tap ang <strong>☰ (hamburger icon)</strong> sa kaliwang sulok sa itaas para palawakin ang mobile menu.</p>
+
+<h3>3.4 Karaniwang UI Patterns</h3>
+<p><strong>Back Buttons:</strong> Ang ← arrow sa top bar ay nagbabalik sa dating page. Context-aware ito.</p>
+<p><strong>Search Boxes:</strong> Karamihan sa mga list page ay may search box. Mag-type para i-filter ang listahan sa real time.</p>
+<p><strong>Filters:</strong> Ang ilang page ay may dropdown filters para sa status, type, truck, at iba pa.</p>
+<p><strong>Pagination:</strong> Ang mga list page ay nagpapakita ng 50 items bawat page.</p>
+<p><strong>CSV Export at Print:</strong> Ang PMS Schedules page ay may mga buton para sa CSV export at pag-print.</p>
+
+<h3>3.5 Pag-logout</h3>
+<ol>
+    <li>I-click ang <strong>"Logout"</strong> na buton sa sidebar.</li>
+    <li>Lalabas ang confirmation dialog: "Are you sure you want to log out?"</li>
+    <li>I-click ang <strong>OK</strong> para kumpirmahin.</li>
+    <li>May lalabas na overlay na may umiikot na favicon at "Logging out..." message.</li>
+    <li>Mare-redirect ka sa login page pagkatapos ng ilang segundo.</li>
+</ol>

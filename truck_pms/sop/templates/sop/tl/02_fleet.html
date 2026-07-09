@@ -1,0 +1,114 @@
+<h1 id="vol2">Bolyum 2 — Pamamahala ng Fleet Asset</h1>
+
+<h2 id="ch4">Kabanata 4: Pagpaparehistro ng Trak at Dokumentasyon</h2>
+
+<h3>4.1 Pangkalahatang Ideya</h3>
+<p>Ang bawat trak sa fleet ay dapat nakarehistro sa sistema na may kumpletong Certificate of Registration (CR) documentation. Tinitiyak ng tamang pagpaparehistro na ang lahat ng PM schedule ay awtomatikong nagagawa, ang service history ay natatrack bawat sasakyan, at ang regulatory compliance documents ay accessible sa lahat ng oras.</p>
+
+<h3>4.2 Kinakailangang Impormasyon para sa Pagpaparehistro</h3>
+
+<table>
+<thead><tr><th>Field</th><th>Kailangan</th><th>Paglalarawan</th></tr></thead>
+<tbody>
+<tr><td>Unit Number</td><td><strong>Oo</strong></td><td>Panloob na fleet unit number (hal., UNIT-001)</td></tr>
+<tr><td>Plate Number</td><td><strong>Oo</strong></td><td>Plaka mula sa gobyerno</td></tr>
+<tr><td>Make</td><td><strong>Oo</strong></td><td>Manufacturer (Isuzu, Hino, Mitsubishi)</td></tr>
+<tr><td>Model</td><td><strong>Oo</strong></td><td>Pangalan ng modelo (Giga FVZ, Forward)</td></tr>
+<tr><td>Year</td><td><strong>Oo</strong></td><td>Taon ng pagkakagawa</td></tr>
+<tr><td>Chassis Number</td><td>Hindi</td><td>VIN / Frame serial number</td></tr>
+<tr><td>Engine Number</td><td>Hindi</td><td>Engine serial number</td></tr>
+<tr><td>Tank Capacity</td><td>Hindi</td><td>Kapasidad sa litro</td></tr>
+<tr><td>Fuel Type</td><td>Hindi</td><td>Diesel, Gasolina, atbp.</td></tr>
+</tbody>
+</table>
+
+<h3>4.3 Certificate of Registration Fields</h3>
+<p>Ang mga sumusunod na CR field ay dapat kumpletuhin mula sa opisyal na LTO Certificate of Registration.</p>
+
+<table>
+<thead><tr><th>Field</th><th>Source Document</th></tr></thead>
+<tbody>
+<tr><td>MV File Number</td><td>LTO MV File</td></tr>
+<tr><td>CR Number</td><td>LTO CR</td></tr>
+<tr><td>OR Number</td><td>LTO OR</td></tr>
+<tr><td>Date of Registration</td><td>LTO CR</td></tr>
+<tr><td>Date Expire</td><td>LTO CR</td></tr>
+<tr><td>Make</td><td>LTO CR</td></tr>
+<tr><td>Series/Body Type</td><td>LTO CR</td></tr>
+<tr><td>Year Model</td><td>LTO CR</td></tr>
+<tr><td>Engine Number</td><td>LTO CR (i-verify sa engine block)</td></tr>
+<tr><td>Chassis Number</td><td>LTO CR (i-verify sa frame stamp)</td></tr>
+<tr><td>Piston Displacement (cc)</td><td>LTO CR</td></tr>
+<tr><td>Gross Vehicle Weight</td><td>LTO CR</td></tr>
+<tr><td>Net Capacity</td><td>LTO CR</td></tr>
+<tr><td>Shipping Weight</td><td>LTO CR</td></tr>
+<tr><td>Net Weight</td><td>LTO CR</td></tr>
+<tr><td>LTO Registered Address</td><td>LTO CR</td></tr>
+<tr><td>LTO Registered Owner</td><td>LTO CR</td></tr>
+</tbody>
+</table>
+
+<h3>4.4 Pagpaparehistro ng Bagong Trak</h3>
+<p><strong>Responsableng Role:</strong> Admin o Super Admin</p>
+<ol>
+    <li>Pumunta sa <strong>Sidebar → Trucks</strong>.</li>
+    <li>I-click ang <strong>"Add Truck"</strong>.</li>
+    <li>Kumpletuhin ang lahat ng required fields. Punan ang optional fields kung available ang data.</li>
+    <li>Itakda ang unang <strong>Status</strong> sa <strong>"Active"</strong> kung ang trak ay operational.</li>
+    <li>Ilagay ang kasalukuyang <strong>Mileage (km)</strong> at <strong>Engine Hours</strong> mula sa odometer at hour meter ng trak.</li>
+    <li>I-click ang <strong>"Save"</strong>.</li>
+    <li>Awtomatikong gagawa ang sistema ng 154 PM schedules para sa bagong trak.</li>
+    <li>I-verify sa <strong>PMS Schedules</strong> page kung nagawa ang mga ito.</li>
+</ol>
+
+<div class="info-note"><strong>Tandaan:</strong> Mahalaga ang tamang paunang mileage at engine hours. Ang kalkulasyon ng "next due" ng bawat PM schedule ay nagsisimula sa mga baseline readings na ito.</div>
+
+<h3>4.5 Pag-edit ng Trak</h3>
+<ol>
+    <li>Pumunta sa <strong>Sidebar → Trucks</strong>.</li>
+    <li>I-click ang trak para buksan ang Detail page.</li>
+    <li>I-click ang <strong>"Edit"</strong>.</li>
+    <li>I-update ang mga field.</li>
+    <li>I-click ang <strong>"Save"</strong>.</li>
+</ol>
+
+<h3>4.6 Layout ng Truck Detail Page</h3>
+<table>
+<thead><tr><th>Section</th><th>Nilalaman</th></tr></thead>
+<tbody>
+<tr><td><strong>Kaliwang Itaas:</strong> Truck Details</td><td>Unit number, plaka, make, model, taon, chassis/engine numbers, mileage, engine hours, status, fuel type, tank capacity</td></tr>
+<tr><td><strong>Kanang Itaas:</strong> Certificate of Registration</td><td>Lahat ng 17 CR fields</td></tr>
+<tr><td><strong>Kaliwang Ibaba:</strong> PM Schedule</td><td>Lahat ng PM items na may kulay na status indicators</td></tr>
+<tr><td><strong>Kanang Ibaba:</strong> Job Orders at Service History</td><td>Mga kamakailang JO at service log entries</td></tr>
+</tbody>
+</table>
+
+<div class="page-break"></div>
+
+<h2 id="ch5">Kabanata 5: Pamamahala ng Estado ng Fleet</h2>
+
+<h3>5.1 Mga Estado ng Trak</h3>
+<table>
+<thead><tr><th>Estado</th><th>Kahulugan</th></tr></thead>
+<tbody>
+<tr><td><strong>Active</strong></td><td>Ang trak ay fully operational at handa para sa dispatch. Aktibo ang mga PM schedule.</td></tr>
+<tr><td><strong>Down</strong></td><td>Ang trak ay kasalukuyang wala sa serbisyo dahil sa breakdown o major repair.</td></tr>
+<tr><td><strong>Retired</strong></td><td>Ang trak ay permanente nang hindi na gagamitin. Naka-freeze ang PM schedules.</td></tr>
+</tbody>
+</table>
+
+<h3>5.2 Pagpapalit ng Estado ng Trak</h3>
+<ol>
+    <li>Buksan ang Truck Detail page.</li>
+    <li>I-click ang <strong>"Edit"</strong>.</li>
+    <li>Palitan ang <strong>Status</strong> field.</li>
+    <li>I-click ang <strong>"Save"</strong>.</li>
+</ol>
+
+<h3>5.3 Pag-sync ng Bagong PM Template sa mga Umiiral na Trak</h3>
+<p>Kung may idinagdag na bagong PM task templates pagkatapos magparehistro ng mga trak:</p>
+<ol>
+    <li>Pumunta sa <strong>Sidebar → PMS Schedules</strong>.</li>
+    <li>I-click ang <strong>"Sync All Trucks"</strong> na buton.</li>
+    <li>Para sa iisang trak: buksan ang Truck Detail page at i-click ang <strong>Refresh icon</strong> sa PM Schedule section.</li>
+</ol>

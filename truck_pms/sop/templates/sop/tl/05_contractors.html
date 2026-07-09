@@ -1,0 +1,131 @@
+<h1 id="vol5">Bolyum 5 — Pamamahala ng Contractor</h1>
+
+<h2 id="ch15">Kabanata 15: Contractor Onboarding at Skills Registry</h2>
+
+<h3>15.1 Kailan Gagamit ng Contractor</h3>
+
+<p>Ang mga contractor ay external service providers na ginagamit kapag:</p>
+<ul>
+    <li>Ang kailangang repair o serbisyo ay labas sa expertise ng in-house mechanics (hal., calibration, specialized welding, electrical diagnostics para sa OEM systems).</li>
+    <li>Ang in-house capacity ay fully utilized at ang trabaho ay hindi pwedeng i-defer.</li>
+    <li>Ang trabaho ay nangangailangan ng specialized equipment na hindi available sa workshop (hal., hydrostatic testing, ultrasonic thickness gauging, dynamometer testing).</li>
+    <li>Ang warranty o insurance requirements ay nag-mamandate ng OEM-certified technicians.</li>
+</ul>
+
+<h3>15.2 Pagrerehistro ng Bagong Contractor sa Sistema</h3>
+
+<p><strong>Responsableng Role:</strong> Admin o Super Admin</p>
+
+<ol>
+    <li>Pumunta sa <strong>Sidebar → Contractors</strong>.</li>
+    <li>I-click ang <strong>"Add Contractor"</strong>.</li>
+    <li>Kumpletuhin ang form:
+        <ul>
+            <li><strong>Company Name:</strong> Legal business name ayon sa gobyerno o ayon sa nakasaad sa invoice.</li>
+            <li><strong>Contact Person:</strong> Pangalan ng taong kausap mo para sa scheduling at invoicing.</li>
+            <li><strong>Mobile Number:</strong> Direktang linya sa contact person.</li>
+            <li><strong>Email Address:</strong> Para sa pagpapadala ng Job Orders, correspondence, at invoices.</li>
+            <li><strong>Address:</strong> Pisikal na opisina o workshop address.</li>
+            <li><strong>Skills:</strong> Comma-separated na listahan ng services na ibinibigay ng contractor. Maging specific: "Welding, Calibration, Electrical Diagnostics, Vapor Recovery Testing, Tank Hydrostatic Testing, Hydraulic Repairs."</li>
+            <li><strong>Active:</strong> Lagyan ng check ang box na ito para payagan ang contractor na ma-assign ng Job Orders. Alisin ang check para pansamantala o permanenteng i-disable ang contractor assignments nang hindi binubura ang record.</li>
+        </ul>
+    </li>
+    <li>I-click ang <strong>"Save"</strong>.</li>
+</ol>
+
+<h3>15.3 Contractor User Account</h3>
+
+<p>Ang bawat contractor company ay pwedeng magkaroon ng user account sa sistema na may <strong>CONTRACTOR</strong> role. Ang account na ito:</p>
+<ul>
+    <li>Nakakita lamang ng Job Orders na nakatalaga sa kanilang kompanya.</li>
+    <li>May parehong workflow capabilities bilang isang mechanic (mag-mark ng line items ng Done, mag-record ng parts, magdagdag ng hours).</li>
+    <li>Walang access sa ibang bahagi ng sistema (truck list read-only, walang PM schedules, walang reports).</li>
+    <li>Ire-redirect sa <strong>My Assignments</strong> sa pag-login para sa immediate access sa work orders.</li>
+</ul>
+
+<p>Para gumawa ng contractor user account, tingnan ang Kabanata 2 (User Account Lifecycle) — piliin ang Role = CONTRACTOR.</p>
+
+<div class="page-break"></div>
+
+<h2 id="ch16">Kabanata 16: Contractor Service Execution</h2>
+
+<h3>16.1 Paggawa ng Contractor Job Order</h3>
+
+<ol>
+    <li>Pumunta sa <strong>Sidebar → Job Orders → New Job Order</strong>.</li>
+    <li>Piliin ang <strong>Truck</strong>.</li>
+    <li>Itakda ang <strong>Type</strong> = "Contractor Service."</li>
+    <li>Sa <strong>Assigned To</strong> field, piliin ang <strong>Contractor Company</strong> (hindi indibidwal na mechanic).</li>
+    <li>Kumpletuhin ang natitirang fields (title, description, priority).</li>
+    <li>I-click ang <strong>"Save"</strong>.</li>
+    <li>Magdagdag ng line items para sa bawat specific task na dapat gawin ng contractor.</li>
+</ol>
+
+<h3>16.2 Contractor On-Site Procedure</h3>
+
+<ol>
+    <li><strong>Check-in:</strong> Kapag dumating ang contractor sa workshop, dapat nilang:
+        <ul>
+            <li>Mag-report sa supervisor o admin na naka-duty.</li>
+            <li>I-present ang anumang kinakailangang credentials o certifications para sa trabaho.</li>
+            <li>Suriin ang Job Order scope kasama ang supervisor bago simulan ang trabaho.</li>
+            <li>Turuan tungkol sa workshop safety rules, emergency exits, at lokasyon ng fire extinguishers at first aid kits.</li>
+        </ul>
+    </li>
+    <li><strong>Habang gumagawa:</strong>
+        <ul>
+            <li>Ina-update ng contractor ang Job Order line items sa sistema (o ina-update ng supervisor kung walang system access ang contractor).</li>
+            <li>Pwedeng magsagawa ng spot checks ang supervisor sa trabahong ginagawa.</li>
+            <li>Ang anumang karagdagang trabaho na natuklasan sa trabaho ay dapat aprubahan ng supervisor bago ituloy (verbal approval ay acceptable; documentation ay susunod).</li>
+        </ul>
+    </li>
+    <li><strong>Check-out:</strong>
+        <ul>
+            <li>Ang trabaho ay ini-inspect at ina-aprubahan ng supervisor (tingnan ang QC inspection sa Kabanata 13).</li>
+            <li>Ang service report ng contractor (paper o digital) ay isinumite sa supervisor.</li>
+            <li>Pinipirmahan ng supervisor ang Job Order.</li>
+        </ul>
+    </li>
+</ol>
+
+<h3>16.3 Invoicing at Cost Tracking</h3>
+
+<ul>
+    <li>Lahat ng parts at materials na ginamit ng contractor ay naka-record sa Job Order line items (tingnan ang Section 12.3).</li>
+    <li>Ang labor cost ng contractor ay naka-record bilang quoted rate ng contractor sa line item notes o bilang separate part entry para sa "labor charge."</li>
+    <li>Sa pagkumpleto, magsusumite ang contractor ng invoice na nagre-reference ng Job Order number.</li>
+    <li>Ive-verify ng supervisor ang invoice laban sa Job Order (line items, parts, hours) at mag-aaprub para sa payment.</li>
+</ul>
+
+<div class="page-break"></div>
+
+<h2 id="ch17">Kabanata 17: Contractor Performance Evaluation</h2>
+
+<h3>17.1 Performance Metrics</h3>
+
+<p>Awtomatikong tinatrack ng KPI Reports section ang contractor performance. Mga key metrics:</p>
+
+<table>
+<thead><tr><th>Metric</th><th>Kahulugan</th><th>Target</th></tr></thead>
+<tbody>
+<tr><td>Total Jobs</td><td>Bilang ng Job Orders na nakatalaga sa contractor na ito</td><td>Nag-iiba-iba ayon sa contractor</td></tr>
+<tr><td>Completed Jobs</td><td>Bilang ng JOs na na-close (natapos nang matagumpay)</td><td>Ayon sa itinalaga</td></tr>
+<tr><td>Open Jobs</td><td>JOs na kasalukuyang in progress</td><td>I-minimize — dapat &lt;10% ng total</td></tr>
+<tr><td>Completion Rate</td><td>Completed jobs / Total jobs × 100%</td><td>≥ 90%</td></tr>
+<tr><td>Average Turnaround Time</td><td>Araw mula creation hanggang close</td><td>Nag-iiba-iba ayon sa job type — subaybayan ang trends</td></tr>
+</tbody>
+</table>
+
+<h3>17.2 Pag-evaluate ng Contractor Quality</h3>
+
+<p>Bilang karagdagan sa quantitative metrics, i-evaluate ang contractors sa:</p>
+
+<ul>
+    <li><strong>Work quality:</strong> Pumapasa ba ang trabaho sa QC inspection sa unang attempt? May mga paulit-ulit bang issues na nagmumula sa contractor work?</li>
+    <li><strong>Reliability:</strong> Pumupunta ba ang contractor sa scheduled date at time? Natatapos ba nila ang trabaho sa loob ng estimated time?</li>
+    <li><strong>Documentation:</strong> Nagbibigay ba ang contractor ng kumpletong service reports, photos (kung applicable), at tumpak na invoices?</li>
+    <li><strong>Safety compliance:</strong> Sumusunod ba ang contractor sa workshop safety rules? Nagsusuot ba sila ng tamang PPE? Nagdadala ba sila ng sarili nilang safety equipment?</li>
+    <li><strong>Communication:</strong> Iniuulat ba ng contractor ang mga delays, parts issues, o karagdagang findings kaagad?</li>
+</ul>
+
+<p>Ang evaluation notes ay pwedeng i-record sa contractor's record gamit ang <strong>Notes</strong> field na available sa Contractor detail page (accessible mula sa Sidebar → Contractors).</p>

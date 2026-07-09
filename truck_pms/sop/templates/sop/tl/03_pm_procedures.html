@@ -1,0 +1,308 @@
+<h1 id="vol3">Bolyum 3 — Preventive Maintenance</h1>
+
+<h2 id="ch6">Kabanata 6: Pag-iiskedyul ng PM — Mga Uri ng Interval</h2>
+
+<h3>6.1 Layunin ng Preventive Maintenance</h3>
+<p>Tinitiyak ng Preventive Maintenance program na ang bawat tanker truck sa fleet ay nakakatanggap ng napapanahon, naka-iskedyul na serbisyo upang maiwasan ang hindi inaasahang pagkasira, pahabain ang buhay ng kagamitan, mapanatili ang kaligtasan, at sumunod sa mga kinakailangan ng depot. Ang maayos na PM program ay nakakabawas ng magastos na emergency repairs at pinapanatili ang fleet na operational.</p>
+
+<h3>6.2 Mga Uri ng Interval</h3>
+<table>
+<thead><tr><th>Uri</th><th>Basis</th><th>Halimbawa</th></tr></thead>
+<tbody>
+<tr><td><strong>MILEAGE</strong></td><td>Odometer reading</td><td>"Oil change tuwing 5,000 km"</td></tr>
+<tr><td><strong>HOURS</strong></td><td>Engine hours meter</td><td>"Belt inspection tuwing 500 oras"</td></tr>
+<tr><td><strong>CALENDAR</strong></td><td>Elapsed time (araw)</td><td>"Tank test tuwing 365 araw"</td></tr>
+<tr><td><strong>VISUAL</strong></td><td>Manual na pagtingin</td><td>"Pre-trip inspection — walang auto-calculation"</td></tr>
+</tbody>
+</table>
+
+<h3>6.3 Pagkalkula ng Due Date</h3>
+<ul>
+    <li><strong>MILEAGE:</strong> <code>current_mileage &gt;= last_mileage_km + interval_value</code> → DUE. May 10% grace threshold.</li>
+    <li><strong>HOURS:</strong> Parehong logic, engine hours ang gamit.</li>
+    <li><strong>CALENDAR:</strong> <code>today &gt;= last_completed_at + timedelta(days=interval_value)</code> → DUE.</li>
+    <li><strong>VISUAL:</strong> Laging "visual" ang status — walang awtomatikong kalkulasyon.</li>
+</ul>
+
+<h3>6.4 Mga Kulay ng Status</h3>
+<table>
+<thead><tr><th>Status</th><th>Kulay</th><th>Ibig Sabihin</th></tr></thead>
+<tbody>
+<tr><td><strong>OK</strong></td><td>Berde</td><td>Nasa loob ng service interval</td></tr>
+<tr><td><strong>DUE</strong></td><td>Dilaw</td><td>Malapit na sa 10% ng interval</td></tr>
+<tr><td><strong>OVERDUE</strong></td><td>Pula</td><td>Lampas na sa interval — serbisyo agad</td></tr>
+<tr><td><strong>VISUAL</strong></td><td>Asul</td><td>Manual inspection kailangan</td></tr>
+<tr><td><strong>NO DATA</strong></td><td>Gray</td><td>Hindi pa natapos, walang baseline</td></tr>
+</tbody>
+</table>
+
+<h3>6.5 Paano Nag-a-update ang PM Schedule Kapag Nag-close ang JO</h3>
+<p>Kapag na-close ang isang Job Order, awtomatikong:</p>
+<ol>
+    <li>Itinatala ang kasalukuyang <strong>mileage</strong> at <strong>engine hours</strong>.</li>
+    <li>Hinahanap ang PM Schedule na tugma sa line items.</li>
+    <li>Ina-update ang <code>last_completed_at</code>, <code>last_mileage_km</code>, at <code>last_engine_hours</code>.</li>
+    <li>Kinakalkula muli ang susunod na due date.</li>
+</ol>
+
+<div class="page-break"></div>
+
+<h2 id="ch7">Kabanata 7: Mga Kategorya at Template ng PM Task</h2>
+
+<h3>7.1 Istraktura ng Sistema</h3>
+<ol>
+    <li><strong>Task Categories (23):</strong> Mga grupo ng magkakaugnay na maintenance tasks (Engine PM, Brakes, Tires, atbp.)</li>
+    <li><strong>Task Templates (154):</strong> Mga tiyak, paunang-natukoy na tasks sa bawat category. Bawat template ay may pangalan, interval value, interval unit, at category.</li>
+    <li><strong>PM Schedules:</strong> Per-truck instances ng bawat template — 154 bawat trak.</li>
+</ol>
+
+<h3>7.2 Ang 23 PM Categories</h3>
+<table>
+<thead><tr><th>#</th><th>Category</th><th>Pokus</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Engine PM</td><td>Langis, filter, coolant, radiator hoses, fan belt</td></tr>
+<tr><td>2</td><td>Brakes</td><td>Lining, drum/disc, air brake system</td></tr>
+<tr><td>3</td><td>Tires</td><td>Kondisyon, tread depth at presyon</td></tr>
+<tr><td>4</td><td>Tank &amp; Valves</td><td>Overfill prevention, manlid, API adapters, camlocks</td></tr>
+<tr><td>5</td><td>Vapor Recovery</td><td>Vapor recovery system, grounding/static</td></tr>
+<tr><td>6</td><td>Hoses &amp; Couplings</td><td>Product piping, hoses at couplings</td></tr>
+<tr><td>7</td><td>Safety Equipment</td><td>Horn, reflective tape, first aid, fall arrest</td></tr>
+<tr><td>8</td><td>Electrical</td><td>Battery, alternator, starter, wiring</td></tr>
+<tr><td>9</td><td>Lighting</td><td>Headlight, taillight, brake light, signal, clearance</td></tr>
+<tr><td>10</td><td>Compliance</td><td>DOST stickers, HAZMAT placards, depot access</td></tr>
+<tr><td>11</td><td>Drivetrain</td><td>Differential, U-joints, wheel bearings</td></tr>
+<tr><td>12</td><td>Water Brake</td><td>Water brake components</td></tr>
+<tr><td>13</td><td>HVAC</td><td>Aircon, heater</td></tr>
+<tr><td>14</td><td>Hydraulics</td><td>Hydraulic pump, cylinder, lines</td></tr>
+<tr><td>15</td><td>Suspension</td><td>Leaf springs, shock absorbers</td></tr>
+<tr><td>16</td><td>Exhaust</td><td>Exhaust pipe, muffler</td></tr>
+<tr><td>17</td><td>Body &amp; Chassis</td><td>Body condition, chassis frame</td></tr>
+<tr><td>18</td><td>Fuel System</td><td>Fuel filter, fuel lines, injectors</td></tr>
+<tr><td>19</td><td>Steering</td><td>Steering gear, linkage, power steering</td></tr>
+<tr><td>20</td><td>Transmission</td><td>Transmission oil, clutch adjustment</td></tr>
+<tr><td>21</td><td>Cooling (Aux)</td><td>Coolant level, radiator cap, recovery tank</td></tr>
+<tr><td>22</td><td>Air Intake</td><td>Air filter, intake piping, turbocharger</td></tr>
+<tr><td>23</td><td>Miscellaneous</td><td>General visual inspection</td></tr>
+</tbody>
+</table>
+
+<h3>7.3 Pagdagdag ng Bagong Task Template</h3>
+<p><strong>Role:</strong> Admin o Super Admin</p>
+<ol>
+    <li>Pumunta sa <strong>Sidebar → PM Templates</strong>.</li>
+    <li>I-click ang <strong>"Add Template"</strong>.</li>
+    <li>Punan ang: Task Name, Category, Interval Value, Interval Unit.</li>
+    <li>I-click ang <strong>"Save"</strong>.</li>
+    <li>Pagkatapos, i-sync ang mga umiiral na trak.</li>
+</ol>
+
+<div class="page-break"></div>
+
+<h2 id="ch8">Kabanata 8: Step-by-Step na Pamamaraan ng PM</h2>
+
+<p>Ang kabanatang ito ay naglalaman ng kumpletong step-by-step procedures para sa lahat ng 23 PM categories. Ang bawat procedure ay sumusunod sa isang standard na format na may safety precautions, mga kinakailangang kasangkapan, detalyadong hakbang, acceptance criteria, at documentation requirements.</p>
+
+<p>Ang mga sumusunod na <strong>General Safety Rules</strong> ay laging sinusunod:</p>
+<ul>
+    <li>Magsuot ng tamang PPE: safety glasses, steel-toe boots, gloves, high-visibility vest.</li>
+    <li>Siguraduhing naka-park ang trak sa patag na lupa na naka-engage ang parking brake.</li>
+    <li>Maglagay ng wheel chocks bago magtrabaho sa ilalim ng trak.</li>
+    <li>Para sa tanker trucks: kumpirmahing walang laman at gas-free ang compartment bago mag-hot work.</li>
+    <li>Gumamit ng lockout/tagout (LOTO) procedures sa electrical, hydraulic, at pneumatic systems.</li>
+    <li>Huwag magtrabaho nang mag-isa sa mapanganib na gawain — laging may kasama.</li>
+</ul>
+
+<hr>
+
+<h3 id="s8-1">8.1 Pagpalit ng Langis at Oil Filter</h3>
+{% with p_title="Pagpalit ng Langis ng Makina at Oil Filter" p_purpose="Alisin ang maruming langis at palitan ng bagong langis ng tamang grado. Palitan ang oil filter upang mapanatili ang tamang lubrication at buhay ng makina." p_scope="Lahat ng diesel-powered tanker trucks" p_frequency="Tuwing 5,000 km o 250 engine hours, kung alin ang mauna" p_ppe="Safety glasses, nitrile gloves, steel-toe boots, coveralls" p_tools="Socket wrench set, oil filter wrench, drain pan (15L+), funnel, torque wrench, basahan, oil absorbent pads, bagong oil filter, tamang grado ng engine oil (15W-40 o 20W-50 para sa diesel), replacement drain plug gasket" p_steps="<li>I-park ang trak sa patag na lupa, i-engage ang parking brake, maglagay ng wheel chocks.</li><li>Painitin ang makina ng 2-3 minuto para lumambot ang langis (dapat mainit-init, hindi mainit).</li><li>Patayin ang makina.</li><li>Ilagay ang drain pan sa ilalim ng drain plug.</li><li>Gamit ang tamang socket, lumuwag at tanggalin ang drain plug.</li><li>Hayaang tumulo nang buo ang langis (5-10 minuto).</li><li>Siyasatin ang drain plug gasket — palitan kung sira o pipi.</li><li>Habang tumutulo ang langis, ilipat ang drain pan sa ilalim ng oil filter.</li><li>Gamit ang oil filter wrench, luwagan ang filter sa pamamagitan ng pag-ikot pakaliwa.</li><li>May tatapong langis — maglagay ng basahan para sa mga patak.</li><li>Tanggalin nang buo ang filter.</li><li>Punasan ang filter mounting surface sa engine block ng malinis na basahan.</li><li>Lagyan ng manipis na coat ng bagong langis ang rubber gasket ng bagong filter.</li><li>I-screw ang bagong filter sa mounting stud gamit ang kamay hanggang dumikit ang gasket.</li><li>Higpitan ng dagdag na 3/4 turn gamit ang kamay (huwag sobra).</li><li>Ibalik ang drain plug na may bagong gasket. Torque sa spec ng manufacturer (30-50 Nm para sa M14 plugs).</li><li>Ibuhos ang bagong langis sa fill port. Kapasidad: 15-20 liters para sa medium-duty diesel trucks.</li><li>Ibuhos ang 80% ng inaasahang kapasidad, pagkatapos ay suriin ang dipstick.</li><li>Dagdagan hanggang sa FULL mark.</li><li>Start engine at patakbuhin ng 30 segundo. Suriin kung may tagas sa drain plug at filter.</li><li>Patayin ang makina. Hintayin ng 2 minuto para tumira ang langis.</li><li>Suriin muli ang dipstick at dagdagan kung kinakailangan.</li><li>Itala ang mileage, grado ng langis at dami na ginamit, at petsa.</li>" p_acceptance="Ang langis ay nasa FULL mark sa dipstick pagkatapos ng warm-up. Walang tagas sa drain plug o filter pagkatapos ng 30-segundong takbo. Normal ang oil pressure gauge (40-60 psi sa idle kapag mainit)." p_danger="Ang mainit na langis ay nagdudulot ng matinding paso. Palamigin nang bahagya ang makina bago mag-drain. Ang langis ay hazardous waste — kolektahin sa aprobadong lalagyan. Huwag kailanman itapon ang langis sa lupa o sa drain." p_tip="Itala ang konsumo ng langis sa pagitan ng mga pagpapalit. Kung ang trak ay nangangailangan ng higit sa 1L top-up sa pagitan ng changes, siyasatin kung may tagas o engine wear." p_documentation="Itala sa Job Order line item: mileage, oil grade/viscosity, dami, filter part number. I-update ang PM schedule para sa Engine Oil at Filter." p_signoff="Mechanic na Gumawa → Lead Mechanic verification" %}
+{% include "sop/_procedure.html" %}
+{% endwith %}
+
+<div class="page-break"></div>
+
+<h3 id="s8-2">8.2 Coolant System — Flush at Refill</h3>
+{% with p_title="Pag-flush at Pag-refill ng Coolant System" p_purpose="Alisin ang marumi o sirang coolant, i-flush ang cooling system, at lagyan ng bagong coolant sa tamang concentration upang maiwasan ang overheating, cavitation, at pagyelo." p_scope="Lahat ng liquid-cooled diesel truck engines" p_frequency="Tuwing 40,000 km o 2 taon, kung alin ang mauna" p_ppe="Safety glasses, heat-resistant gloves, coveralls, face shield (kapag binubuksan ang mainit na sistema)" p_tools="Drain pan (20L+), radiator flush chemical (opsyonal), distilled water, premixed coolant (50/50), funnel, coolant hydrometer o refractometer, hose, basahan, replacement radiator cap" p_steps="<li>Tiyaking <strong>malamig</strong> ang engine (coolant temperature below 40°C).</li><li>Ilagay ang drain pan sa ilalim ng radiator drain plug.</li><li>Dahan-dahang buksan ang radiator cap para pakawalan ang pressure.</li><li>Tanggalin ang drain plug at hayaang tumulo nang buo ang coolant.</li><li>Isara ang drain plug.</li><li>Kung gagamit ng flush chemical: punuin ng tubig + flush chemical, patakbuhin ang engine na naka-HIGH ang heater ng 10-15 minuto, at drain.</li><li>Kung hindi gagamit ng chemical: punuin ng distilled water, patakbuhin ang engine ng 10 minuto, at drain.</li><li>Ulitin hanggang malinaw ang tubig na lumalabas.</li><li>Siyasatin ang lahat ng coolant hoses para sa cracks, soft spots, o swelling. Palitan kung sira.</li><li>Siyasatin ang radiator cap gasket at pressure seal. Palitan kung sira.</li><li>Paghaluin ang coolant concentrate at distilled water sa 50/50 ratio.</li><li>Punuin ang radiator hanggang sa itaas. Punuin ang recovery tank hanggang COLD FILL line.</li><li>I-install nang mahigpit ang radiator cap.</li><li>Patakbuhin ang engine na naka-HIGH ang heater hanggang bumukas ang thermostat.</li><li>Suriin kung may tagas sa hoses, water pump, drain plug, at radiator seams.</li><li>Patayin ang engine at palamigin. Suriin muli ang coolant level at dagdagan kung kinakailangan.</li>" p_acceptance="Ang coolant ay walang contamination (walang kalawang, langis, o debris). Coolant concentration 50% ±5%. Walang tagas sa anumang connection. Ang radiator cap ay humahawak ng pressure. Ang recovery tank ay nasa tamang level." p_danger="Ang coolant ay nakakalason (ethylene glycol). Huwag itapon sa drain o sa lupa. Kolektahin ang waste coolant sa selyadong lalagyan. Huwag buksan ang mainit na cooling system — magdudulot ito ng matinding paso." p_tip="Gumamit ng distilled water, hindi galing sa gripo. Ang tubig sa gripo ay may mineral na nagdudulot ng scale buildup." p_documentation="Itala ang mileage, coolant type/concentration, dami, petsa." p_signoff="Mechanic na Gumawa" %}
+{% include "sop/_procedure.html" %}
+{% endwith %}
+
+<div class="page-break"></div>
+
+<h3 id="s8-3">8.3 Radiator at Hose Inspection</h3>
+{% with p_title="Inspeksyon ng Radiator at Coolant Hoses" p_purpose="Siyasatin ang radiator core, tanks, fins, at lahat ng coolant hoses para sa tagas, damage, blockage, o deterioration na maaaring magdulot ng overheating." p_scope="Lahat ng trak" p_frequency="Tuwing 10,000 km o 6 na buwan" p_ppe="Safety glasses, gloves" p_tools="Flashlight, pressure tester, inspection mirror, basahan, coolant" p_steps="<li>Sa malamig na engine, tanggalin ang radiator cap at siyasatin ang cap gasket at seal.</li><li>Siyasatin ang radiator core para sa baluktot o sirang fins.</li><li>Gamit ang flashlight, tingnan kung may debris blockage sa pagitan ng fins.</li><li>Siyasatin ang radiator seams para sa puti o pink na deposit na nagpapahiwatig ng tagas.</li><li>Suriin ang upper at lower radiator hoses para sa: cracks, soft spots, bulging, chafing, at contamination.</li><li>Suriin ang heater hoses para sa parehong defects.</li><li>Suriin ang lahat ng hose clamp connections — dapat mahigpit at nasa tamang posisyon.</li><li>Siyasatin ang coolant recovery tank para sa cracks at hose connection.</li><li>Pressure test: i-install ang pressure tester, i-pump sa system pressure (12-16 psi).</li><li>Panoorin ang gauge ng 2 minuto — dapat steady ang pressure.</li><li>Kung bumaba ang pressure, hanapin ang tagas sa pamamagitan ng pakikinig at pag-inspeksyon.</li><li>Pakawalan ang pressure at tanggalin ang tester.</li><li>Dagdagan ang coolant kung kinakailangan. I-install ang radiator cap.</li>" p_acceptance="Walang tagas sa ilalim ng pressure test. Ang mga hose ay firm pero pliable — walang cracks, soft spots, o swelling. Ang mga clamp ay secure at nasa tamang posisyon. Ang radiator fins ay malinis at walang damage (90% open)." p_danger="Huwag mag-pressure test sa mainit na cooling system. Siguraduhing malamig ang engine." p_tip="Squeeze-test ang hoses: ang magandang hose ay firm at springy. Ang hose na parang malambot o madaling pumipi ay may internal degradation at dapat palitan." p_documentation="Itala ang mga findings, pressure test result, mga hose na pinalitan." p_signoff="Mechanic na Gumawa" %}
+{% include "sop/_procedure.html" %}
+{% endwith %}
+
+<div class="page-break"></div>
+
+<h3 id="s8-4">8.4 Fan Belt at Tensioner Inspection</h3>
+{% with p_title="Inspeksyon ng Fan Belt (Serpentine/V-Belt) at Tensioner" p_purpose="Siyasatin ang kondisyon at tension ng lahat ng drive belts at ang automatic tensioner upang maiwasan ang belt failure, pagkawala ng cooling, alternator output, at power steering." p_scope="Lahat ng trak na may belt-driven accessories" p_frequency="Tuwing 10,000 km o 6 na buwan" p_ppe="Safety glasses, gloves" p_tools="Belt tension gauge (opsyonal), 12mm/14mm socket, pry bar, flashlight" p_steps="<li>Patayin ang engine at tanggalin ang susi.</li><li>Siyasatin ang belt(s) sa buong haba: tingnan ang cracks, glazing, fraying, missing chunks, separation.</li><li>Suriin ang belt routing laban sa diagram sa fan shroud.</li><li>Kumpirmahing nasa tamang pulley grooves ang belt.</li><li>Suriin ang automatic tensioner: tingnan kung may wobble o misalignment.</li><li>Suriin ang tensioner pulley — paikutin gamit ang kamay; dapat umikot nang maayos walang grinding o wobble.</li><li>Sukatin ang belt deflection: pindutin ang belt sa pinakamahabang unsupported span. Acceptable: 10-15mm.</li><li>Para sa automatic tensioner: i-verify na ang indicator mark ay nasa loob ng acceptable range.</li><li>Para sa manual tensioner systems: i-adjust sa pamamagitan ng pagluwag ng mounting bolt at pag-pivot ng alternator.</li><li>Suriin ang accessory pulleys: paikutin bawat isa, damhin kung may roughness o wobble.</li><li>Suriin ang pulley alignment: dapat nakahanay ang lahat ng grooves sa loob ng 1mm.</li>" p_acceptance="Ang belt ay walang cracks, glazing, fraying, o chunking. Ang tensioner indicator ay nasa acceptable range (o deflection 10-15mm). Ang lahat ng pulleys ay umiikot nang maayos na walang wobble. Ang belt ay nasa tamang grooves." p_danger="Huwag siyasatin ang belts habang tumatakbo ang engine. Ang maluwag na damit, buhok, o kasangkapan ay maaaring makapasok sa rotating components. Siguraduhing naka-off ang engine at nakaalis ang susi." p_tip="Kung ang isang belt ay may malaking wear, palitan ang lahat ng belts sa sistema nang sabay. Ang failing tensioner ay madalas na nakakasira ng bagong belt." p_documentation="Itala ang belt condition, tension measurement, mga pinalitan (belt part numbers)." p_signoff="Mechanic na Gumawa" %}
+{% include "sop/_procedure.html" %}
+{% endwith %}
+
+<div class="page-break"></div>
+
+<h3 id="s8-5">8.5 Brake Lining Inspection</h3>
+{% with p_title="Inspeksyon ng Brake Lining (Brake Shoe Pad)" p_purpose="Siyasatin ang kapal ng brake lining, kondisyon, at contact pattern sa lahat ng gulong. Tukuyin kung kailangan na palitan bago maging kritikal ang nipis ng lining material." p_scope="Lahat ng trak — siyasatin ang lahat ng gulong (6-10 gulong bawat trak)" p_frequency="Tuwing 10,000 km o 3 buwan para sa severe service" p_ppe="Safety glasses, gloves, steel-toe boots, hearing protection (kung gumagamit ng air tools)" p_tools="Tire chocks, jack stands (6-ton capacity), lug wrench, torque wrench, brake spoon, ruler o brake lining thickness gauge, flashlight, penetrating oil" p_steps="<li>Maglagay ng wheel chocks sa mga axle na mananatili sa lupa.</li><li>Luwagan ang lug nuts nang bahagya habang nasa lupa ang trak.</li><li>I-jack up ang trak at maglagay ng jack stands sa frame rails — <strong>huwag magtrabaho sa ilalim ng trak na naka-jack lamang</strong>.</li><li>Tanggalin ang mga gulong.</li><li>Para sa drum brakes: i-back off ang adjuster para pakawalan ang brake shoes.</li><li>Hilahin ang drum palayo — maaaring mangailangan ng penetrating oil kung seized.</li><li>Siyasatin ang drum inner surface.</li><li>Sukatin ang lining thickness sa magkabilang dulo ng bawat shoe (leading at trailing).</li><li>Palitan kung kapal ay ≤ 3mm sa anumang punto.</li><li>Para sa disc brakes: tanggalin ang caliper, alisin ang brake pads, sukatin ang pad thickness.</li><li>Palitan kung ≤ 3mm. Suriin kung may uneven wear.</li><li>Suriin ang brake hardware: return springs, retaining clips, anti-rattle springs. Palitan ang corroded o mahina.</li><li>Linisin ang brake dust sa backing plate at hub (gumamit ng aprobadong vacuum — iwasan ang paghinga ng brake dust).</li><li>I-assemble muli ang lahat.</li><li>I-install ang gulong, higpitan ang lug nuts sa star pattern sa tamang torque (450-600 Nm para sa heavy trucks).</li><li>Ibaba ang trak. I-re-torque ang lug nuts pagkatapos ng 50 km na byahe.</li>" p_acceptance="Lining thickness ≥ 6mm minimum (palitan sa 3mm). Pantay ang contact pattern (80% contact). Walang oil o grease contamination sa lining. Lahat ng hardware ay present at functional." p_danger="Ang brake dust ay maaaring maglaman ng asbestos. Huwag gumamit ng compressed air para linisin ang brake dust. Gumamit ng HEPA vacuum o basang basahan. Laging gumamit ng jack stands na rated para sa bigat ng sasakyan." p_tip="Sukatin ang lining thickness sa pinakamanipis na punto. Kung ang isang gulong ay nangangailangan ng palitan, siyasatin ang magkabilang side ng axle — ang hindi pantay na braking ay mapanganib. Palaging palitan ang brake shoes/pads nang pa-axle set." p_documentation="Itala ang lining thickness bawat wheel position. Itala ang anumang drums/rotors na pinalitan." p_signoff="Mechanic na Gumawa → Lead Mechanic" %}
+{% include "sop/_procedure.html" %}
+{% endwith %}
+
+<div class="page-break"></div>
+
+<h3 id="s8-6">8.6 Brake Drum at Disc Inspection</h3>
+{% with p_title="Inspeksyon ng Brake Drum at Brake Disc (Rotor)" p_purpose="Siyasatin ang braking surfaces para sa wear, scoring, cracks, heat damage, at out-of-round condition na nakakaapekto sa braking performance." p_scope="Lahat ng trak — siyasatin ang bawat drum o disc sa tuwing may brake service" p_frequency="Tuwing brake service (lining replacement) o 30,000 km" p_ppe="Safety glasses, gloves, steel-toe boots" p_tools="Vernier caliper o drum micrometer, dial indicator, flashlight, 150-grit sandpaper" p_steps="<li>Linisin ang drum interior gamit ang brake cleaner at basahan.</li><li>Siyasatin ang friction surface para sa severe scoring, heat checking, hard spots, at cracks.</li><li>Sukatin ang drum inside diameter sa ilang puntos. Ihambing sa maximum allowable diameter. Palitan kung lampas sa limit + 0.060 inch.</li><li>Suriin ang out-of-round: sukatin ang diameter sa maraming puntos — variation ≤ 0.005 inch.</li><li>Para sa disc: linisin ang rotor friction surface.</li><li>Siyasatin ang scoring, cracks, heat discoloration, hard spots, at rust.</li><li>Sukatin ang rotor thickness gamit ang micrometer sa ilang puntos. Minimum thickness ay nakatatak sa rotor edge.</li><li>Thickness variation ≤ 0.001 inch. Suriin ang rotor runout — dapat ≤ 0.004 inch.</li>" p_acceptance="Drum: inside diameter sa loob ng manufacturer limit, walang cracks, walang severe scoring. Max out-of-round 0.005 inch. Disc: thickness above minimum, walang cracks, walang hard spots. Thickness variation ≤ 0.001 inch. Runout ≤ 0.004 inch." p_danger="Magsuot ng respirator kung mag-aabrasive. Ang mga rotors na may hard spots mula sa overheating ay nagdudulot ng vibration at reduced friction." p_tip="Kapag pinapalitan ang drums o rotors, palaging palitan nang pa-axle pairs. Ang bagong drums/rotors na may lumang linings ay maaaring magdulot ng uneven braking." p_documentation="Itala ang drum/rotor condition, measurements (diameter, thickness, runout), replacement decisions na may part numbers." p_signoff="Mechanic na Gumawa" %}
+{% include "sop/_procedure.html" %}
+{% endwith %}
+
+<div class="page-break"></div>
+
+<h3 id="s8-7">8.7 Air Brake System Inspection</h3>
+{% with p_title="Inspeksyon ng Air Brake System (DOT-compliant)" p_purpose="Siyasatin ang kumpletong compressed air brake system kabilang ang compressor, governor, air tanks, lines, chambers, slack adjusters, at brake valve upang matiyak ang ligtas na paghinto." p_scope="Lahat ng trak na may air brake systems" p_frequency="Lingguhan o tuwing 5,000 km" p_ppe="Safety glasses, gloves, hearing protection" p_tools="Tire thumper, soapy water spray bottle, air pressure gauge, ruler, flashlight, crows foot wrench set" p_steps="<li>Maglagay ng wheel chocks. Siguraduhing fully charged ang air system (governor cut-out ~120-135 psi).</li><li>Patayin ang engine. Itala ang pressure.</li><li>Leak test: obserbahan ang pressure drop sa loob ng 1 minuto. Sa released brakes: max 2 psi drop. Sa applied brakes: max 3 psi drop.</li><li>Kung lumampas, hanapin ang leaks gamit ang soapy water.</li><li>Low pressure warning: dahan-dahang i-drain ang air. Dapat mag-activate ang warning bago bumaba sa 60 psi.</li><li>Spring brake activation: dapat mag-apply ang spring brakes kapag bumaba ang pressure sa 30-40 psi.</li><li>Compressor at governor: start engine, suriin ang cut-in (100-110 psi) at cut-out (120-135 psi).</li><li>Drain ang bawat air tank. Suriin ang discharge para sa moisture, oil contamination, o rust.</li><li>Slack adjuster: sukatin ang pushrod stroke sa bawat brake chamber. I-adjust kung lampas sa limit.</li><li>Siyasatin ang brake chamber housing, pushrod, at hoses.</li>" p_acceptance="Air pressure drop sa loob ng limits (2 psi released, 3 psi applied). Low pressure warning ay nag-a-activate sa itaas ng 60 psi. Governor cut-in 100-110 psi, cut-out 120-135 psi. Walang air leaks. Pushrod stroke sa loob ng limits." p_danger="Huwag magtrabaho sa air brake system nang hindi muna binabawasan ang lahat ng air pressure. Ang spring brake chamber ay naglalaman ng malakas na spring na maaaring magdulot ng nakamamatay na pinsala. Huwag i-disassemble ang spring brake chambers." p_tip="Kung ang automatic slack adjusters ay palaging nangangailangan ng manual adjustment, maaaring kailangan na silang palitan." p_documentation="Itala ang cut-in/cut-out pressures, pushrod stroke bawat wheel position, mga adjustment na ginawa." p_signoff="Mechanic na Gumawa → Lead Mechanic verification" %}
+{% include "sop/_procedure.html" %}
+{% endwith %}
+
+<div class="page-break"></div>
+
+<h3 id="s8-8">8.8 Tire Condition Inspection</h3>
+{% with p_title="Inspeksyon ng Kondisyon ng Gulong" p_purpose="Siyasatin ang lahat ng gulong para sa damage, irregular wear, tamang presyon, at safety defects upang maiwasan ang blowout at matiyak ang kaligtasan sa kalsada." p_scope="Lahat ng trak — lahat ng posisyon ng gulong kabilang ang spare" p_frequency="Araw-araw (pre-trip) at tuwing 5,000 km (detalyado)" p_ppe="Safety glasses, gloves, high-visibility vest" p_tools="Flashlight, tread depth gauge, tire pressure gauge, hammer o tire thumper" p_steps="<li>Maglakad nang buong ikot ng trak, siyasatin ang bawat gulong.</li><li>Suriin ang under-inflation (bulging sidewalls) at over-inflation (center tread wear).</li><li>Gamitin ang tire thumper — ang tamang presyon ay nagbibigay ng solid, resonant sound.</li><li>Siyasatin ang magkabilang sidewalls para sa cuts, snags, bulges, blisters, exposed cords, weather checking.</li><li>Suriin ang tread para sa irregular wear patterns, stones, penetration, chunking.</li><li>Suriin ang valve stem at cap.</li><li>Siyasatin ang rim para sa cracks, bent flanges. Suriin ang lahat ng lug nuts.</li><li>Suriin ang spare tire — dapat present at maayos ang presyon.</li>" p_acceptance="Walang cuts, bulges, blisters, o exposed cords sa anumang gulong. Tread depth ≥ 2/32 inch (1.6mm) — 4/32 inch (3.2mm) minimum para sa steering axle. Valve caps present. Lahat ng lug nuts ay mahigpit. Walang rim cracks o damage." p_danger="Ang blowout ng gulong sa highway speed ay maaaring magdulot ng pagkawala ng kontrol ng sasakyan. Huwag kailanman kumpunihin ang gulong na may sidewall damage, exposed cords, o bulges — palitan agad." p_tip="Ang steering axle tires ay dapat may pinakamalalim na tread at pinakabago sa fleet. Laging gumamit ng magkaparehong gulong sa parehong axle (parehong brand, modelo, tread depth)." p_documentation="Itala ang mga posisyon ng gulong na may malaking wear o damage, tread depth measurements." p_signoff="Mechanic o Driver" %}
+{% include "sop/_procedure.html" %}
+{% endwith %}
+
+<div class="page-break"></div>
+
+<h3 id="s8-9">8.9 Tread Depth at Pressure Measurement</h3>
+{% with p_title="Pagsukat ng Tread Depth at Presyon ng Gulong" p_purpose="Sukatin nang kwantitatibo ang tread depth at presyon ng lahat ng gulong upang matiyak ang compliance sa legal minimums at optimal tire life." p_scope="Lahat ng trak" p_frequency="Lingguhan o tuwing 5,000 km" p_ppe="Safety glasses, gloves, high-visibility vest" p_tools="Tread depth gauge, tire pressure gauge (calibrated), air compressor" p_steps="<li>Suriin ang presyon kapag <strong>malamig</strong> ang gulong.</li><li>Tanggalin ang valve cap. Pindutin nang mahigpit ang gauge sa valve stem at basahin ang presyon.</li><li>Steering tires: 100-120 psi. Drive tires: 90-110 psi.</li><li>Dagdagan ng hangin kung mababa. Kung kailangan ng higit sa 10% ng presyon, siyasatin kung may tagas.</li><li>Sukatin ang tread depth: ipasok ang gauge probe sa tread groove, basahin ang reading.</li><li>Sukatin sa tatlong posisyon (outer shoulder, center, inner shoulder) at dalawang puntos sa circumference.</li><li>Itala ang pinakamababang reading.</li><li>Steer axle minimum: 4/32 inch (3.2mm). Drive/trailer minimum: 2/32 inch (1.6mm).</li>" p_acceptance="Lahat ng gulong ay nasa loob ng 5 psi ng recommended cold pressure. Tread depth ay higit sa legal minimums. Hindi hihigit sa 2/32 inch (1.6mm) difference sa pagitan ng gulong sa parehong axle. Spare tire sa maximum recommended pressure." p_danger="Ang over-inflation ng gulong ay maaaring magdulot ng explosive failure. Gumamit ng tire cage kapag nagpapalaki ng gulong na na-flat o may sidewall damage." p_tip="Ang presyon ng gulong ay dapat consistent na ini-check at ini-log. Ang gulong na nawawalan ng higit sa 2 psi kada linggo ay may slow leak." p_documentation="Itala ang presyon at tread depth para sa bawat posisyon ng gulong." p_signoff="Mechanic o Driver" %}
+{% include "sop/_procedure.html" %}
+{% endwith %}
+
+<div class="page-break"></div>
+
+<h3 id="s8-10">8.10 Overfill Prevention System Inspection</h3>
+{% with p_title="Inspeksyon ng Overfill Prevention System" p_purpose="Siyasatin at subukan ang overfill prevention system upang matiyak na hindi umapaw ang tank compartment sa panahon ng loading — na maaaring magdulot ng spill, environmental damage, at panganib." p_scope="Lahat ng petroleum tanker trucks" p_frequency="Buwanan o ayon sa depot access requirements" p_ppe="Safety glasses, gloves, chemical-resistant gloves" p_tools="Multimeter, soft brush, basahan, aprobadong solvent" p_steps="<li>I-access ang bawat compartment overfill prevention sensor/valve.</li><li>Siyasatin ang physical damage: cracked housing, broken wires, loose mounting.</li><li>Linisin ang sensor tips gamit ang soft brush at solvent.</li><li>Kung float-type: manual na i-angat ang float, i-verify na nagsasara ang valve.</li><li>Kung electronic: gamitin ang multimeter para suriin ang sensor resistance. I-cycle ang sensor — dapat magbago ang reading.</li><li>Kung optical: linisin ang optical window at i-test gamit ang reflector.</li><li>Siyasatin ang cable at connector mula sensor hanggang vapor recovery adaptor.</li>" p_acceptance="Float-type: nagsasara nang buo ang valve kapag itinaas ang float, bumubukas nang maayos kapag binitawan. Electronic: nagbabago nang tama ang sensor state. Walang physical damage, corrosion, o contamination." p_danger="Ang produktong petrolyo ay flammable at toxic. I-purge ang compartments bago i-access ang internal sensors. Walang hot work sa loob ng 10 metro ng compartment openings." p_tip="Ang overfill prevention ay ang pinakamahalagang safety device sa tanker truck. Maraming depot ang tatanggihan ang access kung hindi ito gumagana nang maayos." p_documentation="Itala ang sensor type per compartment, test method, result (pass/fail), cleaning performed." p_signoff="Mechanic → Lead Mechanic" %}
+{% include "sop/_procedure.html" %}
+{% endwith %}
+
+<div class="page-break"></div>
+
+<h3 id="s8-11">8.11 Manlid at Gasket Inspection</h3>
+{% with p_title="Inspeksyon ng Manlid Cover at Gasket" p_purpose="Siyasatin ang bawat compartment manlid cover, hinge, clamping mechanism, at gasket upang matiyak na vapor-tight ang selyo at maiwasan ang product loss o contamination." p_scope="Lahat ng tanker trucks — siyasatin ang bawat compartment manlid" p_frequency="Lingguhan o bago mag-load" p_ppe="Safety glasses, gloves, steel-toe boots" p_tools="Flashlight, basahan, gasket replacement kit, torque wrench" p_steps="<li>Buksan nang buo ang bawat manlid at i-secure gamit ang safety prop.</li><li>Siyasatin ang gasket sa ilalim ng lid: cuts, compression set, brittleness, cracks, separation.</li><li>Linisin ang gasket channel. Suriin ang lid sealing surface — dapat malinis at flat.</li><li>Suriin ang hinge pin para sa wear at lubrication.</li><li>Siyasatin ang clamping mechanism: over-center latches o T-bolts. Suriin ang latch rollers.</li><li>Isara ang manlid at i-engage ang clamping mechanism. Dapat may moderate resistance.</li><li>Suriin kung may gap sa pagitan ng lid at tank body — max 0.5mm.</li><li>Kung may oras: i-pressure test ang vapor system sa 1 psi gamit ang soapy water.</li>" p_acceptance="Gasket ay pliable (hindi matigas o crumbling), walang cuts o compression set na higit sa 50%. Lid ay nagsasara nang may consistent compression. Walang gap na lampas 0.5mm. Lahat ng clamping mechanisms ay umaandar at humahawak nang maayos." p_danger="Kapag binubuksan ang manlids sa compartments na may produkto, maaaring lumabas ang vapors. Tumayo sa upwind side at hayaan munang mawala ang vapors bago sumandal sa opening." p_tip="Palitan ang gaskets tuwing 12 buwan o kapag may compression set. Ang leaking manlid gasket ay nagdudulot ng product loss, contamination, at vapor leaks." p_documentation="Itala ang gasket condition per compartment, mga gasket na pinalitan." p_signoff="Mechanic na Gumawa" %}
+{% include "sop/_procedure.html" %}
+{% endwith %}
+
+<div class="page-break"></div>
+
+<h3 id="s8-12">8.12 API Adapters at Camlock Couplings Inspection</h3>
+{% with p_title="Inspeksyon ng API Bottom-Loading Adapter at Camlock Couplings" p_purpose="Siyasatin ang API bottom-loading adapters, camlock couplings, dust caps, at fittings para sa wear, damage, leakage, at tamang operasyon upang matiyak ang ligtas na loading/unloading." p_scope="Lahat ng tanker trucks" p_frequency="Lingguhan o bago mag-load" p_ppe="Safety glasses, chemical-resistant gloves, steel-toe boots" p_tools="Flashlight, small pick, lubricant (silicone grease), basahan" p_steps="<li>Siyasatin ang API adapter body para sa cracks, dents, impact damage.</li><li>Manual na buksan at isara ang internal valve — dapat umandar nang maayos.</li><li>Siyasatin ang poppet at seat para sa debris, scoring, o wear.</li><li>Suriin ang lahat ng o-rings para sa cuts, flattening, o extrusion. Dapat 1-2mm ang protrusion.</li><li>Para sa camlock: siyasatin ang body para sa cracks, suriin ang cam arms, at gasket sa loob ng female end.</li><li>Suriin ang dust caps — dapat present at nagsasara nang maayos.</li><li>Siyasatin ang threaded connections para sa thread damage.</li>" p_acceptance="API adapter: internal valve ay bumubukas/nagsasara nang buo, o-rings ay 1-2mm protrusion na walang cuts, walang impact damage. Camlock: malayang umaandar ang cam arms, gasket ay present at pliable. Dust caps present at nagsasara nang maayos." p_danger="Ang sirang API adapter sa panahon ng bottom-loading ay maaaring maglabas ng libu-libong litro ng produkto. Kung may malaking damage, i-tag ang compartment na out of service." p_tip="Lagyan ng silicone grease ang lahat ng o-rings at camlock gaskets. Huwag gumamit ng petroleum-based lubricants — nagdudulot ito ng swelling at degradation." p_documentation="Itala ang adapter condition per position, mga o-ring na pinalitan." p_signoff="Mechanic na Gumawa" %}
+{% include "sop/_procedure.html" %}
+{% endwith %}
+
+<div class="page-break"></div>
+
+<h3 id="s8-13">8.13 Vapor Recovery System Inspection</h3>
+{% with p_title="Inspeksyon ng Vapor Recovery System" p_purpose="Siyasatin ang vapor recovery system na kumukuha ng fuel vapors sa panahon ng loading at ibinabalik sa terminal, tinitiyak na vapor-tight ang sistema at umaandar para sa depot compliance." p_scope="Lahat ng tanker trucks na may vapor recovery systems" p_frequency="Buwanan o ayon sa depot access requirements" p_ppe="Safety glasses, gloves, hearing protection" p_tools="Manometer o low-pressure gauge, soapy water spray bottle, flashlight, plug/blank" p_steps="<li>Siyasatin ang vapor return hose para sa cuts, abrasion, weather checking, soft spots.</li><li>Siyasatin ang vapor recovery adaptor — poppet valve, sealing surfaces, o-rings.</li><li>I-trace ang vapor lines mula bawat compartment papunta sa main vapor header.</li><li>Siyasatin ang P/V vent — dapat nakatayo nang maayos, malinis ang screen.</li><li>Seal test: isara ang lahat ng manlids at vapor valves. Ikabit ang low-pressure source (1-2 psi) sa vapor adaptor.</li><li>Lagyan ng soapy water ang lahat ng vapor connections at gaskets. Dapat walang bubbles.</li><li>Hawakan ang pressure ng 5 minuto — dapat nasa loob ng 10% ng initial pressure.</li>" p_acceptance="Vapor hose ay intact, walang cuts, bulges, o soft spots. Adaptor poppet ay malayang umaandar. Lahat ng vapor line connections ay mahigpit at walang damage. P/V vent ay nakatayo nang maayos. Seal test: humahawak ng pressure sa loob ng 5 minuto (≤10% drop)." p_danger="Huwag i-pressure ang vapor system nang higit sa 3 psi — maaaring makasira ng tank structure. Ang petroleum vapors ay flammable — walang smoking o open flames sa loob ng 10 metro." p_tip="Ang failed vapor recovery system ay isa sa pinakakaraniwang dahilan ng depot access refusal. Kung bumagsak ang truck sa depot vapor test, itala ang psi reading para makatulong sa diagnosis." p_documentation="Itala ang pressure test psi, hold time, leak locations, repairs, vapor hose replacement date." p_signoff="Mechanic → Lead Mechanic verification" %}
+{% include "sop/_procedure.html" %}
+{% endwith %}
+
+<div class="page-break"></div>
+
+<h3 id="s8-14">8.14 Grounding at Static Discharge System Inspection</h3>
+{% with p_title="Inspeksyon ng Grounding Cable at Static Discharge System" p_purpose="Siyasatin ang grounding system ng trak upang matiyak ang maaasahang electrical connection sa pagitan ng chassis at ng depot grounding point, na pumipigil sa static electricity buildup sa panahon ng loading." p_scope="Lahat ng tanker trucks" p_frequency="Lingguhan" p_ppe="Safety glasses, gloves" p_tools="Multimeter, flashlight, basahan, file o emery cloth, dielectric grease" p_steps="<li>Hanapin ang grounding cable — karaniwang green/yellow striped cable na may clamp.</li><li>Siyasatin ang cable jacket para sa cuts, abrasion, corrosion.</li><li>Siguraduhing sapat ang haba ng cable (minimum 3 metro).</li><li>Siyasatin ang grounding clamp jaws — dapat malinis, walang pintura o kalawang.</li><li>Test ang spring tension — dapat mahigpit na humahawak sa 10mm steel test piece.</li><li>I-verify ang cable sa chassis attachment — dapat mahigpit at walang corrosion.</li><li>Continuity test: ilagay ang isang probe sa clamp contact surface at ang isa sa chassis. Resistance ≤ 5 ohms.</li>" p_acceptance="Grounding cable: intact jacket, walang broken strands, sapat ang haba. Clamp: malinis na contact surface, malakas na spring tension. Continuity: ≤ 5 ohms mula clamp papuntang chassis ground." p_danger="Ang static discharge ay pangunahing sanhi ng sunog sa tanker truck sa panahon ng loading. Huwag simulan ang loading nang hindi nakakabit ang grounding clamp sa verified grounding point." p_tip="Maglagay ng manipis na coat ng dielectric grease sa clamp contact surface pagkatapos linisin para maiwasan ang mabilis na pagka-corrode." p_documentation="Itala ang continuity reading (ohms), clamp condition, cable inspection result." p_signoff="Mechanic na Gumawa" %}
+{% include "sop/_procedure.html" %}
+{% endwith %}
+
+<div class="page-break"></div>
+
+<h3 id="s8-15">8.15 Product Piping at Valves Inspection</h3>
+{% with p_title="Inspeksyon ng Product Piping, Internal Valves, at Discharge System" p_purpose="Siyasatin ang lahat ng product-carrying piping, internal safety valves, discharge valves, at fittings para sa leaks, corrosion, at mechanical integrity." p_scope="Lahat ng tanker trucks" p_frequency="Buwanan" p_ppe="Safety glasses, chemical-resistant gloves, steel-toe boots" p_tools="Flashlight, small mirror, basahan, leak detection spray, torque wrench" p_steps="<li>Internal Safety Valve: i-verify ang valve operator linkage, operahan ang emergency release handle — dapat bumukas at sumara ang mga internal valve.</li><li>Product Piping: siyasatin ang lahat ng piping para sa corrosion, dents, rubbing marks, weld cracks, joint leaks.</li><li>Discharge Valve: operahan nang buo ang bawat discharge valve — dapat umandar nang maayos. Siyasatin ang valve body.</li><li>Emergency Shutoff System: siyasatin ang pneumatic o mechanical linkage. I-test ang emergency shutoff — dapat sumara ang lahat ng internal valve.</li><li>Piping Supports: i-verify na present at mahigpit ang lahat ng pipe clamps at brackets.</li>" p_acceptance="Internal valves: bumubukas at nagsasara nang buo, walang tagas. Piping: walang corrosion na mas malalim sa 10% ng wall thickness, walang tagas. Discharge valves: maayos na umandar. Emergency shutoff: sumasarado ang lahat ng valve. May chafing protection ang piping." p_danger="Ang product piping ay naglalaman ng flammable liquids. Ang anumang tagas ay fire hazard at environmental violation. I-tag ang compartment na out of service kung may tagas." p_tip="Ang corrosion ay madalas na nagsisimula sa ilalim ng pipes kung saan naipon ang tubig. Bigyang pansin ang pipe low points at drain plugs." p_documentation="Itala ang per-compartment inspection results, leaks at locations, valve operation condition." p_signoff="Mechanic → Lead Mechanic" %}
+{% include "sop/_procedure.html" %}
+{% endwith %}
+
+<div class="page-break"></div>
+
+<h3 id="s8-16">8.16 Transfer Hoses at Couplings Inspection</h3>
+{% with p_title="Inspeksyon ng Product Transfer Hoses at End Couplings" p_purpose="Siyasatin ang lahat ng flexible product transfer hoses at end couplings para sa signs ng wear, damage, deterioration, at leakage upang matiyak ang ligtas na product transfer." p_scope="Lahat ng tanker trucks na may on-board hose racks" p_frequency="Lingguhan (visual); buwanan (detalyado)" p_ppe="Safety glasses, chemical-resistant gloves" p_tools="Flashlight, mirror, basahan, hose gauge o caliper" p_steps="<li>I-uncoil o ilatag ang hose sa malinis na ibabaw.</li><li>Siyasatin ang buong circumference ng hose para sa: cuts, abrasion, blisters, chemical attack, heat damage, weather checking, kinking.</li><li>Kung may cover damage, siyasatin ang reinforcement — exposed fabric o wire braid ay nangangailangan ng agarang replacement.</li><li>Siyasatin ang end couplings para sa corrosion, cracks, distortion. Suriin ang coupling retention.</li><li>I-verify ang hose markings: manufacturer, date of manufacture, rated working pressure. Kung lampas na sa 5-7 taon mula manufacture, palitan.</li><li>Siyasatin ang hose storage — dapat nasa malinis na rack, hindi sa lupa.</li>" p_acceptance="Walang cuts na nakalantad ang reinforcement. Walang blisters, soft spots, o swelling. Couplings: securely attached, malinis na threads, walang cracks. Ang working pressure rating ay sapat. Hindi lampas sa service life." p_danger="Ang hose failure sa panahon ng loading sa ilalim ng presyon ay maaaring magdulot ng malaking product spill na may sunog at environmental consequences. Huwag gumamit ng sirang hose." p_tip="I-rotate ang hoses tuwing 6 na buwan para ipamahagi ang wear. Lagyan ng ID number at installation date ang bawat hose." p_documentation="Itala ang hose ID, condition rating, manufacture date, test pressure, test result, date ng next test." p_signoff="Mechanic na Gumawa" %}
+{% include "sop/_procedure.html" %}
+{% endwith %}
+
+<div class="page-break"></div>
+
+<h3 id="s8-17">8.17 Safety Equipment Inspection</h3>
+{% with p_title="Inspeksyon ng Safety Equipment na Nakakabit sa Trak" p_purpose="Siyasatin ang lahat ng safety equipment na dala ng trak — fire extinguisher, first aid kit, reflective triangles, wheel chocks, HAZMAT placards — upang matiyak na present, accessible, at serviceable ang mga ito." p_scope="Lahat ng trak" p_frequency="Lingguhan (pre-trip)" p_ppe="Safety glasses, gloves" p_tools="Flashlight, inspection tag" p_steps="<li>Fire extinguisher: suriin ang gauge (dapat nasa green range), cylinder condition, tamper seal, inspection date.</li><li>Reflective triangles: tatlong piraso, malinis ang reflective surface, maayos ang folding mechanism.</li><li>Wheel chocks: dalawang piraso, heavy-duty rubber o aluminum, walang excessive wear.</li><li>First aid kit: present, fully stocked, hindi expired ang mga items.</li><li>Reflective tape: siyasatin ang lahat ng sides — dapat ≥50% reflective area intact, walang malaking missing sections.</li><li>HAZMAT placards: tama para sa produkto, malinis, legible. Minimum dalawa bawat side, isa sa harap, isa sa likod.</li><li>Horn at backup alarm: i-test — dapat marinig nang malinaw.</li><li>Compartment labels: dapat present at legible.</li>" p_acceptance="Fire extinguisher: gauge sa green, walang damage, current inspection tag. Tatlong triangles present. Wheel chocks present. First aid kit: may laman at hindi expired. Reflective tape: ≥50% intact. Placards: tama, malinis, legible. Horn: functional." p_danger="Sa emergency, bawat segundo ay mahalaga. Ang safety equipment na nakatago sa ilalim ng kargamento ay walang silbi — tiyaking madaling maabot ang lahat ng items mula sa labas ng cab." p_tip="Gumamit ng pre-trip checklist card para matiyak na walang safety item ang makalimutan. Kung may missing o expired item, i-tag ang trak at huwag i-dispatch hanggang maayos." p_documentation="Itala ang lahat ng safety equipment status (present/serviceable/expired/missing). Itala ang fire extinguisher inspection date." p_signoff="Mechanic o Driver" %}
+{% include "sop/_procedure.html" %}
+{% endwith %}
+
+<div class="page-break"></div>
+
+<h3 id="s8-18">8.18 Baterya at Alternator Inspection</h3>
+{% with p_title="Inspeksyon ng Baterya at Alternator Charging Test" p_purpose="Siyasatin ang batteries, cables, terminals, at alternator output upang matiyak ang maaasahang engine starting at electrical system operation." p_scope="Lahat ng trak" p_frequency="Buwanan o tuwing 10,000 km" p_ppe="Safety glasses, acid-resistant gloves (para sa wet-cell batteries)" p_tools="Digital multimeter, battery load tester (opsyonal), terminal brush, baking soda solution, dielectric grease, flashlight, wrench set" p_steps="<li>Siyasatin ang battery case para sa cracks, bulging, leaks. Suriin ang hold-down bracket.</li><li>Suriin ang battery terminals para sa corrosion — linisin kung mayroon.</li><li>Siyasatin ang battery cables para sa fraying, cracked insulation, corrosion.</li><li>Battery voltage test (resting): dapat 12.6V+ (fully charged).</li><li>Kung mababa ang voltage, mag-load test. Minimum sa load: 9.6V.</li><li>Alternator output test: start engine. Sukatin ang voltage sa battery terminals sa idle: 13.8-14.5V.</li><li>Rev engine sa 1500 RPM — dapat 14.0-14.7V.</li><li>Kung voltage ay nasa ibaba ng 13.0V sa idle na may load, undercharging ang alternator.</li><li>Kung voltage ay higit sa 15.0V, failing ang voltage regulator.</li><li>Suriin ang alternator belt condition at tension.</li><li>Kung serviceable ang batteries, suriin ang electrolyte level — dapat nakatakip sa plates. Gumamit ng distilled water.</li>" p_acceptance="Resting voltage ≥ 12.4V (75%+ charge). Load test: ≥9.6V. Alternator: 13.8-14.5V sa idle, 14.0-14.7V sa 1500 RPM. Walang corrosion sa terminals. Intact ang cables. Tamang battery water level." p_danger="Ang batteries ay naglalaman ng explosive hydrogen gas. Walang smoking, sparks, o apoy malapit sa batteries. I-discount ang negative terminal muna, positive ang unang ikabit." p_tip="Para sa dual battery trucks, i-test ang bawat battery nang isa-isa. Palitan ang batteries nang pares. Itala ang installation date para sa tracking (3-5 taon ang buhay)." p_documentation="Itala ang battery resting voltage, alternator output voltage, cleaning o topping off, battery replacement dates." p_signoff="Mechanic na Gumawa" %}
+{% include "sop/_procedure.html" %}
+{% endwith %}
+
+<div class="page-break"></div>
+
+<h3 id="s8-19">8.19 Starter at Wiring Inspection</h3>
+{% with p_title="Inspeksyon ng Starter Motor at Starting Circuit Wiring" p_purpose="Siyasatin ang starter motor, solenoid, at lahat ng associated wiring para sa conditions na maaaring magdulot ng starting failure, high current draw, o electrical fire." p_scope="Lahat ng trak" p_frequency="Tuwing 20,000 km o kapag may starting issues" p_ppe="Safety glasses, gloves, insulated tools" p_tools="Digital multimeter, wrench set, flashlight, contact cleaner" p_steps="<li>Siyasatin ang starter body para sa cracks, oil leaks, impact damage. Suriin ang mounting bolts.</li><li>Suriin ang starter solenoid connections.</li><li>I-trace ang battery positive cable sa starter solenoid terminal — suriin ang corrosion, loose nut, fraying, melted insulation.</li><li>Suriin ang ground circuit: battery negative cable sa engine block, engine-to-chassis ground strap.</li><li>Voltage drop test (cranking circuit): positive side ≤ 0.5V, negative side ≤ 0.2V.</li><li>Kung available, i-test ang starter current draw (200-400 amps initial, 100-200 amps cranking).</li><li>Kung natanggal ang starter, suriin ang Bendix drive gear teeth at ring gear.</li>" p_acceptance="Starter: securely mounted, walang physical damage. Cables: walang corrosion, fraying, o melted insulation. Voltage drop: positive ≤ 0.5V, negative ≤ 0.2V. Maayos ang pag-crank ng engine." p_danger="I-disable ang ignition o fuel system bago mag-cranking test para maiwasan ang accidental start. Ang starter circuit ay may dalang daan-daang amps — ang short circuit ay maaaring magdulot ng arc flash at sunog." p_tip="Ang mabagal na crank ay kadalasang sanhi ng bad connection (corrosion o loose terminal), hindi ng bad starter. Laging suriin ang voltage drops bago palitan ang starter." p_documentation="Itala ang visual condition, voltage drop measurements, current draw reading." p_signoff="Mechanic na Gumawa" %}
+{% include "sop/_procedure.html" %}
+{% endwith %}
+
+<div class="page-break"></div>
+
+<h3 id="s8-20">8.20 Lighting Systems Inspection</h3>
+{% with p_title="Inspeksyon ng Lahat ng Ilaw" p_purpose="Siyasatin ang lahat ng exterior lighting upang matiyak ang full compliance sa road safety regulations — lahat ng ilaw ay dapat gumagana, tama ang aim, at may tamang kulay na lenses." p_scope="Lahat ng trak" p_frequency="Araw-araw (pre-trip)" p_ppe="High-visibility vest, safety glasses" p_tools="Assistant o reflective surface, flashlight, bulb replacement kit" p_steps="<li>I-park ang trak, i-engage ang parking brake. Buksan ang headlights (low beam).</li><li>Front lighting: headlights (low at high beam), parking lights, turn signals.</li><li>Side lighting: side marker lights, clearance lights.</li><li>Rear lighting: tail lights, brake lights, turn signals, license plate light, reverse light.</li><li>Hazard warning lights: i-activate at kumpirmahing kumikislap ang lahat ng apat na turn signals.</li><li>Instrument panel: dashboard warning lights, dome light.</li><li>Light condition: lenses para sa cracks, moisture ingress, hazing. Housing mounting. Wiring at connectors.</li>" p_acceptance="Lahat ng ilaw ay gumagana: headlights (low + high), tail lights, brake lights, turn signals, hazard lights, marker/clearance lights, license plate light, reverse light. Flash rate 60-120/min. Walang burned-out bulbs. Walang cracked lenses. Walang tubig sa loob ng housings." p_danger="Ang pagmamaneho na may defective na ilaw ay traffic violation at safety hazard. Ang sirang taillight o brake light ay maaaring magdulot ng rear-end collision." p_tip="Magtago ng stock ng mga karaniwang bulb types: 1157 (dual-filament), 1156 (single-filament), 168/194 (marker), H4 (headlight). Para sa LED-equipped trucks, magdala ng replacement LED modules." p_documentation="Itala ang mga burned-out bulbs na pinalitan, lenses na pinalitan, aiming adjustments." p_signoff="Mechanic o Driver" %}
+{% include "sop/_procedure.html" %}
+{% endwith %}
+
+<div class="page-break"></div>
+
+<h3 id="s8-21">8.21 Compliance at Regulatory Inspection</h3>
+{% with p_title="Inspeksyon ng Regulatory Compliance at Documentation" p_purpose="I-verify na ang trak ay may dala ng lahat ng kinakailangang legal at regulatory documentation, stickers, permits, at markings para sa operasyon sa public roads at access sa petroleum depots." p_scope="Lahat ng trak" p_frequency="Buwanan o kapag may registration change" p_ppe="Wala" p_tools="Checklist, flashlight" p_steps="<li>LTO Registration (OR/CR): kumpirmahing present ang documents, hindi expired.</li><li>Insurance: i-verify na present ang Certificate of Insurance, current ang coverage.</li><li>Vehicle Inspection Report (VIR) / PMVI sticker: suriin kung present at current.</li><li>DOST / PSTC stickers: suriin ang calibration validity dates.</li><li>Depot access requirements: i-verify ang mga dokumentong kailangan ng petroleum depot.</li><li>Speed limiter: suriin ang seal o tamper indicator — dapat intact.</li><li>Tollway RFID: i-verify na nakakabit at gumagana.</li><li>HAZMAT: i-verify ang driver certificate at registration.</li><li>Compliance plate: dapat present at legible.</li>" p_acceptance="Lahat ng documents ay present, valid (hindi expired), at nasa maayos na kondisyon. Lahat ng required stickers ay displayed. Depot access requirements ay natutugunan. HAZMAT documentation ay current." p_danger="Ang pagpapatakbo ng trak na may expired registration, insurance, o permits ay seryosong legal violation na maaaring magresulta sa impoundment, multa, at liability exposure." p_tip="Gumawa ng compliance calendar na may 30-araw na advance alerts para sa bawat document expiry. Gamitin ang truck detail page sa sistema para itala ang document numbers at expiry dates." p_documentation="Itala ang bawat document expiry date, mga napalitan, depot access card number, speed limiter seal condition." p_signoff="Lead Mechanic o Fleet Supervisor" %}
+{% include "sop/_procedure.html" %}
+{% endwith %}
+
+<div class="page-break"></div>
+
+<h3 id="s8-22">8.22 Drivetrain Inspection</h3>
+{% with p_title="Inspeksyon ng Drivetrain System (Differential, U-Joints, Wheel Bearings)" p_purpose="Siyasatin ang kumpletong drivetrain mula transmission output hanggang wheel hubs, suriin ang wear, lubrication condition, at mechanical integrity." p_scope="Lahat ng trak" p_frequency="Tuwing 20,000 km o 6 na buwan" p_ppe="Safety glasses, gloves, hearing protection" p_tools="Flashlight, pry bar, grease gun, torque wrench, ratchet set" p_steps="<li>U-Joint Inspection: subukang i-twist ang driveline malapit sa bawat U-joint — dapat ZERO rotational play.</li><li>Maximum lateral play: 0.010 inch (0.25mm).</li><li>Suriin ang U-joint retaining clips o strap bolts — dapat mahigpit.</li><li>Grease ang bawat U-joint hanggang lumabas ang sariwang grease.</li><li>Center / Carrier Bearing: siyasatin ang rubber cushion para sa cracks, suriin ang bearing rotation.</li><li>Differential: suriin ang oil level — dapat nasa fill hole level. Suriin ang oil condition (dapat clear amber, hindi milky o burnt).</li><li>Siyasatin ang differential housing para sa leaks: pinion seal, axle seals, cover gasket, vent tube.</li><li>Road test: makinig para sa whining, howling, clicking, clunking, vibration.</li>" p_acceptance="U-joints: zero rotational play, minimal lateral play (<0.010 inch). Carrier bearing: smooth rotation, walang cracked rubber cushion. Differential: tama ang oil level, malinis ang oil, walang leaks. Road test: walang unusual noises o vibrations." p_danger="Ang driveline failure sa highway speed ay maaaring maghiwalay mula sa sasakyan, magdulot ng loss of control. Kung ang U-joint ay may significant play, palitan agad." p_tip="Karamihan sa driveline vibration ay sanhi ng worn U-joints. Kapag nagpapalit ng U-joints, palitan ang lahat sa parehong driveline." p_documentation="Itala ang U-joint condition, differential oil level at condition, leaks, grease points serviced, road test results." p_signoff="Mechanic na Gumawa → Lead Mechanic verification" %}
+{% include "sop/_procedure.html" %}
+{% endwith %}
+
+<div class="page-break"></div>
+
+<h3 id="s8-23">8.23 Water Brake System Inspection</h3>
+{% with p_title="Inspeksyon ng Water Brake (Retarder) System" p_purpose="Siyasatin ang water brake hydraulic retarder system, kabilang ang pump, valve, lines, at cooler, upang matiyak na nagbibigay ito ng supplemental braking power para sa mabibigat na karga sa mga ahon." p_scope="Mga trak na may water brake / hydraulic retarder systems" p_frequency="Buwanan o tuwing 10,000 km" p_ppe="Safety glasses, gloves, hearing protection" p_tools="Flashlight, wrenches, basahan, coolant refractometer" p_steps="<li>Alamin ang water brake components: hydraulic pump, control valve, lines, heat exchanger, actuation cylinder.</li><li>Suriin ang fluid level sa reservoir — dapat nasa pagitan ng MIN at MAX.</li><li>Kung ang fluid ay milky, dark, o may burnt smell, kailangan ng fluid change.</li><li>Siyasatin ang pump mounting bolts, drive coupling, shaft seal.</li><li>I-trace ang lahat ng hydraulic lines para sa chafing, cracks, bulges, leaks.</li><li>Siyasatin ang heat exchanger para sa debris blockage.</li><li>Test ang control lever o switch sa cab — dapat umandar sa buong range.</li><li>Siyasatin ang actuation cylinder para sa leaks.</li><li>Test operation: sa ligtas na lugar, magmaneho ng 30 km/h at i-apply ang water brake sa 50% — dapat bumagal nang maayos nang walang pulling o vibration.</li>" p_acceptance="Tama ang fluid level at maganda ang condition. Walang leaks. Pump ay umandar nang maayos. Intact ang hoses. Control linkage ay umandar sa buong range. Braking: maayos na deceleration. System ay fully disengage kapag binitawan ang control." p_danger="Ang water brake systems ay nagdudulot ng matinding init sa matagal na paggamit. Kung ang red warning light o temperature gauge ay nagpapakita ng overheating, bitawan ang brake at palamigin ang sistema." p_tip="Ang water brake ay supplemental braking system lamang. Hindi ito parking brake. Gamitin ang spring parking brake para sa parking." p_documentation="Itala ang fluid level, condition, leaks repaired, heat exchanger condition, road test result." p_signoff="Mechanic na Gumawa" %}
+{% include "sop/_procedure.html" %}
+{% endwith %}
+
+<div class="page-break"></div>
+
+<h2 id="ch9">Kabanata 9: Dokumentasyon ng PM at Record-Keeping</h2>
+
+<h3>9.1 Kahalagahan ng Dokumentasyon</h3>
+<p>Ang tamang dokumentasyon ng bawat PM task ay mahalaga para sa:</p>
+<ul>
+    <li><strong>Legal compliance:</strong> Ang rekord ng PM ay katibayan na ang trak ay na-maintain ayon sa regulasyon.</li>
+    <li><strong>Depot access:</strong> Maraming petroleum depot ang nangangailangan ng proof of PM compliance.</li>
+    <li><strong>Trend analysis:</strong> Ang history ng PM ay tumutulong na makita ang mga paulit-ulit na issues at magplano ng mas mabisang maintenance.</li>
+    <li><strong>Resale value:</strong> Ang kumpletong maintenance records ay nagpapataas ng resale value ng trak.</li>
+</ul>
+
+<h3>9.2 Ano ang Dapat Idokumento</h3>
+<p>Pagkatapos ng bawat PM procedure, siguraduhing nai-record ang mga sumusunod sa Job Order line item:</p>
+<ul>
+    <li>Petsa at oras ng pagkumpleto.</li>
+    <li>Mileage at engine hours sa oras ng pagkumpleto.</li>
+    <li>Mga parts na ginamit (may part numbers at dami).</li>
+    <li>Mga actual hours na ginugol.</li>
+    <li>Mga obserbasyon: may nakitang hindi inaasahan? May follow-up kailangan?</li>
+    <li>Pangalan ng mechanic na gumawa.</li>
+</ul>
+
+<h3>9.3 Kapag Hindi sa pamamagitan ng Job Order Ginawa ang PM</h3>
+<p>Kung ang PM task ay ginawa sa labas ng sistema ng Job Order (hal., sa third-party shop), ang PM Schedule ay maaaring i-update nang manu-mano:</p>
+<ol>
+    <li>Pumunta sa truck detail page.</li>
+    <li>Hanapin ang PM Schedule section.</li>
+    <li>I-click ang pencil icon sa tabi ng task na ginawa.</li>
+    <li>I-update ang <code>last_completed_at</code>, <code>last_mileage_km</code>, at <code>last_engine_hours</code>.</li>
+    <li>I-click ang <strong>"Save"</strong>. Awtomatikong mag-recalculate ang next due date.</li>
+</ol>

@@ -1,0 +1,217 @@
+<h1 id="vol6">Bolyum 6 — Training at On-the-Job Training (OJT)</h1>
+
+<h2 id="ch18">Kabanata 18: Trainee Onboarding at System Access</h2>
+
+<h3>18.1 Pangkalahatang-ideya ng Training Program</h3>
+
+<p>Ang OJT/Training module ay nagta-track ng progreso ng apprentice mechanics at trainees habang natututo sila ng trade. Sinusuportahan ng sistema ang tatlong aspeto ng training:</p>
+<ul>
+    <li><strong>Attendance tracking:</strong> Araw-araw na check-in at check-out para i-monitor ang presensya.</li>
+    <li><strong>Task ratings:</strong> Nirarate ng supervisors ang OJTs sa specific PM/repair tasks na ginagawa nila (1-5 scale).</li>
+    <li><strong>Weekly reviews:</strong> Nagbibigay ang supervisors ng structured evaluations na may strengths, areas for improvement, at overall scores.</li>
+</ul>
+
+<h3>18.2 Pag-set Up ng Bagong Trainee</h3>
+
+<p><strong>Responsableng Role:</strong> Admin o Super Admin</p>
+
+<p><strong>Step 1 — Gumawa ng User Account:</strong></p>
+<ol>
+    <li>Pumunta sa <strong>Sidebar → User Management</strong>.</li>
+    <li>I-click ang <strong>"Add User"</strong>.</li>
+    <li>Itakda ang <strong>Role</strong> = "OJT / Trainee."</li>
+    <li>Kumpletuhin ang lahat ng required fields (username, password, names, atbp.).</li>
+    <li>I-click ang <strong>"Save"</strong>.</li>
+</ol>
+
+<p><strong>Step 2 — I-assign sa Training:</strong></p>
+<ol>
+    <li>Pumunta sa <strong>Sidebar → Assign Training</strong>.</li>
+    <li>Piliin ang OJT na kakagawa mo lang mula sa dropdown.</li>
+    <li>Piliin ang kanilang <strong>Supervisor</strong> — ito ay dapat na user na may Staff, Admin, o Super Admin role. Ang supervisor ang responsable sa pag-rate at pag-review ng OJT.</li>
+    <li>Itakda ang <strong>Start Date</strong> — karaniwang unang araw ng OJT sa workshop.</li>
+    <li>I-click ang <strong>"Assign"</strong>.</li>
+</ol>
+
+<p>Ang OJT ay maaari nang mag-login at mag-access ng Training Dashboard. Makikita ng supervisor ang OJT sa kanilang supervisor dashboard.</p>
+
+<h3>18.3 Supervisor Selection Guidelines</h3>
+
+<p>Ang supervisor ay may mahalagang papel sa pag-unlad ng OJT. Pumili ng supervisor na:</p>
+<ul>
+    <li>May hindi bababa sa 2 taong karanasan sa truck maintenance.</li>
+    <li>Ay matiyaga at mahusay makipag-usap.</li>
+    <li>Pwedeng maglaan ng oras bawat linggo para punan ang ratings at reviews.</li>
+    <li>Ay bihasa sa paggamit ng Truck PMS system.</li>
+</ul>
+
+<p>Ang isang supervisor ay pwedeng mangasiwa ng maraming OJTs, pero hindi dapat magkaroon ng higit sa 3 OJTs na nakatalaga sa isang pagkakataon para mapanatili ang kalidad ng mentorship.</p>
+
+<div class="page-break"></div>
+
+<h2 id="ch19">Kabanata 19: Araw-araw na Attendance Procedure</h2>
+
+<h3>19.1 Paano Gumagana ang Attendance</h3>
+
+<p>Ang attendance ay nire-record araw-araw. Nagche-check in ang bawat OJT kapag dumating sila at nagche-check out kapag aalis na sila. Nagre-record ang sistema ng timestamps at pinipigilan ang duplicate check-ins sa parehong araw.</p>
+
+<h3>19.2 OJT — Pag-check In</h3>
+
+<ol>
+    <li>Mag-login sa sistema (awtomatikong ire-redirect sa Training Dashboard).</li>
+    <li>Sa Attendance card, i-click ang <strong>"Check In"</strong>.</li>
+    <li>Ang kasalukuyang oras ay nire-record bilang <code>time_in</code>.</li>
+    <li>Lilitaw ang confirmation message: "Checked in at [time]."</li>
+</ol>
+
+<h3>19.3 OJT — Pag-check Out</h3>
+
+<ol>
+    <li>Bago umalis para sa araw, siguraduhin na ang lahat ng tasks o training activities para sa araw ay tapos na.</li>
+    <li>Sa Attendance card, i-click ang <strong>"Check Out"</strong>.</li>
+    <li>Ang kasalukuyang oras ay nire-record bilang <code>time_out</code>.</li>
+    <li>Lilitaw ang confirmation message: "Checked out at [time]."</li>
+</ol>
+
+<h3>19.4 Mga Patakaran sa Attendance</h3>
+
+<ul>
+    <li>Ang isang OJT ay pwedeng mag-check in <strong>isang beses bawat araw</strong>. Kung nakalimutan nilang mag-check in, dapat nilang ipaalam sa kanilang supervisor para i-record nang manual ang attendance.</li>
+    <li>Ang pag-check out ay opsyonal pero inirerekomenda. Ang OJT na nakalimutang mag-check out ay pwedeng mag-check out sa susunod na araw (nire-record ng sistema ang check-out time ng nakaraang araw).</li>
+    <li>Kung ang isang OJT ay absent, walang attendance record na nagagawa para sa araw na iyon. Pwedeng tandaan ng supervisor ang absence sa weekly review.</li>
+</ul>
+
+<h3>19.5 Attendance Reports (Supervisor Access)</h3>
+
+<p>Pwedeng tingnan ng mga supervisor ang attendance history ng isang OJT mula sa Training Dashboard o sa pamamagitan ng pagpunta sa specific na profile page ng OJT. Ang attendance log ay nagpapakita ng bawat araw ng check-in at check-out times, na may kalkuladong total hours.</p>
+
+<div class="page-break"></div>
+
+<h2 id="ch20">Kabanata 20: Task Rating at Skills Assessment</h2>
+
+<h3>20.1 Layunin ng Task Ratings</h3>
+
+<p>Ang task ratings ay nagta-track ng progreso ng isang OJT sa specific na maintenance tasks. Bawat rating ay nagre-record ng:</p>
+<ul>
+    <li>Anong task ang ginawa (naka-link sa PM task template o custom task name).</li>
+    <li>Sino ang nag-rate (ang supervisor).</li>
+    <li>Numerical score (1-5).</li>
+    <li>Comments o observations.</li>
+</ul>
+
+<h3>20.2 Rating Scale</h3>
+
+<table>
+<thead><tr><th>Score</th><th>Label</th><th>Paglalarawan</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Novice</td><td>Nangangailangan ng palaging supervision. Hindi kayang gawin ang task nang mag-isa. Kailangan ng malaking guidance sa safety, tool selection, at procedure.</td></tr>
+<tr><td>2</td><td>Beginner</td><td>Kayang gawin ang task na may step-by-step guidance. Alam ang general process pero nangangailangan ng coaching sa technique at efficiency.</td></tr>
+<tr><td>3</td><td>Competent</td><td>Kayang gawin ang task nang mag-isa na may minimal supervision. Sumusunod sa tamang procedure. Natatapos ang trabaho sa reasonable time. Naiintindihan ang safety requirements.</td></tr>
+<tr><td>4</td><td>Proficient</td><td>Mahusay at consistent na gumaganap ng task. Kayang tukuyin at itama ang common issues nang walang tulong. Naiintindihan ang underlying principles. Magaling mag-diagnose.</td></tr>
+<tr><td>5</td><td>Expert</td><td>Kayang gawin ang task nang walang kamalian. Kayang magturo sa iba. Kayang hawakan ang complex o unusual variations. Naiintindihan ang system-level impact ng task.</td></tr>
+</tbody>
+</table>
+
+<h3>20.3 Paggawa ng Task Rating (Supervisor)</h3>
+
+<ol>
+    <li>Pumunta sa Training Dashboard o sa specific na profile ng OJT.</li>
+    <li>I-click ang <strong>"New Rating"</strong>.</li>
+    <li>Kumpletuhin ang form:
+        <ul>
+            <li><strong>OJT:</strong> Piliin ang trainee na nirarate mo.</li>
+            <li><strong>Rating:</strong> Pumili ng 1-5 base sa scale sa itaas.</li>
+            <li><strong>PM Task:</strong> Opsyonal. Kung ang OJT ay gumawa ng specific na PM task, piliin ito mula sa dropdown (populated mula sa 154 PM templates). Ini-link nito ang rating sa standardized task para sa progress tracking.</li>
+            <li><strong>Task Name (Custom):</strong> Kung ang task ay hindi standard na PM template, mag-type ng custom na paglalarawan. Halimbawa: "Tumulong sa transmission removal," "Nag-practice ng diagnostic scan tool usage."</li>
+            <li><strong>Comments:</strong> Magbigay ng specific, actionable feedback. Banggitin kung ano ang magandang ginawa AT kung ano ang kailangang i-improve. Iwasan ang vague comments tulad ng "Magaling" — sa halip ay sabihin ang "Tamang ginawa ang brake lining inspection, sinukat ang lahat ng positions, natukoy na ang right-rear ay kailangang palitan. Kailangang pagtrabahuhan ang bilis — umabot ng 45 minuto vs. ang standard na 20 minuto."</li>
+        </ul>
+    </li>
+    <li>I-click ang <strong>"Save Rating"</strong>.</li>
+    <li>Pwedeng tingnan ng OJT ang rating sa kanilang Training Dashboard.</li>
+</ol>
+
+<h3>20.4 Rating Guidelines para sa mga Supervisor</h3>
+
+<ul>
+    <li><strong>Mag-rate nang madalas:</strong> Layunin ang hindi bababa sa 3-5 ratings bawat OJT bawat linggo. Ang madalas, maliit na feedback ay mas epektibo kaysa sa madalang, mahahabang evaluations.</li>
+    <li><strong>Mag-rate kaagad:</strong> Tapusin ang rating habang sariwa pa sa isip mo ang task — ideally sa loob ng 2 oras pagkatapos matapos ng OJT ang task.</li>
+    <li><strong>Maging objective:</strong> I-base ang rating sa ipinakitang performance ng OJT sa specific na task na iyon, hindi sa pangkalahatan mong impresyon sa kanila. Ang isang competent na mechanic ay maaari pa ring maging novice sa isang specific na bagong task.</li>
+    <li><strong>Isama ang positive at constructive feedback:</strong> Kahit ang score na 3 (Competent) ay dapat tandaan kung ano ang ginawang tama at isang area para sa improvement.</li>
+    <li><strong>Gamitin ang sistema:</strong> Ang ratings ay nagfe-feed sa average score ng OJT at nagbibigay ng quantitative record ng skill development sa paglipas ng panahon.</li>
+</ul>
+
+<div class="page-break"></div>
+
+<h2 id="ch21">Kabanata 21: Weekly Review at Progress Tracking</h2>
+
+<h3>21.1 Layunin ng Weekly Reviews</h3>
+
+<p>Ang mga weekly review ay nagbibigay ng structured, holistic na evaluation ng progreso ng OJT. Hindi tulad ng task ratings (na task-specific), ang weekly review ay sumasaklaw sa overall performance, attitude, safety awareness, at professional development.</p>
+
+<h3>21.2 Paggawa ng Weekly Review (Supervisor)</h3>
+
+<ol>
+    <li>Pumunta sa Training Dashboard o sa specific na profile ng OJT.</li>
+    <li>I-click ang <strong>"New Review"</strong>.</li>
+    <li>Kumpletuhin ang form:
+        <ul>
+            <li><strong>OJT:</strong> Piliin ang trainee.</li>
+            <li><strong>Week Start / Week End:</strong> Ang Monday-to-Sunday (o applicable work week) period na nire-review.</li>
+            <li><strong>Overall Score:</strong> 1-5 scale. Ito ay holistic score para sa linggo, na isinasaalang-alang ang: task performance, safety behavior, punctuality, teamwork, attitude, at initiative. Tingnan ang rating scale sa Kabanata 20.2 para sa guidance.</li>
+            <li><strong>Strengths:</strong> Ano ang magandang ginawa ng OJT sa linggong ito? Maging specific: "Nagpakita ng malakas na initiative sa pag-aayos ng tool cart nang hindi inuutusan. Magaling na pag-unawa sa brake system inspection procedure."</li>
+            <li><strong>Areas for Improvement:</strong> Anong specific na skills o behaviors ang kailangang paunlarin? "Kailangang pabilisin ang oil changes — target ay nasa ilalim ng 30 minuto kasama ang documentation. Kailangan ding tandaan na palitan ang drain plug gasket tuwing magpapalit ng langis — dalawang beses na pinalampas ngayong linggo."</li>
+            <li><strong>Supervisor Notes:</strong> Anumang karagdagang comments, concerns, o recommendations. Maaaring kabilang dito ang: rekomendasyon para sa karagdagang training, observations tungkol sa attitude o teamwork, safety incidents o near-misses, notable achievements.</li>
+        </ul>
+    </li>
+    <li>I-click ang <strong>"Save Review"</strong>.</li>
+</ol>
+
+<h3>21.3 Review Cadence</h3>
+
+<table>
+<thead><tr><th>Period</th><th>Dalas ng Review</th><th>Tutukan</th></tr></thead>
+<tbody>
+<tr><td>Weeks 1-4 (Unang Buwan)</td><td>Lingguhan</td><td>Safety awareness, familiarity sa tools, basic skills, workshop orientation, punctuality, attitude</td></tr>
+<tr><td>Weeks 5-12 (Buwan 2-3)</td><td>Tuwing 2 linggo</td><td>Skill development sa specific PM procedures, diagnostic thinking, balanse ng bilis at kalidad</td></tr>
+<tr><td>Weeks 13+ (Patuloy)</td><td>Buwanan</td><td>Antas ng independence, kakayahang humawak ng complex tasks, readiness para sa unsupervised work</td></tr>
+</tbody>
+</table>
+
+<h3>21.4 OJT Dashboard — Ano ang Nakikita ng Trainee</h3>
+
+<p>Kapag nag-login ang isang OJT, nakakakita sila ng dashboard na may mga sumusunod na sections:</p>
+
+<table>
+<thead><tr><th>Section</th><th>Nilalaman</th><th>Layunin</th></tr></thead>
+<tbody>
+<tr><td><strong>Attendance Card</strong></td><td>Check In / Check Out buttons. Ipinapakita ang time_in at time_out ngayong araw kung naka-record.</td><td>Mabilis na attendance logging</td></tr>
+<tr><td><strong>My Ratings</strong></td><td>Average score sa lahat ng task ratings, kabuuang bilang ng ratings na natanggap.</td><td>Tingnan ang overall performance trend</td></tr>
+<tr><td><strong>Training Info</strong></td><td>Start date, supervisor name, status (active/inactive).</td><td>Alamin kung sino ang lalapitan para sa feedback</td></tr>
+<tr><td><strong>Recent Ratings</strong></td><td>Huling 10 task ratings na may scores at comments.</td><td>Suriin ang specific na feedback</td></tr>
+<tr><td><strong>Weekly Reviews</strong></td><td>Huling 5 weekly review summaries na may scores at key points.</td><td>Subaybayan ang long-term progress</td></tr>
+</tbody>
+</table>
+
+<h3>21.5 Supervisor Dashboard — Ano ang Nakikita ng Supervisor</h3>
+
+<table>
+<thead><tr><th>Section</th><th>Nilalaman</th><th>Layunin</th></tr></thead>
+<tbody>
+<tr><td><strong>My OJTs</strong></td><td>Listahan ng active trainees na may links sa kanilang profiles.</td><td>Mabilis na access sa bawat OJT</td></tr>
+<tr><td><strong>Recent Ratings Given</strong></td><td>Huling 20 task ratings, na nagpapakita ng OJT name, task, score, at date.</td><td>Suriin ang kamakailang feedback na ibinigay</td></tr>
+<tr><td><strong>Weekly Reviews</strong></td><td>Mga kamakailang reviews na may buttons para gumawa ng bagong reviews.</td><td>Subaybayan ang review completion</td></tr>
+</tbody>
+</table>
+
+<h3>21.6 Pag-interpret ng OJT Progress</h3>
+
+<p>Gamitin ang trend sa average scores sa paglipas ng panahon para i-assess ang development:</p>
+
+<ul>
+    <li><strong>Upward trend</strong> (tumataas ang scores sa paglipas ng mga linggo): Natututo at umuunlad ang OJT ayon sa inaasahan.</li>
+    <li><strong>Flat trend sa 3-4</strong> (consistent ang scores sa Competent-Proficient range): Gumagawa ng matatag na progreso ang OJT. Maghanap ng opportunities para ipakilala ang mas challenging na tasks.</li>
+    <li><strong>Flat trend sa 1-2</strong> (nananatili ang scores sa Novice-Beginner pagkatapos ng 4+ na linggo): Ito ay red flag. Imbestigahan: Nakakatanggap ba ang OJT ng sapat na instruction? Masyadong advanced ba ang tasks para sa kanilang kasalukuyang level? May attitude o motivation issue ba? Isaalang-alang ang pag-adjust ng training approach o magkaroon ng direktang usapan sa OJT.</li>
+    <li><strong>Downward trend</strong> (bumababa ang scores): Imbestigahan kaagad. Posibleng dahilan: pagkabagot o kakulangan ng challenge, personal issues na nakakaapekto sa performance, hindi sapat na supervision, o hindi tugma ang OJT sa trade.</li>
+</ul>
+
+<div class="info-note"><strong>Tandaan tungkol sa OJT Role at System Access:</strong> Ang OJT/Trainee accounts ay may pinakarestricted na access sa sistema. Maaari lamang silang makakita ng Training Dashboard, truck list (read-only), at kanilang sariling ratings at reviews. Hindi sila pwedeng gumawa o magbago ng anumang operational records. Ito ay sinadya — ang kanilang role ay matuto, hindi gumawa ng unsupervised work.</div>
