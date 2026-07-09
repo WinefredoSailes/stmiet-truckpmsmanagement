@@ -68,6 +68,7 @@
                     {% if request.user.role == 'SUPER_ADMIN' or request.user.role == 'ADMIN' %}
                     <a href="{% url 'pms:sync_truck' truck.pk %}" class="btn btn-sm btn-outline-success py-0 px-1" title="Sync all templates"><i class="bi bi-arrow-repeat"></i></a>
                     {% endif %}
+                    <a href="{% url 'pms:schedule_pdf' %}?truck={{ truck.pk }}" class="btn btn-sm btn-outline-danger py-0 px-1" title="Download PDF"><i class="bi bi-file-earmark-pdf"></i></a>
                     <a href="{% url 'pms:schedule_print' %}?truck={{ truck.pk }}" class="btn btn-sm btn-outline-secondary py-0 px-1" title="Print checklist" target="_blank"><i class="bi bi-printer"></i></a>
                     <a href="{% url 'pms:schedule_csv' %}?truck={{ truck.pk }}" class="btn btn-sm btn-outline-secondary py-0 px-1" title="Export CSV"><i class="bi bi-download"></i></a>
                     <a href="{% url 'pms:schedule_list' %}?truck={{ truck.pk }}" class="btn btn-sm btn-outline-primary py-0 px-1"><i class="bi bi-arrow-right"></i></a>

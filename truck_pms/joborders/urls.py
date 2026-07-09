@@ -9,6 +9,7 @@ urlpatterns = [
     path('<int:pk>/', views.job_order_detail, name='detail'),
     path('<int:pk>/print/', views.job_order_print, name='print'),
     path('<int:pk>/edit/', views.job_order_update, name='update'),
+    path('<int:pk>/pdf/', views.job_order_pdf, name='pdf'),
     path('<int:pk>/close/', views.job_order_close, name='close'),
     path('my-assignments/', views.my_assignments, name='my_assignments'),
     path('line-item/<int:pk>/update/', views.update_line_item, name='update_line_item'),

@@ -90,6 +90,26 @@ def job_order_print(request, pk):
 
 
 @login_required
+def job_order_pdf(request, pk):
+    order = get_object_or_404(
+        JobOrder.objects.select_related(
+            'truck', 'assigned_to', 'created_by', 'contractor'
+        ),
+        pk=pk
+    )
+    line_items = order.line_items.select_related(
+        'category', 'task_template'
+    ).prefetch_related('parts')
+    logs = order.log_entries.select_related('performed_by').all()
+    from core.utils import render_pdf
+    return render_pdf(request, 'joborders/print.html', {
+        'order': order,
+        'line_items': line_items,
+        'logs': logs,
+    }, filename=f'{order.jo_number}.pdf')
+
+
+@login_required
 @role_required(User.Role.SUPER_ADMIN, User.Role.ADMIN, User.Role.STAFF)
 def job_order_create(request):
     if request.method == 'POST':

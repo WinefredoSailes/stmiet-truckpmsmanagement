@@ -250,6 +250,38 @@ def schedule_print(request):
 
 
 @login_required
+@role_required(User.Role.SUPER_ADMIN, User.Role.ADMIN, User.Role.STAFF)
+def schedule_pdf(request):
+    truck_id = request.GET.get('truck')
+    status_filter = request.GET.get('status')
+    search = request.GET.get('search', '').strip()
+    schedules = PMSchedule.objects.select_related(
+        'truck', 'task_template__category'
+    ).all()
+    if truck_id:
+        schedules = schedules.filter(truck_id=truck_id)
+    if search:
+        schedules = schedules.filter(
+            Q(task_template__name__icontains=search) |
+            Q(task_template__category__name__icontains=search)
+        )
+    if status_filter:
+        filtered = []
+        for s in schedules:
+            if s.status() == status_filter:
+                filtered.append(s)
+        schedules_list = filtered
+    else:
+        schedules_list = list(schedules)
+    schedules_list.sort(key=lambda s: s.truck.unit_number)
+    from core.utils import render_pdf
+    return render_pdf(request, 'pms/schedule_print.html', {
+        'schedules': schedules_list,
+        'now': timezone.now(),
+    }, filename=f'pm-schedule-{timezone.now():%Y%m%d}.pdf')
+
+
+@login_required
 @role_required(User.Role.SUPER_ADMIN, User.Role.ADMIN)
 def sync_truck(request, truck_pk):
     truck = get_object_or_404(Truck, pk=truck_pk)

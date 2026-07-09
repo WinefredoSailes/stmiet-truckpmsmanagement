@@ -113,8 +113,9 @@
                 </dl>
             </div>
         </div>
-        <div class="d-grid gap-2">
-            <a href="{% url 'joborders:print' order.pk %}" target="_blank" class="btn btn-outline-secondary"><i class="bi bi-printer"></i> Print</a>
+        <div class="d-flex gap-2">
+            <a href="{% url 'joborders:print' order.pk %}" target="_blank" class="btn btn-outline-secondary flex-fill"><i class="bi bi-printer"></i> Print</a>
+            <a href="{% url 'joborders:pdf' order.pk %}" class="btn btn-outline-danger flex-fill"><i class="bi bi-file-earmark-pdf"></i> PDF</a>
             {% if order.status == 'OPEN' or order.status == 'IN_PROGRESS' %}
             <a href="{% url 'joborders:close' order.pk %}" class="btn btn-success">
                 <i class="bi bi-check-circle"></i> {% if order.status == 'OPEN' %}Start & Close{% else %}Close Job Order{% endif %}

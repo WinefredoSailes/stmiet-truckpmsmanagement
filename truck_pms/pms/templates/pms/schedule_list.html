@@ -8,6 +8,7 @@
     {% if request.user.role == 'SUPER_ADMIN' or request.user.role == 'ADMIN' %}
     <a href="{% url 'pms:sync_all' %}" class="btn btn-sm btn-outline-success"><i class="bi bi-arrow-repeat"></i> Sync All Trucks</a>
     {% endif %}
+    <a href="{% url 'pms:schedule_pdf' %}?{% if request.GET.truck %}truck={{ request.GET.truck }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}{% endif %}{% if search %}search={{ search }}{% endif %}" class="btn btn-sm btn-outline-danger"><i class="bi bi-file-earmark-pdf"></i> PDF</a>
     <a href="{% url 'pms:schedule_print' %}?{% if request.GET.truck %}truck={{ request.GET.truck }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}{% endif %}{% if search %}search={{ search }}{% endif %}" class="btn btn-sm btn-outline-secondary" target="_blank"><i class="bi bi-printer"></i> Print</a>
     <a href="{% url 'pms:schedule_csv' %}?{% if request.GET.truck %}truck={{ request.GET.truck }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}{% endif %}{% if search %}search={{ search }}{% endif %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-download"></i> Export CSV</a>
 </div>

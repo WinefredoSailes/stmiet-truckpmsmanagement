@@ -2,18 +2,12 @@ from pathlib import Path
 from django.core.management.base import BaseCommand
 from django.template.loader import render_to_string
 from django.conf import settings
-from django.contrib.staticfiles.storage import StaticFilesStorage
 
 
 class Command(BaseCommand):
     help = 'Generate SOP manual HTML and PDFs'
 
     def handle(self, *args, **options):
-        # Override static storage to avoid manifest requirement
-        import django.contrib.staticfiles.storage as storage_mod
-        orig_storage = storage_mod.staticfiles_storage
-        storage_mod.staticfiles_storage = StaticFilesStorage()
-
         # Try to load WeasyPrint — optional, HTML generation works without it
         WeasyprintHTML = None
         try:
@@ -23,8 +17,6 @@ class Command(BaseCommand):
                 'WeasyPrint not available — skipping PDF generation. '
                 'HTML files will still be generated.'
             ))
-
-        try:
             output_dir = Path(settings.BASE_DIR) / 'static' / 'sop'
             output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -61,5 +53,3 @@ class Command(BaseCommand):
                 ))
 
             self.stdout.write(self.style.SUCCESS('\nSOP manual generation complete.'))
-        finally:
-            storage_mod.staticfiles_storage = orig_storage
