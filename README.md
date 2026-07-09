@@ -128,6 +128,7 @@ python manage.py runserver 0.0.0.0:8000
 | `contractors` | External vendor registry (skills, contact, history) |
 | `kpi` | Computed reports: mechanic KPI, contractor rates, truck frequency, predictive analytics |
 | `training` | OJT onboarding: attendance check-in/out, task ratings (1-5), weekly reviews |
+| `sop` | SOP Manual — PDF generator (WeasyPrint), full 8-volume handbook with browser-print fallback |
 | `core` | Base template, shared CSS, form mixin, request-timing middleware, sidebar context processor |
 
 ### Key Model Relationships
@@ -169,6 +170,20 @@ Each PMSchedule's `status()` method runs live (no stored field):
 ## User Guide
 
 > **Full user documentation** is available in [USER_GUIDE.md](USER_GUIDE.md) — covers every feature, role-by-role workflow, and step-by-step procedures for the SOP handbook.
+
+### SOP Manual
+
+A downloadable SOP handbook is available at **Sidebar → SOP Manual** for all logged-in users.
+
+- **English Edition:** Full 8-volume, 4-appendix manual covering 23 PM category procedures, repair workflow, safety, HAZMAT, training, and more.
+- **Tagalog Edition:** Same content in Filipino (ready for translation).
+- **Browser-Print Fallback:** If PDF is not yet generated, the system serves the full HTML page — use Ctrl+P → "Save as PDF."
+
+Regenerate PDFs on content changes:
+```bash
+cd truck_pms
+python manage.py build_sop
+```
 
 ### Quick Reference by Role
 

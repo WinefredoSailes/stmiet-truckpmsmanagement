@@ -1,0 +1,217 @@
+<h1 id="vol6">Volume 6 — Training &amp; On-the-Job Training (OJT)</h1>
+
+<h2 id="ch18">Chapter 18: Trainee Onboarding &amp; System Access</h2>
+
+<h3>18.1 Overview of the Training Program</h3>
+
+<p>The OJT/Training module tracks the progress of apprentice mechanics and trainees as they learn the trade. The system supports three aspects of training:</p>
+<ul>
+    <li><strong>Attendance tracking:</strong> Daily check-in and check-out to monitor presence.</li>
+    <li><strong>Task ratings:</strong> Supervisors rate OJTs on specific PM/repair tasks they perform (1-5 scale).</li>
+    <li><strong>Weekly reviews:</strong> Supervisors provide structured evaluations with strengths, areas for improvement, and overall scores.</li>
+</ul>
+
+<h3>18.2 Setting Up a New Trainee</h3>
+
+<p><strong>Responsible Role:</strong> Admin or Super Admin</p>
+
+<p><strong>Step 1 — Create User Account:</strong></p>
+<ol>
+    <li>Navigate to <strong>Sidebar → User Management</strong>.</li>
+    <li>Click <strong>"Add User"</strong>.</li>
+    <li>Set <strong>Role</strong> = "OJT / Trainee."</li>
+    <li>Complete all required fields (username, password, names, etc.).</li>
+    <li>Click <strong>"Save"</strong>.</li>
+</ol>
+
+<p><strong>Step 2 — Assign to Training:</strong></p>
+<ol>
+    <li>Navigate to <strong>Sidebar → Assign Training</strong>.</li>
+    <li>Select the OJT you just created from the dropdown.</li>
+    <li>Select their <strong>Supervisor</strong> — this must be a user with Staff, Admin, or Super Admin role. The supervisor will be responsible for rating and reviewing the OJT.</li>
+    <li>Set the <strong>Start Date</strong> — typically the OJT's first day at the workshop.</li>
+    <li>Click <strong>"Assign"</strong>.</li>
+</ol>
+
+<p>The OJT can now log in and access the Training Dashboard. The supervisor can see the OJT in their supervisor dashboard.</p>
+
+<h3>18.3 Supervisor Selection Guidelines</h3>
+
+<p>The supervisor plays a critical role in the OJT's development. Choose a supervisor who:</p>
+<ul>
+    <li>Has at least 2 years of experience in truck maintenance.</li>
+    <li>Is patient and communicates well.</li>
+    <li>Can dedicate time each week to fill out ratings and reviews.</li>
+    <li>Is proficient in using the Truck PMS system.</li>
+</ul>
+
+<p>A supervisor may oversee multiple OJTs, but should not have more than 3 OJTs assigned at one time to maintain quality of mentorship.</p>
+
+<div class="page-break"></div>
+
+<h2 id="ch19">Chapter 19: Daily Attendance Procedure</h2>
+
+<h3>19.1 How Attendance Works</h3>
+
+<p>Attendance is recorded daily. Each OJT checks in when they arrive and checks out when they leave. The system records timestamps and prevents duplicate check-ins on the same day.</p>
+
+<h3>19.2 OJT — Checking In</h3>
+
+<ol>
+    <li>Log into the system (redirected to Training Dashboard automatically).</li>
+    <li>On the Attendance card, click <strong>"Check In"</strong>.</li>
+    <li>The current time is recorded as <code>time_in</code>.</li>
+    <li>A confirmation message appears: "Checked in at [time]."</li>
+</ol>
+
+<h3>19.3 OJT — Checking Out</h3>
+
+<ol>
+    <li>Before leaving for the day, ensure all tasks or training activities for the day are complete.</li>
+    <li>On the Attendance card, click <strong>"Check Out"</strong>.</li>
+    <li>The current time is recorded as <code>time_out</code>.</li>
+    <li>A confirmation message appears: "Checked out at [time]."</li>
+</ol>
+
+<h3>19.4 Attendance Rules</h3>
+
+<ul>
+    <li>An OJT can only check in <strong>once per day</strong>. If they forget to check in, they should notify their supervisor to record the attendance manually.</li>
+    <li>Checking out is optional but recommended. An OJT who forgets to check out can still check out the next day (the system records the previous day's check-out time).</li>
+    <li>If an OJT is absent, no attendance record is created for that day. The supervisor may note the absence in the weekly review.</li>
+</ul>
+
+<h3>19.5 Attendance Reports (Supervisor Access)</h3>
+
+<p>Supervisors can view an OJT's attendance history from the Training Dashboard or by navigating to the specific OJT's profile page. The attendance log shows each day's check-in and check-out times, with total hours calculated.</p>
+
+<div class="page-break"></div>
+
+<h2 id="ch20">Chapter 20: Task Rating &amp; Skills Assessment</h2>
+
+<h3>20.1 Purpose of Task Ratings</h3>
+
+<p>Task ratings track an OJT's progress on specific maintenance tasks. Each rating records:</p>
+<ul>
+    <li>What task was performed (linked to PM task template or custom task name).</li>
+    <li>Who rated them (the supervisor).</li>
+    <li>A numerical score (1-5).</li>
+    <li>Comments or observations.</li>
+</ul>
+
+<h3>20.2 Rating Scale</h3>
+
+<table>
+<thead><tr><th>Score</th><th>Label</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Novice</td><td>Requires constant supervision. Cannot perform task independently. Needs significant guidance on safety, tool selection, and procedure.</td></tr>
+<tr><td>2</td><td>Beginner</td><td>Can perform task with step-by-step guidance. Knows the general process but needs coaching on technique and efficiency.</td></tr>
+<tr><td>3</td><td>Competent</td><td>Can perform task independently with minimal supervision. Follows the correct procedure. Completes work within reasonable time. Understands safety requirements.</td></tr>
+<tr><td>4</td><td>Proficient</td><td>Performs task efficiently and consistently. Can identify and correct common issues without assistance. Understands underlying principles. Good diagnostic ability.</td></tr>
+<tr><td>5</td><td>Expert</td><td>Can perform task flawlessly. Can teach others. Able to handle complex or unusual variations. Understands the system-level impact of the task.</td></tr>
+</tbody>
+</table>
+
+<h3>20.3 Creating a Task Rating (Supervisor)</h3>
+
+<ol>
+    <li>Navigate to the Training Dashboard or the specific OJT's profile.</li>
+    <li>Click <strong>"New Rating"</strong>.</li>
+    <li>Complete the form:
+        <ul>
+            <li><strong>OJT:</strong> Select the trainee you are rating.</li>
+            <li><strong>Rating:</strong> Select 1-5 based on the scale above.</li>
+            <li><strong>PM Task:</strong> Optional. If the OJT performed a specific PM task, select it from the dropdown (populated from the 154 PM templates). This links the rating to a standardized task for progress tracking.</li>
+            <li><strong>Task Name (Custom):</strong> If the task is not a standard PM template, type a custom description. Example: "Assisted with transmission removal," "Practiced diagnostic scan tool usage."</li>
+            <li><strong>Comments:</strong> Provide specific, actionable feedback. Mention what was done well AND what needs improvement. Avoid vague comments like "Good job" — instead say "Performed brake lining inspection correctly, measured all positions, identified the right-rear as needing replacement. Needs to work on speed — took 45 minutes vs. the standard 20 minutes."</li>
+        </ul>
+    </li>
+    <li>Click <strong>"Save Rating"</strong>.</li>
+    <li>The OJT can view the rating on their Training Dashboard.</li>
+</ol>
+
+<h3>20.4 Rating Guidelines for Supervisors</h3>
+
+<ul>
+    <li><strong>Rate frequently:</strong> Aim for at least 3-5 ratings per OJT per week. Frequent, small feedback is more effective than infrequent, lengthy evaluations.</li>
+    <li><strong>Rate promptly:</strong> Complete the rating while the task is still fresh in your mind — ideally within 2 hours of the OJT completing the task.</li>
+    <li><strong>Be objective:</strong> Base the rating on the OJT's demonstrated performance on that specific task, not on your general impression of them. A competent mechanic may still be a novice at a specific new task.</li>
+    <li><strong>Include positive and constructive feedback:</strong> Even a score of 3 (Competent) should note what was done correctly plus one area for improvement.</li>
+    <li><strong>Use the system:</strong> Ratings feed into the OJT's average score and provide a quantitative record of skill development over time.</li>
+</ul>
+
+<div class="page-break"></div>
+
+<h2 id="ch21">Chapter 21: Weekly Review &amp; Progress Tracking</h2>
+
+<h3>21.1 Purpose of Weekly Reviews</h3>
+
+<p>Weekly reviews provide a structured, holistic evaluation of the OJT's progress. Unlike task ratings (which are task-specific), the weekly review covers overall performance, attitude, safety awareness, and professional development.</p>
+
+<h3>21.2 Creating a Weekly Review (Supervisor)</h3>
+
+<ol>
+    <li>Navigate to the Training Dashboard or the specific OJT's profile.</li>
+    <li>Click <strong>"New Review"</strong>.</li>
+    <li>Complete the form:
+        <ul>
+            <li><strong>OJT:</strong> Select the trainee.</li>
+            <li><strong>Week Start / Week End:</strong> The Monday-to-Sunday (or applicable work week) period being reviewed.</li>
+            <li><strong>Overall Score:</strong> 1-5 scale. This is a holistic score for the week, considering: task performance, safety behavior, punctuality, teamwork, attitude, and initiative. See the rating scale in Chapter 20.2 for guidance.</li>
+            <li><strong>Strengths:</strong> What did the OJT do well this week? Be specific: "Demonstrated strong initiative by organizing the tool cart without being asked. Showed good understanding of brake system inspection procedure."</li>
+            <li><strong>Areas for Improvement:</strong> What specific skills or behaviors need development? "Needs to improve speed on oil changes — target is under 30 minutes including documentation. Also needs to remember to replace the drain plug gasket every time — missed it twice this week."</li>
+            <li><strong>Supervisor Notes:</strong> Any additional comments, concerns, or recommendations. This may include: recommendations for additional training, observations about attitude or teamwork, safety incidents or near-misses, notable achievements.</li>
+        </ul>
+    </li>
+    <li>Click <strong>"Save Review"</strong>.</li>
+</ol>
+
+<h3>21.3 Review Cadence</h3>
+
+<table>
+<thead><tr><th>Period</th><th>Review Frequency</th><th>Focus</th></tr></thead>
+<tbody>
+<tr><td>Weeks 1-4 (First Month)</td><td>Weekly</td><td>Safety awareness, tool familiarity, basic skills, workshop orientation, punctuality, attitude</td></tr>
+<tr><td>Weeks 5-12 (Months 2-3)</td><td>Every 2 weeks</td><td>Skill development on specific PM procedures, diagnostic thinking, speed vs. quality balance</td></tr>
+<tr><td>Weeks 13+ (Ongoing)</td><td>Monthly</td><td>Independence level, ability to handle complex tasks, readiness for unsupervised work</td></tr>
+</tbody>
+</table>
+
+<h3>21.4 OJT Dashboard — What the Trainee Sees</h3>
+
+<p>When an OJT logs in, they see a dashboard with the following sections:</p>
+
+<table>
+<thead><tr><th>Section</th><th>Content</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td><strong>Attendance Card</strong></td><td>Check In / Check Out buttons. Shows today's time_in and time_out if recorded.</td><td>Quick attendance logging</td></tr>
+<tr><td><strong>My Ratings</strong></td><td>Average score across all task ratings, total number of ratings received.</td><td>See overall performance trend</td></tr>
+<tr><td><strong>Training Info</strong></td><td>Start date, supervisor name, status (active/inactive).</td><td>Know who to go to for feedback</td></tr>
+<tr><td><strong>Recent Ratings</strong></td><td>Last 10 task ratings with scores and comments.</td><td>Review specific feedback</td></tr>
+<tr><td><strong>Weekly Reviews</strong></td><td>Last 5 weekly review summaries with scores and key points.</td><td>Track long-term progress</td></tr>
+</tbody>
+</table>
+
+<h3>21.5 Supervisor Dashboard — What the Supervisor Sees</h3>
+
+<table>
+<thead><tr><th>Section</th><th>Content</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td><strong>My OJTs</strong></td><td>List of active trainees with links to their profiles.</td><td>Quick access to each OJT</td></tr>
+<tr><td><strong>Recent Ratings Given</strong></td><td>Last 20 task ratings, showing OJT name, task, score, and date.</td><td>Review recent feedback given</td></tr>
+<tr><td><strong>Weekly Reviews</strong></td><td>Recent reviews with buttons to create new reviews.</td><td>Track review completion</td></tr>
+</tbody>
+</table>
+
+<h3>21.6 Interpreting OJT Progress</h3>
+
+<p>Use the trend in average scores over time to assess development:</p>
+
+<ul>
+    <li><strong>Upward trend</strong> (scores increasing over weeks): OJT is learning and developing as expected.</li>
+    <li><strong>Flat trend at 3-4</strong> (scores consistently in the Competent-Proficient range): OJT is making solid progress. Look for opportunities to introduce more challenging tasks.</li>
+    <li><strong>Flat trend at 1-2</strong> (scores staying at Novice-Beginner after 4+ weeks): This is a red flag. Investigate: Is the OJT receiving adequate instruction? Are the tasks too advanced for their current level? Is there an attitude or motivation issue? Consider adjusting the training approach or having a direct conversation with the OJT.</li>
+    <li><strong>Downward trend</strong> (scores decreasing): Investigate immediately. Possible causes: boredom or lack of challenge, personal issues affecting performance, inadequate supervision, or a mismatch between the OJT and the trade.</li>
+</ul>
+
+<div class="info-note"><strong>Note on OJT Role &amp; System Access:</strong> OJT/Trainee accounts have the most restricted access in the system. They can only see the Training Dashboard, truck list (read-only), and their own ratings and reviews. They cannot create or modify any operational records. This is intentional — their role is to learn, not to perform unsupervised work.</div>

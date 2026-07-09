@@ -1,0 +1,157 @@
+<h1 id="vol7">Volume 7 — Performance &amp; Analytics</h1>
+
+<h2 id="ch22">Chapter 22: Mechanic KPI Reports</h2>
+
+<h3>22.1 Purpose of KPI Tracking</h3>
+
+<p>Key Performance Indicators (KPIs) provide objective data on individual and team performance. The system generates KPI reports automatically from the data entered during Job Order execution (line items, hours, parts). This chapter explains each KPI metric and how to interpret it.</p>
+
+<h3>22.2 Mechanic / Staff KPI Table</h3>
+
+<p>Navigate to <strong>Sidebar → KPI Reports</strong> to view the Mechanic KPI table. The table shows the following columns for each mechanic:</p>
+
+<table>
+<thead><tr><th>Column</th><th>Source Data</th><th>What It Measures</th></tr></thead>
+<tbody>
+<tr><td><strong>Mechanic</strong></td><td>User profile — name and specialization</td><td>Who the data belongs to</td></tr>
+<tr><td><strong>Jobs Completed</strong></td><td>Count of closed JOs assigned to this mechanic</td><td>Workload volume — how many jobs the mechanic has finished</td></tr>
+<tr><td><strong>Total Labor Hours</strong></td><td>Sum of actual hours recorded on all line items</td><td>Total time spent on all completed work</td></tr>
+<tr><td><strong>Average Hours per Job</strong></td><td>Total Labor Hours ÷ Jobs Completed</td><td>Average job size — larger numbers may indicate complex work or slower performance</td></tr>
+<tr><td><strong>Total Parts Cost</strong></td><td>Sum of all part costs (qty × unit cost) across all JOs</td><td>Total cost of materials used by this mechanic</td></tr>
+<tr><td><strong>Average Parts Cost per Job</strong></td><td>Total Parts Cost ÷ Jobs Completed</td><td>Typical parts spend per job — useful for benchmarking</td></tr>
+</tbody>
+</table>
+
+<h3>22.3 Interpreting Mechanic KPI Data</h3>
+
+<p><strong>When evaluating performance, consider these questions:</strong></p>
+
+<ul>
+    <li><strong>Volume:</strong> Is the mechanic completing a reasonable number of jobs compared to their peers? A mechanic with significantly fewer closed JOs may be: spending too much time per job (inefficiency), assigned more complex jobs (check the job types), or frequently waiting for parts or instructions.</li>
+    <li><strong>Efficiency:</strong> Compare Estimated Hours (from the line items) vs. Actual Hours (recorded when the line item was marked Done). A mechanic who consistently exceeds estimated hours may need: more training on the specific task, better tools or equipment, or more realistic estimation practices.</li>
+    <li><strong>Cost:</strong> Compare parts cost across mechanics doing similar work. A mechanic with consistently higher parts costs may be: replacing parts that could be repaired, not diagnosing root causes (replacing symptoms instead), or working on trucks with more severe wear (not the mechanic's fault — investigate further).</li>
+    <li><strong>Quality:</strong> While not directly tracked in KPI numbers, look for: rework (same truck back in the shop with the same issue within 30 days — indicates incomplete diagnosis or repair), QC failures (work that was flagged during QC inspection).</li>
+</ul>
+
+<div class="tip-note"><strong>Best Practice:</strong> KPI data is most useful for identifying trends over time, not for evaluating a single point in time. Review KPIs monthly and look for patterns. A single month of low numbers is not a concern. Three months of declining numbers warrants a conversation.</div>
+
+<h3>22.4 Contractor Performance View</h3>
+
+<p>The KPI page also shows a Contractor Performance table with:</p>
+
+<ul>
+    <li><strong>Company:</strong> Contractor company name.</li>
+    <li><strong>Total Jobs:</strong> All JOs assigned to this contractor.</li>
+    <li><strong>Completed:</strong> Closed JOs.</li>
+    <li><strong>Open:</strong> JOs currently in progress.</li>
+    <li><strong>Completion Rate:</strong> Completed ÷ Total as a percentage.</li>
+</ul>
+
+<p>Use this data to identify contractors who consistently complete work on time and those who may need follow-up on open or overdue assignments.</p>
+
+<div class="page-break"></div>
+
+<h2 id="ch23">Chapter 23: Predictive Analytics Interpretation</h2>
+
+<h3>23.1 Overview</h3>
+
+<p>The Predictive Analytics dashboard provides a visual overview of fleet health using five interactive charts. All charts are generated from live data — every page load queries the current database state. This is not a machine-learning model; it is a real-time data visualization tool for informed decision-making.</p>
+
+<p>Navigate to <strong>Sidebar → Predictive Analytics</strong> (Admin+ access).</p>
+
+<h3>23.2 The Five Charts</h3>
+
+<h4>23.2.1 Failure Frequency (Bar Chart)</h4>
+
+<p><strong>What it shows:</strong> The top 10 trucks with the most Repair-type Job Orders (breakdowns).</p>
+
+<p><strong>How to read it:</strong> Taller bars = more breakdowns. A truck that appears in this chart consistently month-over-month may need: a comprehensive diagnostic evaluation to find the root cause of repeated failures, consideration for retirement if repair costs exceed the truck's value, or a review of its PM schedule — are the right PM tasks assigned at the right intervals?</p>
+
+<p><strong>Action items:</strong></p>
+<ul>
+    <li>Trucks in the top 3 for three consecutive months: schedule a full diagnostic review.</li>
+    <li>New entries in the top 10: investigate what changed (new routes, new driver, recent repair?).</li>
+    <li>A truck that drops out of the top 10: identify what changed positively and apply that lesson to other trucks.</li>
+</ul>
+
+<h4>23.2.2 PM Compliance (Donut Chart)</h4>
+
+<p><strong>What it shows:</strong> A donut chart breaking down all PM schedules across the fleet by status: OK (green), Due (yellow), Overdue (red), No Data (gray).</p>
+
+<p><strong>How to read it:</strong></p>
+<ul>
+    <li><strong>Target:</strong> ≥ 85% of all PM schedules should be in OK (green) status.</li>
+    <li>If Due (yellow) exceeds 10%: PM scheduling needs attention — consider increasing shop capacity or prioritizing PMs over repairs for a period.</li>
+    <li>If Overdue (red) exceeds 5%: This is a serious concern. Overdue PMs indicate maintenance is being deferred, which increases the risk of breakdowns. Investigate systemic causes: not enough mechanics, parts availability issues, or lack of prioritization from operations.</li>
+    <li>If No Data (gray) is significant: Some PM schedules have never been completed. This may indicate new templates that were not synced, or trucks that have not been through a full PM cycle.</li>
+</ul>
+
+<p><strong>Action items:</strong></p>
+<ul>
+    <li>Review Overdue PMs weekly — assign JOs for each overdue item.</li>
+    <li>Target: reduce overdue to 0% within one month by dedicating one day per week to "overdue catch-up."</li>
+</ul>
+
+<h4>23.2.3 Cost Trends (Line Chart)</h4>
+
+<p><strong>What it shows:</strong> Monthly breakdown of parts cost and labor hours cost over the last 6 months.</p>
+
+<p><strong>How to read it:</strong></p>
+<ul>
+    <li><strong>Upward trend:</strong> Costs are increasing. Investigate: Are parts prices rising? Is the fleet aging and requiring more repairs? Are new trucks being added? Is there a seasonal pattern (more breakdowns during rainy season or summer)?</li>
+    <li><strong>Downward trend:</strong> Positive sign — the fleet may be getting healthier, PM may be working, or newer trucks are reducing repair needs.</li>
+    <li><strong>Spike in a single month:</strong> What happened? Major accident? Multiple breakdowns on the same truck? Large parts purchase (e.g., replaced all tires on multiple trucks)? Identify the event that caused the spike to understand if it was one-time or recurring.</li>
+</ul>
+
+<p><strong>Action items:</strong></p>
+<ul>
+    <li>Investigate any month-over-month increase exceeding 15%.</li>
+    <li>Compare parts vs. labor ratio: a rising parts ratio may indicate more heavy repairs (replacing components) compared to labor-only work (adjustments, inspections).</li>
+</ul>
+
+<h4>23.2.4 Overdue Alerts (Bar Chart)</h4>
+
+<p><strong>What it shows:</strong> The trucks with the highest number of overdue PM schedule items.</p>
+
+<p><strong>How to read it:</strong> Each bar represents one truck. The taller the bar, the more overdue items that truck has accumulated. A truck with many overdue items is at high risk of breakdown and may also have difficulty accessing depots (some depots check PM compliance before allowing loading).</p>
+
+<p><strong>Action items:</strong></p>
+<ul>
+    <li>For any truck with 5+ overdue items: schedule a comprehensive PM catch-up within the week.</li>
+    <li>For trucks that repeatedly appear on this chart: is the PM schedule realistic for this truck's utilization rate? Consider adjusting the interval or adding shop capacity.</li>
+</ul>
+
+<h4>23.2.5 Top Replaced Parts (Bar Chart)</h4>
+
+<p><strong>What it shows:</strong> The 10 most frequently replaced parts across all Job Orders, with total cost.</p>
+
+<p><strong>How to read it:</strong> This chart helps with inventory planning. If a specific part appears consistently at the top, ensure you have adequate stock on hand to avoid delays waiting for parts.</p>
+
+<p><strong>Action items:</strong></p>
+<ul>
+    <li>For the top 5 parts: maintain a minimum stock level (safety stock) in the parts inventory.</li>
+    <li>If a part suddenly appears in the top 10 (not previously common): investigate — is there a quality issue with the current batch? Is there a fleet-wide issue (e.g., a bad batch of tires or filters)?</li>
+    <li>Use this data to negotiate bulk pricing with suppliers for frequently replaced parts.</li>
+</ul>
+
+<h3>23.3 Using Predictive Analytics for Decision-Making</h3>
+
+<p><strong>Monthly Review Process:</strong></p>
+
+<ol>
+    <li>Open the Predictive Analytics dashboard.</li>
+    <li>Review all five charts — this takes approximately 5 minutes.</li>
+    <li>Note any significant changes from the previous month's review.</li>
+    <li>Identify the top 3 issues to address (e.g., "Truck UNIT-004 has 8 overdue PM items and appears in the top 3 for failure frequency — prioritize it.").</li>
+    <li>Assign action items to specific people with deadlines.</li>
+    <li>Record the key observations and decisions in the meeting minutes or system notes.</li>
+</ol>
+
+<p><strong>Quarterly Fleet Health Review:</strong></p>
+
+<ul>
+    <li>Export the data from KPI Reports and Predictive Analytics for a broader review.</li>
+    <li>Compare quarter-over-quarter trends in all five chart areas.</li>
+    <li>Evaluate if the fleet PM program is improving overall fleet reliability (are breakdowns decreasing? Is PM compliance increasing?).</li>
+    <li>Adjust PM intervals, task assignments, or shop procedures based on the data.</li>
+</ul>

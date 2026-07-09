@@ -50,4 +50,7 @@ def sidebar_menu(request):
     if is_trainee:
         menu = [m for m in menu if m['label'] != 'Job Orders']
 
+    # SOP Manual — visible to all authenticated roles
+    menu.append({'label': 'SOP Manual', 'url': 'sop:download_page', 'icon': 'bi-book'})
+
     return {'sidebar_menu': menu}

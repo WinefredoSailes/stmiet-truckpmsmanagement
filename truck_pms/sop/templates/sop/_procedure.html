@@ -1,0 +1,37 @@
+<div class="procedure no-break">
+<h4>{{ title }}</h4>
+<div class="proc-meta">
+    <div><strong>Purpose:</strong> {{ purpose }}</div>
+    <div><strong>Scope:</strong> {{ scope }}</div>
+    <div><strong>Frequency:</strong> {{ frequency }}</div>
+    <div><strong>PPE Required:</strong> {{ ppe }}</div>
+    <div><strong>Tools & Materials:</strong> {{ tools }}</div>
+</div>
+
+<strong>Step-by-Step Procedure:</strong>
+<ol class="steps">
+{% for step in steps %}
+    <li>{{ step }}</li>
+{% endfor %}
+</ol>
+
+{% if acceptance %}
+<div class="criteria"><strong>Acceptance Criteria:</strong> {{ acceptance }}</div>
+{% endif %}
+
+{% if danger %}
+<div class="danger-note"><strong>⚠ SAFETY:</strong> {{ danger }}</div>
+{% endif %}
+
+{% if tip %}
+<div class="tip-note"><strong>Tip:</strong> {{ tip }}</div>
+{% endif %}
+
+{% if documentation %}
+<div class="info-note"><strong>Documentation:</strong> {{ documentation }}</div>
+{% endif %}
+
+{% if signoff %}
+<div class="signoff-line">{{ signoff }}</div>
+{% endif %}
+</div>

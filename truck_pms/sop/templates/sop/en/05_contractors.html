@@ -1,0 +1,131 @@
+<h1 id="vol5">Volume 5 — Contractor Management</h1>
+
+<h2 id="ch15">Chapter 15: Contractor Onboarding &amp; Skills Registry</h2>
+
+<h3>15.1 When to Use a Contractor</h3>
+
+<p>Contractors are external service providers used when:</p>
+<ul>
+    <li>The required repair or service is outside the in-house mechanics' expertise (e.g., calibration, specialized welding, electrical diagnostics for OEM systems).</li>
+    <li>In-house capacity is fully utilized and the job cannot be deferred.</li>
+    <li>The job requires specialized equipment not available in the workshop (e.g., hydrostatic testing, ultrasonic thickness gauging, dynamometer testing).</li>
+    <li>Warranty or insurance requirements mandate OEM-certified technicians.</li>
+</ul>
+
+<h3>15.2 Registering a New Contractor in the System</h3>
+
+<p><strong>Responsible Role:</strong> Admin or Super Admin</p>
+
+<ol>
+    <li>Navigate to <strong>Sidebar → Contractors</strong>.</li>
+    <li>Click <strong>"Add Contractor"</strong>.</li>
+    <li>Complete the form:
+        <ul>
+            <li><strong>Company Name:</strong> Legal business name as registered with government or as stated on the invoice.</li>
+            <li><strong>Contact Person:</strong> Name of the person you communicate with for scheduling and invoicing.</li>
+            <li><strong>Mobile Number:</strong> Direct line to the contact person.</li>
+            <li><strong>Email Address:</strong> For sending Job Orders, correspondence, and invoices.</li>
+            <li><strong>Address:</strong> Physical office or workshop address.</li>
+            <li><strong>Skills:</strong> Comma-separated list of services the contractor provides. Be specific: "Welding, Calibration, Electrical Diagnostics, Vapor Recovery Testing, Tank Hydrostatic Testing, Hydraulic Repairs."</li>
+            <li><strong>Active:</strong> Check this box to allow the contractor to be assigned Job Orders. Uncheck to temporarily or permanently disable contractor assignments without deleting the record.</li>
+        </ul>
+    </li>
+    <li>Click <strong>"Save"</strong>.</li>
+</ol>
+
+<h3>15.3 Contractor User Account</h3>
+
+<p>Each contractor company can have a user account in the system with the <strong>CONTRACTOR</strong> role. This account:</p>
+<ul>
+    <li>Can only see Job Orders assigned to their company.</li>
+    <li>Has the same workflow capabilities as a mechanic (mark line items Done, record parts, add hours).</li>
+    <li>Does not have access to any other part of the system (truck list read-only, no PM schedules, no reports).</li>
+    <li>Is redirected to <strong>My Assignments</strong> on login for immediate access to work orders.</li>
+</ul>
+
+<p>To create a contractor user account, see Chapter 2 (User Account Lifecycle) — select Role = CONTRACTOR.</p>
+
+<div class="page-break"></div>
+
+<h2 id="ch16">Chapter 16: Contractor Service Execution</h2>
+
+<h3>16.1 Creating a Contractor Job Order</h3>
+
+<ol>
+    <li>Navigate to <strong>Sidebar → Job Orders → New Job Order</strong>.</li>
+    <li>Select the <strong>Truck</strong>.</li>
+    <li>Set <strong>Type</strong> = "Contractor Service."</li>
+    <li>In the <strong>Assigned To</strong> field, select the <strong>Contractor Company</strong> (not an individual mechanic).</li>
+    <li>Complete the remaining fields (title, description, priority).</li>
+    <li>Click <strong>"Save"</strong>.</li>
+    <li>Add line items for each specific task the contractor must perform.</li>
+</ol>
+
+<h3>16.2 Contractor On-Site Procedure</h3>
+
+<ol>
+    <li><strong>Check-in:</strong> When the contractor arrives at the workshop, they must:
+        <ul>
+            <li>Report to the supervisor or admin on duty.</li>
+            <li>Present any required credentials or certifications for the job.</li>
+            <li>Review the Job Order scope with the supervisor before starting work.</li>
+            <li>Be briefed on workshop safety rules, emergency exits, and the location of fire extinguishers and first aid kits.</li>
+        </ul>
+    </li>
+    <li><strong>During work:</strong>
+        <ul>
+            <li>The contractor updates the Job Order line items in the system (or the supervisor updates if the contractor does not have system access).</li>
+            <li>The supervisor may perform spot checks on the work in progress.</li>
+            <li>Any additional work found during the job must be approved by the supervisor before proceeding (verbal approval is acceptable; documentation follows).</li>
+        </ul>
+    </li>
+    <li><strong>Check-out:</strong>
+        <ul>
+            <li>Work is inspected and approved by the supervisor (see QC inspection in Chapter 13).</li>
+            <li>The contractor's service report (paper or digital) is submitted to the supervisor.</li>
+            <li>The supervisor signs off on the Job Order.</li>
+        </ul>
+    </li>
+</ol>
+
+<h3>16.3 Invoicing &amp; Cost Tracking</h3>
+
+<ul>
+    <li>All parts and materials used by the contractor are recorded in the Job Order line items (see Section 12.3).</li>
+    <li>The contractor's labor cost is recorded as the contractor's quoted rate in the line item notes or as a separate part entry for "labor charge."</li>
+    <li>Upon completion, the contractor submits an invoice referencing the Job Order number.</li>
+    <li>The supervisor verifies the invoice against the Job Order (line items, parts, hours) and approves for payment.</li>
+</ul>
+
+<div class="page-break"></div>
+
+<h2 id="ch17">Chapter 17: Contractor Performance Evaluation</h2>
+
+<h3>17.1 Performance Metrics</h3>
+
+<p>The KPI Reports section tracks contractor performance automatically. Key metrics:</p>
+
+<table>
+<thead><tr><th>Metric</th><th>Definition</th><th>Target</th></tr></thead>
+<tbody>
+<tr><td>Total Jobs</td><td>Number of Job Orders assigned to this contractor</td><td>Varies by contractor</td></tr>
+<tr><td>Completed Jobs</td><td>Number of JOs closed (completed successfully)</td><td>As assigned</td></tr>
+<tr><td>Open Jobs</td><td>JOs currently in progress</td><td>Minimize — should be &lt;10% of total</td></tr>
+<tr><td>Completion Rate</td><td>Completed jobs / Total jobs × 100%</td><td>≥ 90%</td></tr>
+<tr><td>Average Turnaround Time</td><td>Days from creation to close</td><td>Varies by job type — track trends</td></tr>
+</tbody>
+</table>
+
+<h3>17.2 Evaluating Contractor Quality</h3>
+
+<p>In addition to quantitative metrics, evaluate contractors on:</p>
+
+<ul>
+    <li><strong>Work quality:</strong> Does the work pass QC inspection on the first attempt? Are there recurring issues that trace back to contractor work?</li>
+    <li><strong>Reliability:</strong> Does the contractor show up on the scheduled date and time? Do they complete work within the estimated time?</li>
+    <li><strong>Documentation:</strong> Does the contractor provide complete service reports, photos (if applicable), and accurate invoices?</li>
+    <li><strong>Safety compliance:</strong> Does the contractor follow workshop safety rules? Do they wear proper PPE? Do they bring their own safety equipment?</li>
+    <li><strong>Communication:</strong> Does the contractor communicate delays, parts issues, or additional findings promptly?</li>
+</ul>
+
+<p>Evaluation notes can be recorded in the contractor's record using the <strong>Notes</strong> field available in the Contractor detail page (accessible from Sidebar → Contractors).</p>

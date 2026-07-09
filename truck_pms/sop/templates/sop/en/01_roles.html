@@ -1,0 +1,219 @@
+<h1 id="vol1">Volume 1 — System Administration</h1>
+
+<h2 id="ch1">Chapter 1: Roles &amp; Access Matrix</h2>
+
+<p>This chapter defines every user role in the Truck PMS system, their permissions, and access boundaries. All personnel must understand which role they belong to and what actions they are authorized to perform.</p>
+
+<h3>1.1 Role Definitions</h3>
+
+<table>
+<thead>
+<tr><th>Role</th><th>System Label</th><th>Typical Personnel</th><th>Access Level</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Super Admin</strong></td><td>SUPER_ADMIN</td><td>IT Manager / System Owner</td><td>Full — including User Management &amp; Django Admin</td></tr>
+<tr><td><strong>Admin</strong></td><td>ADMIN</td><td>Operations Manager</td><td>All operations features except User Management</td></tr>
+<tr><td><strong>Staff</strong></td><td>STAFF</td><td>Shop Supervisor / Lead Mechanic</td><td>Job Orders, PM views, Training supervision</td></tr>
+<tr><td><strong>Mechanic</strong></td><td>MECHANIC</td><td>Diesel Mechanic / Technician</td><td>Assigned JOs only, limited read access</td></tr>
+<tr><td><strong>Contractor</strong></td><td>CONTRACTOR</td><td>External Vendor Technician</td><td>Contractor JOs only, no access to other data</td></tr>
+<tr><td><strong>OJT / Trainee</strong></td><td>TRAINEE</td><td>Apprentice / Under Training</td><td>Training dashboard &amp; attendance only</td></tr>
+</tbody>
+</table>
+
+<h3>1.2 Access Matrix by Feature</h3>
+
+<p>The following matrix shows which features are visible in the sidebar for each role. A check mark (&check;) means the menu item is available.</p>
+
+<table>
+<thead>
+<tr><th>Feature / Page</th><th>Super Admin</th><th>Admin</th><th>Staff</th><th>Mechanic</th><th>Contractor</th><th>OJT/Trainee</th></tr>
+</thead>
+<tbody>
+<tr><td>Dashboard</td><td>&check;</td><td>&check;</td><td>&check;</td><td>&check;</td><td>&mdash;</td><td>&check;</td></tr>
+<tr><td>Trucks</td><td>&check;</td><td>&check;</td><td>&check;</td><td>&check;</td><td>&check;</td><td>&check;</td></tr>
+<tr><td>PMS Schedules</td><td>&check;</td><td>&check;</td><td>&check;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td></tr>
+<tr><td>PM Categories</td><td>&check;</td><td>&check;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td></tr>
+<tr><td>PM Templates</td><td>&check;</td><td>&check;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td></tr>
+<tr><td>Job Orders</td><td>&check;</td><td>&check;</td><td>&check;</td><td>&check;</td><td>&check;</td><td>&mdash;</td></tr>
+<tr><td>My Assignments</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&check;</td><td>&check;</td><td>&mdash;</td></tr>
+<tr><td>Service Ledger</td><td>&check;</td><td>&check;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td></tr>
+<tr><td>Contractors</td><td>&check;</td><td>&check;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td></tr>
+<tr><td>KPI Reports</td><td>&check;</td><td>&check;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td></tr>
+<tr><td>Predictive Analytics</td><td>&check;</td><td>&check;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td></tr>
+<tr><td>User Management</td><td>&check;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td></tr>
+<tr><td>Training</td><td>&check;</td><td>&check;</td><td>&check;</td><td>&mdash;</td><td>&mdash;</td><td>&check;</td></tr>
+<tr><td>Assign Training</td><td>&check;</td><td>&check;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td></tr>
+<tr><td>Django Admin</td><td>&check;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td></tr>
+</tbody>
+</table>
+
+<h3>1.3 Role-Based Login Behavior</h3>
+
+<p>The system redirects users to different pages upon login depending on their role:</p>
+
+<table>
+<thead>
+<tr><th>Role</th><th>Login Redirect</th><th>Rationale</th></tr>
+</thead>
+<tbody>
+<tr><td>Super Admin</td><td>Dashboard</td><td>Overview of all operations</td></tr>
+<tr><td>Admin</td><td>Dashboard</td><td>Overview of all operations</td></tr>
+<tr><td>Staff</td><td>Dashboard</td><td>Overview of shop activity</td></tr>
+<tr><td>Mechanic</td><td>Dashboard</td><td>Quick view of assignments</td></tr>
+<tr><td>Contractor</td><td>My Assignments</td><td>Immediate access to work orders</td></tr>
+<tr><td>OJT / Trainee</td><td>Training Dashboard</td><td>Attendance &amp; progress tracking</td></tr>
+</tbody>
+</table>
+
+<h3>1.4 Security Principles</h3>
+<ul>
+    <li><strong>Least Privilege:</strong> Each role has the minimum access required to perform its function. No role can access features outside its permission level.</li>
+    <li><strong>Data Isolation:</strong> Mechanics and Contractors can only see Job Orders assigned to them. They cannot browse all JOs in the system.</li>
+    <li><strong>Immutable Audit Trail:</strong> Once a Job Order is closed, all associated data is written to the Service Ledger and can never be modified or deleted.</li>
+    <li><strong>Session Timeout:</strong> Users are automatically logged out after 30 minutes of inactivity.</li>
+    <li><strong>Password Policy:</strong> All user accounts require passwords of at least 8 characters.</li>
+</ul>
+
+<div class="page-break"></div>
+
+<h2 id="ch2">Chapter 2: User Account Lifecycle</h2>
+
+<h3>2.1 Creating a New User</h3>
+
+<p><strong>Responsible Role:</strong> Super Admin only</p>
+
+<ol>
+    <li>Log in as Super Admin.</li>
+    <li>Navigate to <strong>Sidebar → User Management</strong>.</li>
+    <li>Click the <strong>"Add User"</strong> button.</li>
+    <li>Complete the form with the following fields:
+        <ul>
+            <li><strong>Username:</strong> Unique identifier (e.g., jdelacruz). Use first initial + last name in lowercase.</li>
+            <li><strong>Password:</strong> Temporary password. Ensure at least 8 characters.</li>
+            <li><strong>Confirm Password:</strong> Re-enter the same password.</li>
+            <li><strong>Role:</strong> Select from the six roles defined in Chapter 1.</li>
+            <li><strong>First Name / Last Name:</strong> Legal name as appears on company ID.</li>
+            <li><strong>Mobile Number:</strong> Active cellular number for contact purposes.</li>
+            <li><strong>Specialization:</strong> (Mechanics only) Primary area of expertise — e.g., Engine, Brakes, Electrical, Tank &amp; Valves, General.</li>
+            <li><strong>Employee ID:</strong> Company-assigned employee or contractor ID number.</li>
+        </ul>
+    </li>
+    <li>Click <strong>"Save"</strong>.</li>
+    <li>Provide the new user their username and temporary password. Instruct them to change their password on first login.</li>
+</ol>
+
+<h3>2.2 Editing an Existing User</h3>
+
+<ol>
+    <li>Navigate to <strong>Sidebar → User Management</strong>.</li>
+    <li>Locate the user in the list (use the role filter if needed).</li>
+    <li>Click the <strong>user row</strong> or <strong>Edit button</strong>.</li>
+    <li>Update the desired fields.</li>
+    <li>Click <strong>"Save"</strong>.</li>
+</ol>
+
+<h3>2.3 Resetting a User's Password</h3>
+
+<ol>
+    <li>Navigate to <strong>Sidebar → User Management</strong>.</li>
+    <li>Find the user and click the <strong>key icon</strong> in the Actions column.</li>
+    <li>You will be redirected to the <strong>Django Admin</strong> password change form.</li>
+    <li>Enter the new password and confirm.</li>
+    <li>Click <strong>"Change password"</strong>.</li>
+    <li>Communicate the new temporary password to the user securely.</li>
+</ol>
+
+<div class="danger-note"><strong>⚠ Important:</strong> Password resets redirect to the Django Admin interface, which is only accessible to Super Admin accounts. If you cannot access the Django Admin, check that you are logged in as Super Admin at /admin/.</div>
+
+<h3>2.4 Disabling / Deactivating a User</h3>
+
+<p>To prevent a user from logging in without deleting their account (preserving audit trail integrity):</p>
+
+<ol>
+    <li>Navigate to <strong>Sidebar → User Management</strong>.</li>
+    <li>Click the user to edit.</li>
+    <li>Uncheck the <strong>"Active"</strong> checkbox.</li>
+    <li>Click <strong>"Save"</strong>.</li>
+    <li>The user can no longer log in, but all their historical records (Job Orders, service logs, ratings) remain intact.</li>
+</ol>
+
+<h3>2.5 Creating an OJT/Trainee Account (Special Case)</h3>
+
+<p>Trainee accounts require an additional step beyond user creation:</p>
+
+<ol>
+    <li><strong>Step 1:</strong> Create the user account with Role = "OJT / Trainee" (follow Section 2.1).</li>
+    <li><strong>Step 2:</strong> Navigate to <strong>Sidebar → Assign Training</strong>.</li>
+    <li>Select the newly created OJT from the dropdown.</li>
+    <li>Assign a <strong>Supervisor</strong> (must be Staff, Admin, or Super Admin).</li>
+    <li>Set the <strong>Start Date</strong> (usually the OJT's first day).</li>
+    <li>Click <strong>"Assign"</strong>.</li>
+    <li>The OJT now has access to their Training Dashboard and the supervisor can begin ratings.</li>
+</ol>
+
+<div class="page-break"></div>
+
+<h2 id="ch3">Chapter 3: System Navigation &amp; UI Reference</h2>
+
+<h3>3.1 Layout Overview</h3>
+
+<p>The Truck PMS system uses a consistent layout across all pages:</p>
+
+<ol>
+    <li><strong>Sidebar (Left):</strong> Main navigation menu. Collapses on mobile screens. Shows menu items based on the user's role.</li>
+    <li><strong>Top Bar:</strong> Displays current page title, a back button (where applicable), user name, and role badge. The back button (← arrow) returns to the previous logical page.</li>
+    <li><strong>Content Area:</strong> Main body of the page. Contains lists, forms, detail views, and action buttons.</li>
+    <li><strong>Footer:</strong> Company tagline and copyright information.</li>
+</ol>
+
+<h3>3.2 Page Loader Indicator</h3>
+
+<p>A thin blue progress bar animates across the top of the screen whenever a page is loading. This provides visual feedback during navigation. The bar fills from left to right and fades out once the page is ready.</p>
+
+<h3>3.3 Mobile Navigation</h3>
+
+<p>On small screens (phones, small tablets), the sidebar collapses. Tap the <strong>☰ (hamburger icon)</strong> in the top-left corner to expand the mobile menu.</p>
+
+<h3>3.4 Common UI Patterns</h3>
+
+<p><strong>Back Buttons:</strong> The ← arrow in the top bar returns you to the previous page. This is context-aware — on a truck detail page, it returns to the truck list; on a Job Order detail, it returns to the JO list.</p>
+
+<p><strong>Search Boxes:</strong> Most list pages include a search box. Type any text to filter the list in real time. Searches match partial text against key fields (name, plate number, description, etc.).</p>
+
+<p><strong>Filters:</strong> Some pages (Job Orders, PMS Schedules) include dropdown filters to narrow results by status, type, truck, or other criteria. The filter and search work together.</p>
+
+<p><strong>Pagination:</strong> List pages display 50 items per page. Use the page controls at the bottom to navigate between pages.</p>
+
+<p><strong>CSV Export:</strong> The PMS Schedules list page includes a "CSV Export" button for downloading schedule data as a spreadsheet file.</p>
+
+<p><strong>Print:</strong> The PMS Schedules page includes a "Print" button that formats the table for browser printing (landscape orientation).</p>
+
+<h3>3.5 Logout Procedure</h3>
+
+<ol>
+    <li>Click the <strong>"Logout"</strong> button in the sidebar (Account section).</li>
+    <li>A confirmation dialog appears: <em>"Are you sure you want to log out?"</em></li>
+    <li>Click <strong>OK</strong> to confirm.</li>
+    <li>A full-screen overlay appears with a spinning favicon and "Logging out..." message.</li>
+    <li>After a brief delay, you are redirected to the login page.</li>
+</ol>
+
+<h3>3.6 Keyboard Shortcuts</h3>
+<table>
+<thead><tr><th>Action</th><th>How</th></tr></thead>
+<tbody>
+<tr><td>Navigate back</td><td>Alt + ← (browser back) or the ← top bar button</td></tr>
+<tr><td>Submit form</td><td>Enter key on any input field</td></tr>
+<tr><td>Cancel / close</td><td>Escape key on modal dialogs</td></tr>
+<tr><td>Search</td><td>Click into any search box and start typing</td></tr>
+</tbody>
+</table>
+
+<h3>6.7 Browser Support</h3>
+<p>The system is tested and supported on:</p>
+<ul>
+    <li><strong>Google Chrome</strong> (recommended — latest 2 major versions)</li>
+    <li><strong>Mozilla Firefox</strong> (latest 2 major versions)</li>
+    <li><strong>Microsoft Edge</strong> (Chromium-based, latest 2 major versions)</li>
+</ul>
+<p>Mobile browsers are supported but the experience is optimized for desktop and tablet use.</p>

@@ -1,0 +1,146 @@
+<h1 id="vol2">Volume 2 — Fleet Asset Management</h1>
+
+<h2 id="ch4">Chapter 4: Truck Registration &amp; Documentation</h2>
+
+<h3>4.1 Overview</h3>
+
+<p>Every truck in the fleet must be registered in the system with complete Certificate of Registration (CR) documentation. Proper registration ensures that all PM schedules are auto-generated, service history is tracked per vehicle, and regulatory compliance documents are accessible at all times.</p>
+
+<h3>4.2 Required Information for Truck Registration</h3>
+
+<table>
+<thead>
+<tr><th>Field</th><th>Required</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td>Unit Number</td><td><strong>Yes</strong></td><td>Internal fleet unit number (e.g., UNIT-001)</td></tr>
+<tr><td>Plate Number</td><td><strong>Yes</strong></td><td>Government-issued license plate</td></tr>
+<tr><td>Make</td><td><strong>Yes</strong></td><td>Manufacturer (e.g., Isuzu, Hino, Mitsubishi)</td></tr>
+<tr><td>Model</td><td><strong>Yes</strong></td><td>Model name/number (e.g., Giga FVZ, Forward)</td></tr>
+<tr><td>Year</td><td><strong>Yes</strong></td><td>Year of manufacture</td></tr>
+<tr><td>Chassis Number</td><td>No</td><td>VIN / Frame serial number</td></tr>
+<tr><td>Engine Number</td><td>No</td><td>Engine serial number</td></tr>
+<tr><td>Tank Capacity</td><td>No</td><td>Capacity in liters (for fuel tanker trucks)</td></tr>
+<tr><td>Fuel Type</td><td>No</td><td>Diesel, Gasoline, etc.</td></tr>
+</tbody>
+</table>
+
+<h3>4.3 Certificate of Registration Fields</h3>
+
+<p>The following CR fields should be completed from the official LTO Certificate of Registration:</p>
+
+<table>
+<thead>
+<tr><th>Field</th><th>Source Document</th></tr>
+</thead>
+<tbody>
+<tr><td>MV File Number</td><td>LTO MV File</td></tr>
+<tr><td>Certificate of Registration (CR) Number</td><td>LTO CR</td></tr>
+<tr><td>Official Receipt (OR) Number</td><td>LTO OR</td></tr>
+<tr><td>Date of Registration</td><td>LTO CR</td></tr>
+<tr><td>Date Expire</td><td>LTO CR</td></tr>
+<tr><td>Make</td><td>LTO CR</td></tr>
+<tr><td>Series/Body Type</td><td>LTO CR</td></tr>
+<tr><td>Year Model</td><td>LTO CR</td></tr>
+<tr><td>Engine Number</td><td>LTO CR (verify against engine block)</td></tr>
+<tr><td>Chassis Number</td><td>LTO CR (verify against frame stamp)</td></tr>
+<tr><td>Piston Displacement (cc)</td><td>LTO CR</td></tr>
+<tr><td>Gross Vehicle Weight (GVW)</td><td>LTO CR</td></tr>
+<tr><td>Net Capacity</td><td>LTO CR</td></tr>
+<tr><td>Shipping Weight</td><td>LTO CR</td></tr>
+<tr><td>Net Weight</td><td>LTO CR</td></tr>
+<tr><td>LTO Registered Address</td><td>LTO CR</td></tr>
+<tr><td>LTO Registered Owner</td><td>LTO CR</td></tr>
+</tbody>
+</table>
+
+<h3>4.4 Registering a New Truck</h3>
+
+<p><strong>Responsible Role:</strong> Admin or Super Admin</p>
+
+<ol>
+    <li>Navigate to <strong>Sidebar → Trucks</strong>.</li>
+    <li>Click the <strong>"Add Truck"</strong> button.</li>
+    <li>Complete all required fields (marked with an asterisk). Fill in optional fields where data is available.</li>
+    <li>Scan and attach CR documents if applicable.</li>
+    <li>Set the initial <strong>Status</strong> to <strong>"Active"</strong> if the truck is operational.</li>
+    <li>Enter the current <strong>Mileage (km)</strong> and <strong>Engine Hours</strong> from the truck's odometer and hour meter.</li>
+    <li>Click <strong>"Save"</strong>.</li>
+    <li><strong>Important:</strong> The system automatically generates 154 PM schedules for the new truck based on the standard task templates. This process runs in the background after saving.</li>
+    <li>Verify the PM schedules were created by navigating to <strong>Sidebar → PMS Schedules</strong> and filtering by the new truck.</li>
+</ol>
+
+<div class="info-note"><strong>Note on Mileage and Engine Hours:</strong> Accurate initial values are critical. Every PM schedule's "next due" calculation starts from these baseline readings. If the truck has existing service records, enter the last-known PM completion data into the respective PM schedule records after creation.</div>
+
+<h3>4.5 Editing a Truck Record</h3>
+
+<ol>
+    <li>Navigate to <strong>Sidebar → Trucks</strong>.</li>
+    <li>Click the truck you wish to edit (opens the Detail page).</li>
+    <li>Click the <strong>"Edit"</strong> button.</li>
+    <li>Update the desired fields. Note: Changing mileage or engine hours here will affect all PM schedule due-date calculations.</li>
+    <li>Click <strong>"Save"</strong>.</li>
+</ol>
+
+<h3>4.6 Truck Detail Page Layout</h3>
+
+<p>The truck detail page is organized into four sections displayed in a two-column layout:</p>
+
+<table>
+<thead><tr><th>Section</th><th>Content</th></tr></thead>
+<tbody>
+<tr><td><strong>Left Top:</strong> Truck Details</td><td>Unit number, plate, make, model, year, chassis/engine numbers, current mileage, engine hours, status, fuel type, tank capacity</td></tr>
+<tr><td><strong>Right Top:</strong> Certificate of Registration</td><td>All 17 CR fields from the LTO registration document</td></tr>
+<tr><td><strong>Left Bottom:</strong> PM Schedule</td><td>All PM items for this truck with colored status indicators</td></tr>
+<tr><td><strong>Right Bottom:</strong> Job Orders &amp; Service History</td><td>Recent JOs and service log entries with links to full ledger</td></tr>
+</tbody>
+</table>
+
+<div class="page-break"></div>
+
+<h2 id="ch5">Chapter 5: Fleet Status Management</h2>
+
+<h3>5.1 Truck Status Definitions</h3>
+
+<table>
+<thead><tr><th>Status</th><th>Definition</th><th>Implications</th></tr></thead>
+<tbody>
+<tr><td><strong>Active</strong></td><td>Truck is fully operational and available for dispatch</td><td>PM schedules are active. Job Orders can be created.</td></tr>
+<tr><td><strong>Down</strong></td><td>Truck is currently out of service due to breakdown or major repair</td><td>Cannot be dispatched. PM schedules remain active (mechanical issues may be PM-related).</td></tr>
+<tr><td><strong>Retired</strong></td><td>Truck has been permanently decommissioned, sold, or scrapped</td><td>No new Job Orders can be created. PM schedules are frozen but retained for historical reference.</td></tr>
+</tbody>
+</table>
+
+<h3>5.2 Changing Truck Status</h3>
+
+<ol>
+    <li>Navigate to the truck's Detail page.</li>
+    <li>Click <strong>"Edit"</strong>.</li>
+    <li>Change the <strong>Status</strong> field.</li>
+    <li>Optionally add a note in the description field explaining the reason for the status change.</li>
+    <li>Click <strong>"Save"</strong>.</li>
+</ol>
+
+<div class="tip-note"><strong>Best Practice:</strong> When marking a truck as "Down," create a corresponding Job Order to track the repair work causing the downtime. This ensures the downtime is documented and can be analyzed in KPI reports.</div>
+
+<h3>5.3 Viewing Fleet Summary</h3>
+
+<p>The Dashboard shows a quick summary of fleet status:</p>
+<ul>
+    <li><strong>Active Trucks:</strong> Total count of trucks with Active status.</li>
+    <li><strong>Overdue / Due PM:</strong> List of trucks with PM items that are due or overdue.</li>
+    <li><strong>Open Job Orders:</strong> Count of all JOs currently Open or In Progress.</li>
+</ul>
+
+<p>For a full fleet overview, navigate to <strong>Sidebar → Trucks</strong> to see all trucks in a sortable, searchable table.</p>
+
+<h3>5.4 Syncing New PM Templates to Existing Trucks</h3>
+
+<p>If new PM task templates are added to the system after trucks have already been registered, the new templates must be synced to existing trucks:</p>
+
+<ol>
+    <li>Navigate to <strong>Sidebar → PMS Schedules</strong>.</li>
+    <li>Click the <strong>"Sync All Trucks"</strong> button.</li>
+    <li>The system will create any missing PM schedule records for all trucks.</li>
+    <li>To sync a single truck: open the truck's Detail page and click the <strong>Refresh icon</strong> in the PM Schedule section.</li>
+</ol>

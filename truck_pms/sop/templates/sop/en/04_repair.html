@@ -1,0 +1,338 @@
+<h1 id="vol4">Volume 4 — Repair Operations</h1>
+
+<h2 id="ch10">Chapter 10: Initial Assessment &amp; Triage</h2>
+
+<h3>10.1 Receiving a Truck for Repair</h3>
+
+<p>When a truck arrives at the workshop with a reported problem, follow this standard intake procedure:</p>
+
+<ol>
+    <li><strong>Driver Report:</strong> Interview the driver or the person reporting the issue. Ask the five key questions:
+        <ul>
+            <li>What is the problem? (be specific — what does it do, or not do?)</li>
+            <li>When did it start? (sudden or gradual onset?)</li>
+            <li>Under what conditions does it happen? (speed, load, temperature, gear, turning?)</li>
+            <li>Are there any warning lights? (which ones, when did they come on?)</li>
+            <li>Any recent repairs or changes? (what was touched last?)</li>
+        </ul>
+    </li>
+    <li><strong>Visual Walk-Around:</strong> Walk around the truck and look for obvious signs: fluid leaks (color, location, amount), damaged components, loose or hanging parts, abnormal tire wear, broken lights, damaged hoses.</li>
+    <li><strong>Fluid Check:</strong> Check all fluid levels and conditions — engine oil, coolant, transmission oil, power steering, brake fluid (if applicable), windshield washer. Note any fluid that is low, contaminated, or has an unusual odor.</li>
+    <li><strong>Functional Check:</strong> With the engine running (if safe), verify: warning lights on instrument panel, unusual noises (knocking, squealing, hissing, grinding), unusual smells (burning oil, fuel, rubber, electrical), brake function (pedal feel, air pressure buildup and leak-down rate), steering response (free play, pulling).</li>
+    <li><strong>Diagnostic Scan:</strong> Connect a diagnostic scan tool (if available) to check for stored fault codes. Record all active and historic codes.</li>
+    <li><strong>Triage Decision:</strong> Based on the initial assessment, classify the repair:
+        <ul>
+            <li><strong>Emergency / Safety-Critical:</strong> Truck cannot be operated safely. Must be repaired before any movement. Examples: brake failure, steering failure, significant fuel/oil leak, tire blowout, no lights at night.</li>
+            <li><strong>Routine:</strong> Truck can operate but should be scheduled for repair within the week. Examples: minor oil leak, worn belt, one burned-out marker light, small air leak.</li>
+            <li><strong>Deferred:</strong> Issue does not affect safety or operation but should be monitored and addressed at the next scheduled PM. Examples: minor cosmetic damage, slight oil seepage from gasket, worn but not critical tire.</li>
+        </ul>
+    </li>
+</ol>
+
+<h3>10.2 Repair vs. Replace Decision</h3>
+
+<p>For any failed or worn component, evaluate the following factors before deciding whether to repair or replace:</p>
+
+<table>
+<thead><tr><th>Factor</th><th>Favor Repair</th><th>Favor Replace</th></tr></thead>
+<tbody>
+<tr><td>Cost</td><td>Repair cost &lt; 50% of replacement cost</td><td>Repair cost &ge; 50% of replacement cost</td></tr>
+<tr><td>Age / Wear</td><td>Component is relatively new (&lt;50% of expected life used)</td><td>Component is near or past its expected service life</td></tr>
+<tr><td>Availability</td><td>Replacement part not immediately available but repair is possible</td><td>Replacement part is in stock or available quickly</td></tr>
+<tr><td>Reliability</td><td>Repair restores component to like-new condition (e.g., rebuild)</td><td>Repair is a temporary fix; failure likely to recur soon</td></tr>
+<tr><td>Labor</td><td>Repair labor is significantly less than replacement labor</td><td>Replacement requires similar or less labor than disassembly/repair</td></tr>
+<tr><td>Safety</td><td>Repair meets or exceeds safety standards</td><td>Repaired component does not meet original safety margin</td></tr>
+<tr><td>Warranty</td><td>Repair is covered under existing warranty</td><td>New part carries fresh warranty</td></tr>
+</tbody>
+</table>
+
+<div class="info-note"><strong>Rule of thumb:</strong> When in doubt on safety-critical components (brakes, steering, suspension, tires, wheel bearings), replace rather than repair. The cost difference is small compared to the consequences of a field failure.</div>
+
+<h3>10.3 Creating a Job Order from Assessment</h3>
+
+<ol>
+    <li>Navigate to <strong>Sidebar → Job Orders → New Job Order</strong>.</li>
+    <li>Select the <strong>Truck</strong> from the dropdown.</li>
+    <li>Enter a descriptive <strong>Title</strong> — be specific about the issue. Examples:
+        <ul>
+            <li>❌ "Truck problem" — too vague.</li>
+            <li>✅ "Engine overheating — coolant leak at upper radiator hose" — actionable.</li>
+            <li>✅ "Brake air leak — driver-side rear chamber hissing at 100 psi" — specific.</li>
+        </ul>
+    </li>
+    <li>Select the <strong>Type:</strong> PM / Repair / Inspection / Contractor Service.</li>
+    <li>Set <strong>Priority:</strong> Low / Medium / High / Emergency. Use Emergency only for safety-critical issues that require immediate attention (truck is down and blocking operations).</li>
+    <li><strong>Assign To:</strong> Select the mechanic most qualified for the job (by specialization if possible). For contractor service, select the <strong>Contractor</strong> instead of an individual mechanic.</li>
+    <li>Click <strong>"Save"</strong>.</li>
+    <li>On the Job Order detail page, add <strong>Line Items</strong> for each specific task required (see Chapter 11 for line item details).</li>
+</ol>
+
+<div class="page-break"></div>
+
+<h2 id="ch11">Chapter 11: Job Order Creation &amp; Assignment</h2>
+
+<h3>11.1 Understanding the 3-State Workflow</h3>
+
+<p>Every Job Order passes through three states:</p>
+
+<p><strong>OPEN ➔ IN PROGRESS ➔ CLOSED</strong></p>
+
+<table>
+<thead><tr><th>State</th><th>Meaning</th><th>Who Can Change It</th><th>Actions Permitted</th></tr></thead>
+<tbody>
+<tr><td><strong>OPEN</strong></td><td>JO has been created but no work has started. Equivalent to "pending assignment."</td><td>Admin/Staff</td><td>Edit, add line items, assign mechanic, change priority, delete (if no work done). Mechanic can view but cannot change status.</td></tr>
+<tr><td><strong>IN PROGRESS</strong></td><td>Work is actively being performed. Mechanic has accepted the assignment.</td><td>Mechanic (changes line item status), Admin/Staff (all actions)</td><td>Line items can be marked as Done, In Progress, or Not Applicable. Parts can be added. JO can be edited.</td></tr>
+<tr><td><strong>CLOSED</strong></td><td>All work is complete. JO is finalized and cannot be changed.</td><td>Admin/Staff (initiates close)</td><td>Read-only. Service log entries created automatically. PM schedules updated automatically.</td></tr>
+</tbody>
+</table>
+
+<h3>11.2 Creating a Job Order — Step by Step</h3>
+
+<ol>
+    <li>Navigate to <strong>Sidebar → Job Orders</strong>.</li>
+    <li>Click <strong>"New Job Order"</strong>.</li>
+    <li>Complete the <strong>Job Order Form:</strong>
+        <ul>
+            <li><strong>Truck:</strong> Select from the fleet list. The search bar filters by plate number or unit number.</li>
+            <li><strong>Title:</strong> Brief but descriptive (max 200 characters). Begin with a verb: "Replace," "Inspect," "Repair," "Adjust," "Investigate."</li>
+            <li><strong>Description:</strong> Optional. Add more context, driver's complaint, troubleshooting notes.</li>
+            <li><strong>Job Type:</strong> One of: PM, Repair, Inspection, Contractor Service. The type affects reporting but does not restrict the line items you can add.</li>
+            <li><strong>Priority:</strong> Defaults to Medium. Use High or Emergency judiciously — if everything is high priority, nothing is.</li>
+            <li><strong>Assigned To:</strong> For PM/Repair/Inspection: select a specific mechanic. For Contractor Service: select the contractor company.</li>
+            <li><strong>PMS Line Items (optional):</strong> If this JO was triggered by one or more PM schedule items being due, you can select them from the multi-select list. This links the JO to those specific PM schedules so they update when the JO closes.</li>
+        </ul>
+    </li>
+    <li>Click <strong>"Save"</strong>.</li>
+    <li>You are redirected to the <strong>Job Order Detail Page</strong>. The JO now has an OPEN status.</li>
+</ol>
+
+<h3>11.3 Assigning Work to a Mechanic</h3>
+
+<p>Work is assigned during JO creation (by selecting the mechanic). To reassign after creation:</p>
+
+<ol>
+    <li>Open the Job Order detail page.</li>
+    <li>Click <strong>"Edit"</strong>.</li>
+    <li>Change the <strong>Assigned To</strong> field to the new mechanic.</li>
+    <li>Click <strong>"Save"</strong>.</li>
+    <li>The new mechanic will see the JO in their <strong>My Assignments</strong> list.</li>
+    <li><strong>Communication:</strong> After assigning or reassigning, inform the mechanic verbally or through the communication channel so they know to check the system. The system does not send automatic notifications.</li>
+</ol>
+
+<h3>11.4 Adding Line Items (Tasks) to a Job Order</h3>
+
+<p>Line items are the individual tasks that make up the job. A single JO can have one or many line items.</p>
+
+<ol>
+    <li>From the JO Detail page, click the <strong>"Add"</strong> button in the Line Items section.</li>
+    <li>Fill in each field:
+        <ul>
+            <li><strong>Task Template:</strong> Optional. If this task corresponds to an existing PM template, select it. This links the line item to the PM schedule for auto-update on close.</li>
+            <li><strong>Category:</strong> Optional. The PM category this task falls under (used for reporting).</li>
+            <li><strong>Description:</strong> What needs to be done. Be specific — include quantities, locations, or special instructions. Example: "Replace upper radiator hose — Cummins ISX engine, driver side" rather than just "Fix hose."</li>
+            <li><strong>Estimated Hours:</strong> How long you expect this task to take. Used for workload planning and KPI comparison.</li>
+            <li><strong>Notes:</strong> Special instructions, safety precautions, or part numbers.</li>
+        </ul>
+    </li>
+    <li>Click <strong>"Add"</strong>.</li>
+    <li>Repeat for each task needed.</li>
+    <li>Line items can be reordered or deleted (if not yet started) using the icons in the line item list.</li>
+</ol>
+
+<div class="page-break"></div>
+
+<h2 id="ch12">Chapter 12: Work Execution &amp; Parts Tracking</h2>
+
+<h3>12.1 Mechanic Workflow — Starting a Job</h3>
+
+<ol>
+    <li>Log into the system.</li>
+    <li>Navigate to <strong>Sidebar → My Assignments</strong>.</li>
+    <li>You will see all Job Orders assigned to you, sorted by priority (Emergency → High → Medium → Low) and then by creation date (oldest first).</li>
+    <li>Click the JO title to open the detail page and see all line items.</li>
+    <li>Review the line items and any supporting information (notes, attached images if applicable).</li>
+    <li>Set the JO status to <strong>"In Progress"</strong> by clicking the status button at the top of the page. This signals to the admin/Staff that work has begun.</li>
+</ol>
+
+<h3>12.2 Completing Line Items</h3>
+
+<ol>
+    <li>As you complete each task, update its status in the system.</li>
+    <li>For each line item, click the <strong>✅ (green checkmark)</strong> icon to mark it as <strong>"Done."</strong></li>
+    <li>A small form opens where you must enter:
+        <ul>
+            <li><strong>Actual Hours:</strong> The real time spent on this task. Be honest — this data feeds the KPI reports and helps with future estimating. If a job took longer than estimated, note why in the notes field.</li>
+            <li><strong>Notes:</strong> Any observations, challenges, or things to watch for next time. This is valuable institutional knowledge for the next mechanic who works on this truck.</li>
+        </ul>
+    </li>
+    <li>Click <strong>"Save."</strong></li>
+    <li>If you are unable to complete a task, you may set it to <strong>"Not Applicable"</strong> (if circumstances changed) or leave it <strong>"Open"</strong> (if the task is waiting for parts or clarification).</li>
+</ol>
+
+<h3>12.3 Recording Parts Used</h3>
+
+<p>Parts tracking is essential for cost analysis. Every part used on a Job Order must be recorded in the system.</p>
+
+<ol>
+    <li>On the JO detail page, find the line item that used the part.</li>
+    <li>Click the <strong>📦 (box) icon</strong> next to that line item to expand the parts section.</li>
+    <li>Click <strong>"Add Part"</strong>.</li>
+    <li>Complete the form:
+        <ul>
+            <li><strong>Part Name:</strong> Accurate description. Use the manufacturer's part name and number if available. Example: "Oil Filter — Fleetguard LF16001" (not just "oil filter").</li>
+            <li><strong>Quantity:</strong> Number of units used. If a part is sold in a kit, record "1" for the kit.</li>
+            <li><strong>Unit Cost:</strong> The cost per unit in the local currency. <strong>Important:</strong> Be accurate — these costs feed KPI reports, cost trend analysis, and predictive analytics. If the exact cost is unknown at the time of adding, record the best estimate and update when the invoice arrives.</li>
+        </ul>
+    </li>
+    <li>Click <strong>"Save."</strong></li>
+    <li>The part appears in the expanded section with the calculated total cost (quantity × unit cost).</li>
+    <li>To add more parts, click <strong>"Add Part"</strong> again.</li>
+    <li>To edit or delete a part, click the pencil or trash icon next to the part entry.</li>
+</ol>
+
+<div class="tip-note"><strong>Best Practice:</strong> Record parts as you install them — do not wait until the end of the job. This prevents forgotten parts and keeps the cost running total visible to the admin. Include the source of the part if relevant (e.g., "from parts stock" vs. "purchased at AutoSupply Co.").</div>
+
+<h3>12.4 Multi-Mechanic / Team Work</h3>
+
+<p>If a Job Order requires multiple mechanics (e.g., one mechanic on brakes, another on tires), the current system structure assigns the JO to one primary mechanic. Coordination options:</p>
+
+<ul>
+    <li><strong>Option A:</strong> Create separate JOs for each mechanic's portion, cross-referenced in the description.</li>
+    <li><strong>Option B:</strong> Assign the JO to the lead mechanic. They update the line items as the team completes them. Each line item can record the actual hours of the person who did that task in the notes field.</li>
+</ul>
+
+<p>The admin/staff supervisor should coordinate the work assignment to avoid confusion.</p>
+
+<div class="page-break"></div>
+
+<h2 id="ch13">Chapter 13: Quality Control &amp; Pre-Return Inspection</h2>
+
+<h3>13.1 Purpose of Quality Control</h3>
+
+<p>Before any truck is returned to service after a repair or PM, a quality control inspection must be performed. This ensures:</p>
+<ul>
+    <li>All work was completed correctly and safely.</li>
+    <li>No tools, parts, or materials were left in or on the truck.</li>
+    <li>All fasteners are properly tightened.</li>
+    <li>All fluids are at correct levels.</li>
+    <li>No new issues were introduced during the repair.</li>
+    <li>The truck is safe to operate on public roads.</li>
+</ul>
+
+<h3>13.2 QC Inspection Checklist</h3>
+
+<p><strong>Responsible Role:</strong> Lead Mechanic or Supervisor (not the same person who performed the work)</p>
+
+<ol>
+    <li><strong>Walk-around inspection:</strong> Walk completely around the truck. Look for: tools or rags left on fenders, steps, or cab roof, loose parts or fasteners, fluid leaks (any new drips from areas that were worked on), component alignment (hoses, wiring, brackets not rubbing or contacting), all access panels and covers reinstalled and secured.</li>
+    <li><strong>Under-hood / Under-truck check:</strong> Verify all connections are tight (hose clamps, electrical connectors, bolts). Check that all fluid caps/dipsticks are installed and secure. Remove any rags, gloves, or trash left in the engine compartment or cab. Confirm that all removed guards and shields are reinstalled.</li>
+    <li><strong>Functional test:</strong> Start engine and let idle for 2-3 minutes. Check for: unusual noises from worked-on areas, warning lights (all should be off after initial bulb check), abnormal smoke from exhaust, fluid leaks at connections that were loosened. Test the systems that were repaired: brake application and release (if brakes were touched), steering lock-to-lock (if steering components were touched), light operation (if electrical was touched), horn, windshield wipers.</li>
+    <li><strong>Road test (if applicable):</strong> Drive the truck in a safe area. Check for: proper operation of the repaired system (e.g., brakes stop straight, transmission shifts smoothly, engine runs without missing), abnormal noises, vibrations, or smells, gauges reading normally (temperature, oil pressure, air pressure).</li>
+    <li><strong>Documentation check:</strong> Verify all line items are marked Done (or Not Applicable). Verify all parts used have been entered, with correct quantities and costs. Verify the actual hours entered are reasonable and match the work performed. Ensure the Job Order notes field contains any important observations or follow-up recommendations.</li>
+</ol>
+
+<div class="danger-note"><strong>⚠ Critical:</strong> If the QC inspection reveals any deficiency, the truck must NOT be returned to service until the issue is corrected. The mechanic who performed the work must re-address the deficiency and the QC must be repeated. No exceptions — even for "minor" issues.</div>
+
+<h3>13.3 Common QC Failures &amp; How to Prevent Them</h3>
+
+<table>
+<thead><tr><th>QC Failure</th><th>Root Cause</th><th>Prevention</th></tr></thead>
+<tbody>
+<tr><td>Fluid leak after oil change</td><td>Drain plug not torqued, filter not tightened, old gasket not replaced</td><td>Always replace drain plug gasket. Hand-tighten filter + 3/4 turn. Run engine and inspect before returning to service.</td></tr>
+<tr><td>Wheel lug nuts loose after 50 km</td><td>Lugs not re-torqued after initial tightening</td><td>Always re-torque wheel lug nuts after 50 km of driving. Mark with torque seal to verify visually.</td></tr>
+<tr><td>Electrical connector left unplugged</td><td>Haste, distraction during reassembly</td><td>Use a systematic approach: disconnect ONE connector at a time during diagnosis, reconnect immediately after testing. Use the "connect all connectors" check as the last step before closing the hood.</td></tr>
+<tr><td>Wiring or hose routed incorrectly (chafing risk)</td><td>Reassembly without reference photos</td><td>Take a photo before disassembly for complex routing. Always use zip ties to secure wiring away from moving parts and heat sources.</td></tr>
+<tr><td>Tools left in engine bay</td><td>No tool inventory check</td><td>Perform a tool count before and after each job. Use shadow boards (tool outlines) in the toolbox to see missing tools at a glance.</td></tr>
+</tbody>
+</table>
+
+<div class="page-break"></div>
+
+<h2 id="ch14">Chapter 14: Job Order Close-out &amp; Service Logging</h2>
+
+<h3>14.1 When to Close a Job Order</h3>
+
+<p>A Job Order should be closed only when <strong>all</strong> of the following are true:</p>
+
+<ol>
+    <li>All line items are marked Done or Not Applicable.</li>
+    <li>All parts used have been entered into the system.</li>
+    <li>All actual hours have been recorded for each line item.</li>
+    <li>QC inspection has been passed.</li>
+    <li>Road test (if needed) has been completed successfully.</li>
+    <li>The truck is ready to return to service.</li>
+</ol>
+
+<h3>14.2 Closing a Job Order — Step by Step</h3>
+
+<p><strong>Responsible Role:</strong> Admin, Staff, or Super Admin only (not the mechanic performing the work)</p>
+
+<ol>
+    <li>Open the Job Order detail page.</li>
+    <li>Review all line items and parts entries for completeness and accuracy.</li>
+    <li>Click the <strong>"Close Job Order"</strong> button.</li>
+    <li>A confirmation dialog appears explaining that closing is irreversible — read and confirm.</li>
+    <li>The close form opens showing:
+        <ul>
+            <li><strong>Current Mileage:</strong> Pre-filled from the truck's current odometer reading. Verify and adjust if needed (the truck may have been driven since the reading was last updated).</li>
+            <li><strong>Current Engine Hours:</strong> Pre-filled from the truck's current hour meter. Verify.</li>
+            <li><strong>Notes:</strong> Optional closing notes — summarize the work performed, any follow-up recommendations, or parts that need to be ordered for the next service.</li>
+        </ul>
+    </li>
+    <li>Click <strong>"Close Job Order"</strong> to finalize.</li>
+</ol>
+
+<h3>14.3 What Happens Automatically on Close</h3>
+
+<p>When a Job Order is closed, the system performs the following actions automatically:</p>
+
+<ol>
+    <li><strong>Status changes</strong> to CLOSED. The JO becomes read-only.</li>
+    <li><strong>Truck's mileage and engine hours</strong> are updated from the values entered on the close form.</li>
+    <li><strong>Any open line items</strong> are automatically marked as Done (with a note "Auto-completed on JO close").</li>
+    <li><strong>Service Log Entries</strong> are created in the immutable service ledger for:
+        <ul>
+            <li>Each line item that was completed.</li>
+            <li>The JO creation and close events.</li>
+        </ul>
+    </li>
+    <li><strong>PM Schedule update:</strong> Any line item that was linked to a PM template will update the corresponding PM schedule with:
+        <ul>
+            <li><code>last_completed_at</code> = close timestamp.</li>
+            <li><code>last_mileage_km</code> = mileage at close.</li>
+            <li><code>last_engine_hours</code> = hours at close.</li>
+            <li>The next due date is recalculated automatically.</li>
+        </ul>
+    </li>
+</ol>
+
+<h3>14.4 Service Ledger — Immutable Audit Trail</h3>
+
+<p>The Service Ledger is a permanent, unchangeable record of every action performed. It serves as:</p>
+<ul>
+    <li><strong>Legal record</strong> of maintenance performed on each truck.</li>
+    <li><strong>Audit trail</strong> for compliance with depot access requirements.</li>
+    <li><strong>Historical reference</strong> for recurring issues on a specific truck.</li>
+    <li><strong>Mechanic accountability</strong> — each entry is tied to the person who performed the work.</li>
+</ul>
+
+<p><strong>Accessing the Service Ledger:</strong></p>
+<ul>
+    <li><strong>Full Ledger:</strong> Sidebar → Service Ledger (Admin+). Shows all entries, filterable by truck and action type.</li>
+    <li><strong>Per-Truck Ledger:</strong> Open any truck detail page → Click "Full Ledger" button in the Service History section.</li>
+</ul>
+
+<div class="info-note"><strong>Important:</strong> The Service Ledger cannot be edited or deleted — not even by the Super Admin through the Django Admin interface. This immutability is a deliberate design feature to ensure the integrity of the maintenance record. If an error is discovered in a closed JO, a new JO must be created to correct it, and the original record remains as-is.</div>
+
+<h3>14.5 Reopening a Closed Job Order (Not Possible)</h3>
+
+<p>Once a Job Order is closed, it cannot be reopened. If additional work is needed on the same truck:</p>
+<ol>
+    <li>Create a <strong>new Job Order</strong> for the new work.</li>
+    <li>In the description, reference the original JO number: "Continuation of work from JO-2026-0042 — unresolved brake pull issue."</li>
+    <li>This maintains a clean audit trail and prevents data integrity issues.</li>
+</ol>
+
+<h3>14.6 Archived / Historical Job Orders</h3>
+
+<p>Closed Job Orders remain visible in the Job Orders list with a "Closed" status. Use the status filter to view only closed JOs when researching history. The system does not automatically archive or delete old JOs — data is retained indefinitely for historical reporting.</p>

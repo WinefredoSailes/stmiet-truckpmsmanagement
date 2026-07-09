@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>{% block title %}Truck PMS SOP Manual{% endblock %}</title>
+<style>
+{% block print_css %}
+/* === PAGE SETUP === */
+@page {
+    size: A4;
+    margin: 2cm 2.2cm 2.5cm 2.2cm;
+    @top-center {
+        content: element(header);
+        font-size: 8pt;
+        color: #666;
+        font-family: 'Segoe UI', Arial, sans-serif;
+    }
+    @bottom-center {
+        content: counter(page);
+        font-size: 8pt;
+        color: #666;
+        font-family: 'Segoe UI', Arial, sans-serif;
+    }
+    @bottom-left {
+        content: "Truck PMS & Servicing System — SOP Manual v1.0";
+        font-size: 7pt;
+        color: #999;
+        font-family: 'Segoe UI', Arial, sans-serif;
+    }
+}
+@page :first {
+    @top-center { content: none; }
+    @bottom-center { content: none; }
+    @bottom-left { content: none; }
+}
+@page toc {
+    @top-center { content: "Table of Contents"; }
+    @bottom-left { content: none; }
+}
+
+/* === RESET === */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 10pt; }
+body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    line-height: 1.55;
+    color: #1a1a1a;
+    counter-reset: h2-counter;
+}
+
+/* === COVER PAGE === */
+.cover-page {
+    page-break-after: always;
+    text-align: center;
+    padding-top: 6cm;
+}
+.cover-page .emblem { font-size: 48pt; color: #0d6efd; margin-bottom: 1.5cm; }
+.cover-page h1 {
+    font-size: 26pt;
+    font-weight: 700;
+    color: #0d6efd;
+    margin-bottom: 0.4cm;
+    letter-spacing: 1pt;
+}
+.cover-page .subtitle {
+    font-size: 14pt;
+    color: #495057;
+    margin-bottom: 2cm;
+    font-weight: 500;
+}
+.cover-page .meta {
+    font-size: 10pt;
+    color: #6c757d;
+    line-height: 2;
+}
+.cover-page .version {
+    margin-top: 3cm;
+    font-size: 11pt;
+    color: #0d6efd;
+    font-weight: 600;
+}
+.cover-page .confidential {
+    margin-top: 1cm;
+    font-size: 8pt;
+    color: #dc3545;
+    border: 1px solid #dc3545;
+    display: inline-block;
+    padding: 3pt 12pt;
+}
+.cover-divider { width: 60%; height: 2px; background: #0d6efd; margin: 0.8cm auto; }
+
+/* === TOC === */
+.toc-page { page: toc; page-break-after: always; }
+.toc-page h2 { font-size: 18pt; color: #0d6efd; border: none; margin-bottom: 0.8cm; }
+.toc-list { list-style: none; padding: 0; }
+.toc-list li { margin-bottom: 4pt; }
+.toc-list a { color: #1a1a1a; text-decoration: none; font-size: 10pt; display: flex; justify-content: space-between; }
+.toc-list a::after { content: target-counter(attr(href), page); color: #6c757d; }
+.toc-list .toc-l1 { font-weight: 600; margin-top: 8pt; font-size: 11pt; }
+.toc-list .toc-l2 { padding-left: 20pt; font-weight: 400; }
+.toc-list .toc-l3 { padding-left: 38pt; font-weight: 400; font-size: 9pt; color: #495057; }
+
+/* === HEADINGS === */
+h1 {
+    font-size: 18pt;
+    color: #0d6efd;
+    margin-top: 1.2cm;
+    margin-bottom: 0.4cm;
+    border-bottom: 2px solid #0d6efd;
+    padding-bottom: 4pt;
+    page-break-before: always;
+    page-break-after: avoid;
+}
+h1:first-of-type { page-break-before: avoid; }
+h2 {
+    font-size: 14pt;
+    color: #212529;
+    margin-top: 0.8cm;
+    margin-bottom: 0.3cm;
+    page-break-after: avoid;
+    counter-increment: h2-counter;
+}
+h2::before { content: counter(h2-counter) ". "; color: #0d6efd; }
+h3 {
+    font-size: 12pt;
+    color: #343a40;
+    margin-top: 0.5cm;
+    margin-bottom: 0.2cm;
+    page-break-after: avoid;
+}
+h4 {
+    font-size: 10.5pt;
+    color: #495057;
+    margin-top: 0.3cm;
+    margin-bottom: 0.15cm;
+}
+
+/* === PROCEDURE BLOCKS === */
+.procedure {
+    border: 1px solid #dee2e6;
+    border-radius: 4pt;
+    padding: 14pt 16pt;
+    margin: 0.4cm 0;
+    page-break-inside: avoid;
+    background: #f8f9fa;
+}
+.procedure h4 {
+    font-size: 12pt;
+    color: #0d6efd;
+    margin-top: 0;
+    margin-bottom: 8pt;
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 4pt;
+}
+.proc-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 4pt 16pt; font-size: 9pt; margin-bottom: 8pt; }
+.proc-meta strong { color: #495057; }
+.steps { margin: 8pt 0; padding-left: 20pt; }
+.steps li { margin-bottom: 4pt; }
+.steps li::marker { font-weight: 600; color: #0d6efd; }
+.criteria { background: #e8f5e9; border-left: 3px solid #28a745; padding: 8pt 12pt; margin: 6pt 0; font-size: 9.5pt; }
+.danger-note { background: #fff3f3; border-left: 3px solid #dc3545; padding: 8pt 12pt; margin: 6pt 0; font-size: 9.5pt; }
+.info-note { background: #e7f3ff; border-left: 3px solid #0d6efd; padding: 8pt 12pt; margin: 6pt 0; font-size: 9.5pt; }
+.tip-note { background: #fffbe6; border-left: 3px solid #ffc107; padding: 8pt 12pt; margin: 6pt 0; font-size: 9.5pt; }
+
+/* === TABLES === */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0.3cm 0;
+    font-size: 9pt;
+    page-break-inside: auto;
+}
+thead { display: table-header-group; }
+tr { page-break-inside: avoid; }
+th, td { border: 1px solid #dee2e6; padding: 5pt 8pt; text-align: left; }
+th { background: #e9ecef; font-weight: 600; color: #212529; }
+tr:nth-child(even) td { background: #f8f9fa; }
+
+/* === PARAGRAPHS & LISTS === */
+p { margin: 0.15cm 0; text-align: justify; }
+ul, ol { margin: 0.15cm 0; padding-left: 22pt; }
+li { margin-bottom: 2pt; }
+
+/* === APPENDIX CHECKLIST === */
+.checklist-table td:first-child { width: 50%; }
+.checklist-table td:nth-child(2) { width: 15%; text-align: center; }
+.checklist-table td:nth-child(3) { width: 15%; text-align: center; }
+.checklist-table td:nth-child(4) { width: 20%; text-align: center; }
+.category-header td { background: #0d6efd !important; color: #fff; font-weight: 700; font-size: 10pt; }
+
+/* === PRINT UTILITIES === */
+.page-break { page-break-before: always; }
+.no-break { page-break-inside: avoid; }
+.small-text { font-size: 9pt; color: #6c757d; }
+.signoff-line { border-top: 1px solid #adb5bd; width: 50%; margin-top: 0.5cm; padding-top: 4pt; font-size: 9pt; }
+{% endblock %}
+</style>
+</head>
+<body>
+{% block content %}{% endblock %}
+</body>
+</html>
