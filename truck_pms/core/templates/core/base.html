@@ -10,7 +10,6 @@
     {% load static %}
     <link rel="icon" type="image/png" href="{% static 'favicon-truck-pms.png' %}">
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
-    <style>#page-loader{position:fixed;top:0;left:0;width:100%;height:3px;z-index:9999;background:#0d6efd;animation:loader-progress 2s ease-in-out infinite;transform-origin:left}@keyframes loader-progress{0%{transform:scaleX(0)}50%{transform:scaleX(.5)}100%{transform:scaleX(1)}}#page-loader.done{animation:none;transform:scaleX(1);opacity:0;transition:opacity .3s}#logout-loader{position:fixed;inset:0;z-index:99999;background:rgba(26,32,35,.85);display:none;align-items:center;justify-content:center;flex-direction:column}#logout-loader img{width:64px;height:64px;animation:spin 1s linear infinite}#logout-loader span{color:#fff;margin-top:1rem;font-size:.9rem}@keyframes spin{to{transform:rotate(360deg)}}</style>
     {% block extra_head %}{% endblock %}
 </head>
 <body>
@@ -19,93 +18,114 @@
     <img src="{% static 'favicon-truck-pms.png' %}" alt="">
     <span>Logging out...</span>
 </div>
-    <nav class="sidebar d-none d-md-block">
-        <div class="sidebar-brand">
-            <i class="bi bi-truck-front-fill"></i>
-            <span>Truck PMS</span>
-        </div>
-        <div class="sidebar-sticky">
-            <ul class="nav flex-column">
-                <li class="sidebar-heading">Main Menu</li>
-                {% for item in sidebar_menu %}
-                <li class="nav-item">
-                    <a class="nav-link {% if request.path == item.url %}active{% endif %}"
-                       href="{% url item.url %}">
-                        <i class="bi {{ item.icon }}"></i>
-                        {{ item.label }}
-                    </a>
-                </li>
-                {% endfor %}
-                <li class="sidebar-heading mt-2">Account</li>
-                <li class="nav-item">
-                    <form method="post" action="{% url 'accounts:logout' %}" style="display:inline" onsubmit="return confirm('Are you sure you want to log out?') && (document.getElementById('logout-loader').style.display='flex',true)">
-                        {% csrf_token %}
-                        <button type="submit" class="nav-link border-0 bg-transparent w-100 text-start">
-                            <i class="bi bi-box-arrow-left"></i> Logout
-                        </button>
-                    </form>
-                </li>
-            </ul>
-        </div>
-    </nav>
 
-    <div class="main-content">
-        <div class="topbar">
-            <div>
-                <button class="btn btn-sm btn-outline-secondary d-md-none me-2"
-                        type="button" data-bs-toggle="collapse" data-bs-target="#mobileSidebar">
-                    <i class="bi bi-list"></i>
+<nav class="sidebar" id="mainSidebar">
+    <div class="sidebar-brand">
+        <i class="bi bi-truck-front-fill"></i>
+        <span>Truck PMS</span>
+    </div>
+    <ul class="nav flex-column">
+        <li class="sidebar-heading">Main Menu</li>
+        {% for item in sidebar_menu %}
+        <li class="nav-item">
+            <a class="nav-link {% if request.path == item.url %}active{% endif %}"
+               href="{% url item.url %}">
+                <i class="bi {{ item.icon }}"></i>
+                <span>{{ item.label }}</span>
+            </a>
+        </li>
+        {% endfor %}
+        <li class="sidebar-heading mt-2">Account</li>
+        <li class="nav-item">
+            <form method="post" action="{% url 'accounts:logout' %}"
+                  class="logout-form"
+                  onsubmit="return confirm('Are you sure you want to log out?') && (document.getElementById('logout-loader').style.display='flex',true)">
+                {% csrf_token %}
+                <button type="submit" class="nav-link border-0 bg-transparent w-100 text-start">
+                    <i class="bi bi-box-arrow-left"></i>
+                    <span>Logout</span>
                 </button>
-                {% block back_link %}{% endblock %}
-                <span class="fw-semibold">{% block page_title %}Dashboard{% endblock %}</span>
-            </div>
-            <div class="d-flex align-items-center gap-2">
-                <span class="text-muted small">
-                    <i class="bi bi-person-circle me-1"></i>
-                    {{ request.user.get_full_name|default:request.user.username }}
-                    <span class="badge bg-secondary ms-1">{{ request.user.get_role_display }}</span>
-                </span>
-            </div>
+            </form>
+        </li>
+    </ul>
+</nav>
+
+<button class="sidebar-toggle" id="sidebarToggle" title="Toggle sidebar">
+    <i class="bi bi-chevron-left" id="toggleIcon"></i>
+</button>
+
+<div class="main-content">
+    <div class="topbar">
+        <div>
+            <button class="btn btn-sm btn-outline-secondary d-md-none me-2" id="mobileMenuBtn">
+                <i class="bi bi-list"></i>
+            </button>
+            {% block back_link %}{% endblock %}
+            <span class="fw-semibold">{% block page_title %}Dashboard{% endblock %}</span>
         </div>
-
-        <div class="collapse d-md-none" id="mobileSidebar">
-            <div class="bg-dark px-3 py-2">
-                {% for item in sidebar_menu %}
-                <a class="d-block text-white py-2 text-decoration-none small"
-                   href="{% url item.url %}">
-                    <i class="bi {{ item.icon }} me-2"></i>{{ item.label }}
-                </a>
-                {% endfor %}
-                <form method="post" action="{% url 'accounts:logout' %}" onsubmit="return confirm('Are you sure you want to log out?') && (document.getElementById('logout-loader').style.display='flex',true)">
-                    {% csrf_token %}
-                    <button type="submit" class="d-block text-white-50 py-2 text-decoration-none small border-0 bg-transparent w-100 text-start">
-                        <i class="bi bi-box-arrow-left me-2"></i>Logout
-                    </button>
-                </form>
-            </div>
-        </div>
-
-        <div class="content-wrapper">
-            {% if messages %}
-            {% for message in messages %}
-            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                <i class="bi bi-info-circle me-1"></i> {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-            {% endfor %}
-            {% endif %}
-
-            {% block content %}{% endblock %}
-        </div>
-
-        <div class="footer">
-            <div class="fst-italic small"><i class="bi bi-quote"></i> Whatever you do, work at it with all your heart, as working for the Lord — Colossians 3:23</div>
-            <div>&copy; {% now "Y" %} Truck PMS & Servicing System v1.0</div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="text-muted small">
+                <i class="bi bi-person-circle me-1"></i>
+                {{ request.user.get_full_name|default:request.user.username }}
+                <span class="badge bg-secondary ms-1">{{ request.user.get_role_display }}</span>
+            </span>
         </div>
     </div>
 
-    <script>document.addEventListener('DOMContentLoaded',function(){var l=document.getElementById('page-loader');l&&(l.classList.add('done'),setTimeout(function(){l.remove()},400))})</script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    {% block extra_scripts %}{% endblock %}
+    <div class="content-wrapper">
+        {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            <i class="bi bi-info-circle me-1"></i> {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </div>
+
+    <div class="footer">
+        <div class="fst-italic small"><i class="bi bi-quote"></i> Whatever you do, work at it with all your heart, as working for the Lord — Colossians 3:23</div>
+        <div>&copy; {% now "Y" %} Truck PMS & Servicing System v1.0</div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var l = document.getElementById('page-loader');
+    if (l) { l.classList.add('done'); setTimeout(function() { l.remove(); }, 400); }
+
+    var sidebar = document.getElementById('mainSidebar');
+    var toggleBtn = document.getElementById('sidebarToggle');
+    var toggleIcon = document.getElementById('toggleIcon');
+
+    if (toggleBtn && sidebar) {
+        toggleBtn.addEventListener('click', function() {
+            sidebar.classList.toggle('collapsed');
+            if (toggleIcon) {
+                toggleIcon.className = sidebar.classList.contains('collapsed')
+                    ? 'bi bi-chevron-right' : 'bi bi-chevron-left';
+            }
+        });
+    }
+
+    var mobileBtn = document.getElementById('mobileMenuBtn');
+    if (mobileBtn && sidebar) {
+        mobileBtn.addEventListener('click', function() {
+            sidebar.classList.toggle('show-mobile');
+        });
+        document.addEventListener('click', function(e) {
+            if (sidebar.classList.contains('show-mobile') &&
+                !sidebar.contains(e.target) &&
+                !mobileBtn.contains(e.target)) {
+                sidebar.classList.remove('show-mobile');
+            }
+        });
+    }
+});
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+{% block extra_scripts %}{% endblock %}
 </body>
 </html>
