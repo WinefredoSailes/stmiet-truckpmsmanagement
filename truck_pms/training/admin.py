@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Training, Attendance, TaskRating, WeeklyReview
+from .models import Training, Attendance, TaskRating, WeeklyReview, Holiday
 
 
 @admin.register(Training)
@@ -21,3 +21,11 @@ class TaskRatingAdmin(admin.ModelAdmin):
 @admin.register(WeeklyReview)
 class WeeklyReviewAdmin(admin.ModelAdmin):
     list_display = ['training', 'week_start', 'week_end', 'overall_score', 'status']
+
+
+@admin.register(Holiday)
+class HolidayAdmin(admin.ModelAdmin):
+    list_display = ['date', 'name', 'created_by', 'created_at']
+    list_filter = ['date']
+    search_fields = ['name']
+    date_hierarchy = 'date'

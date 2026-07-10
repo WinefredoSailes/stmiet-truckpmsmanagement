@@ -6,7 +6,7 @@ from django.db.models import Avg, Count
 from accounts.decorators import role_required
 from accounts.models import User
 from pms.models import TaskTemplate
-from .models import Training, Attendance, TaskRating, WeeklyReview
+from .models import Training, Attendance, TaskRating, WeeklyReview, Holiday
 
 
 def _get_training_or_404(user):
@@ -328,4 +328,18 @@ def assign_training(request):
         'trainees': unassigned,
         'assigned': assigned,
         'supervisors': supervisors,
+    })
+
+
+@login_required
+@role_required(User.Role.SUPER_ADMIN, User.Role.ADMIN, User.Role.STAFF, User.Role.TRAINEE)
+def holiday_list(request):
+    year = request.GET.get('year', timezone.localdate().year)
+    holidays = Holiday.objects.filter(date__year=year).order_by('date')
+    selected_year = int(year)
+    years = range(2024, 2031)
+    return render(request, 'training/holiday_list.html', {
+        'holidays': holidays,
+        'selected_year': selected_year,
+        'years': years,
     })

@@ -177,14 +177,13 @@ def predictive_analytics(request):
 @login_required
 @role_required(User.Role.SUPER_ADMIN, User.Role.ADMIN, User.Role.STAFF, User.Role.TRAINEE)
 def trainee_kpi(request):
-    from training.models import Training, Attendance, TaskRating, WeeklyReview
+    from training.models import Training, Attendance, TaskRating, WeeklyReview, Holiday
 
     today = timezone.localdate()
     is_staff_or_above = request.user.role in (
         User.Role.SUPER_ADMIN, User.Role.ADMIN, User.Role.STAFF
     )
 
-    # Determine which trainee(s) to show
     trainee_pk = request.GET.get('trainee')
     if is_staff_or_above and trainee_pk:
         trainees = User.objects.filter(pk=trainee_pk, role=User.Role.TRAINEE)
@@ -200,21 +199,28 @@ def trainee_kpi(request):
         except Training.DoesNotExist:
             continue
 
-        # ── Attendance ────────────────────────────────────
+        # ── Attendance (holiday-aware) ─────────────────────
         attendances = profile.attendances.all()
         total_attended = attendances.count()
+
         if profile.start_date:
-            program_days = max((today - profile.start_date).days, 1)
+            raw_days = max((today - profile.start_date).days, 1)
+            # Count holidays within the program period
+            holiday_count = Holiday.objects.filter(
+                date__gte=profile.start_date,
+                date__lte=today,
+            ).count()
+            program_days = max(raw_days - holiday_count, 1)
             attendance_rate = round(total_attended / program_days * 100, 1)
         else:
             program_days = 1
+            holiday_count = 0
             attendance_rate = 0.0
 
         on_time = attendances.filter(time_in__lte='08:00:00').count()
         on_time_rate = round(on_time / total_attended * 100, 1) if total_attended else 0.0
         latest_attendance = attendances.first()
 
-        # check streak (consecutive days backwards from today/latest)
         streak = 0
         check_date = today
         while attendances.filter(date=check_date).exists():
@@ -233,23 +239,15 @@ def trainee_kpi(request):
         avg_review = round(float(avg_review), 2) if avg_review else None
         recent_reviews = list(reviews.order_by('-week_start')[:5])
 
-        # ── Composite Score ───────────────────────────────
-        scores = []
-        weights = []
-        if attendance_rate is not None:
-            scores.append(attendance_rate / 20)
-            weights.append(1)
-        if avg_rating is not None:
-            scores.append(avg_rating)
-            weights.append(2)
-        if avg_review is not None:
-            scores.append(avg_review)
-            weights.append(2)
-        overall = round(
-            sum(s * w for s, w in zip(scores, weights)) / sum(weights), 2
-        ) if scores else None
+        # ── Composite Score (weighted) ────────────────────
+        # Attendance = 50%, On-Time = 10%, Ratings = 20%, Reviews = 20%
+        score_attendance = attendance_rate / 100 * 50
+        score_on_time = on_time_rate / 100 * 10
+        score_ratings = (avg_rating / 5 * 20) if avg_rating else 0
+        score_reviews = (avg_review / 5 * 20) if avg_review else 0
+        overall = round(score_attendance + score_on_time + score_ratings + score_reviews, 1)
 
-        # ── Rating trend (last 5) ─────────────────────────
+        # ── Trends ────────────────────────────────────────
         rating_trend_labels = [str(r.created_at.date()) for r in recent_ratings][::-1]
         rating_trend_data = [r.rating for r in recent_ratings][::-1]
         review_trend_labels = [f"Wk {r.week_start.isoformat()}" for r in recent_reviews][::-1]
@@ -260,6 +258,7 @@ def trainee_kpi(request):
             'profile': profile,
             'total_attended': total_attended,
             'program_days': program_days,
+            'holiday_count': holiday_count,
             'attendance_rate': attendance_rate,
             'on_time_rate': on_time_rate,
             'streak': streak,
@@ -270,6 +269,10 @@ def trainee_kpi(request):
             'avg_review': avg_review,
             'total_reviews': reviews.count(),
             'overall': overall,
+            'score_attendance': round(score_attendance, 1),
+            'score_on_time': round(score_on_time, 1),
+            'score_ratings': round(score_ratings, 1),
+            'score_reviews': round(score_reviews, 1),
             'rating_trend_labels': json.dumps(rating_trend_labels),
             'rating_trend_data': json.dumps(rating_trend_data),
             'review_trend_labels': json.dumps(review_trend_labels),

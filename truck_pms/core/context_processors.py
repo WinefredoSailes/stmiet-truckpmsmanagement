@@ -42,12 +42,14 @@ def sidebar_menu(request):
     if is_trainee:
         menu.append({'label': 'Training', 'url': 'training:dashboard', 'icon': 'bi-mortarboard-fill'})
         menu.append({'label': 'My KPIs', 'url': 'kpi:trainee', 'icon': 'bi-graph-up'})
+        menu.append({'label': 'Holidays', 'url': 'training:holiday_list', 'icon': 'bi-calendar-event'})
 
     if is_staff_or_above:
         menu.append({'label': 'Training', 'url': 'training:dashboard', 'icon': 'bi-mortarboard-fill'})
 
     if is_admin:
         menu.append({'label': 'Assign Training', 'url': 'training:assign', 'icon': 'bi-person-plus'})
+        menu.append({'label': 'Manage Holidays', 'url': 'training:holiday_list', 'icon': 'bi-calendar-event'})
 
     if is_trainee:
         menu = [m for m in menu if m['label'] != 'Job Orders']

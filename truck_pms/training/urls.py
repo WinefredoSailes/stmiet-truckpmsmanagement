@@ -18,4 +18,5 @@ urlpatterns = [
     path('ojt/<int:pk>/ratings/', views.ojt_rating_list, name='ojt_rating_list'),
     path('ojt/<int:pk>/reviews/', views.ojt_review_list, name='ojt_review_list'),
     path('assign/', views.assign_training, name='assign'),
+    path('holidays/', views.holiday_list, name='holiday_list'),
 ]

@@ -27,14 +27,46 @@
             <i class="bi bi-person-circle me-2"></i>
             <strong>{{ r.trainee.get_full_name|default:r.trainee.username }}</strong>
             <span class="badge bg-secondary badge-status ms-2">{{ r.trainee.get_role_display }}</span>
+            <span class="badge bg-info badge-status ms-1">{{ r.profile.get_status_display }}</span>
         </span>
         <span class="small text-muted">
-            {{ r.profile.get_status_display }}
-            &middot; Started {{ r.profile.start_date|date:"M d, Y" }}
+            Started {{ r.profile.start_date|date:"M d, Y" }}
             {% if r.profile.end_date %}&middot; Ended {{ r.profile.end_date|date:"M d, Y" }}{% endif %}
         </span>
     </div>
     <div class="card-body">
+        {% comment %}Overall Score Banner{% endcomment %}
+        <div class="text-center mb-3">
+            <div class="d-inline-block rounded-circle bg-light p-3" style="width:100px;height:100px;">
+                <div class="d-flex align-items-center justify-content-center h-100">
+                    <span class="display-5 fw-bold {% if r.overall >= 80 %}text-success{% elif r.overall >= 60 %}text-warning{% else %}text-danger{% endif %}">
+                        {{ r.overall }}
+                    </span>
+                </div>
+            </div>
+            <div class="small text-muted mt-1">Overall Score / 100</div>
+        </div>
+
+        {% comment %}Weighted Breakdown Bar{% endcomment %}
+        <div class="card bg-light border-0 mb-3">
+            <div class="card-body py-2">
+                <div class="small text-muted mb-1">Weighted Breakdown</div>
+                <div class="d-flex" style="height:24px;border-radius:4px;overflow:hidden;">
+                    <div style="width:50%;background:#2d3a5c;" class="d-flex align-items-center justify-content-center text-white small fw-bold">Attend 50%</div>
+                    <div style="width:10%;background:#36b9cc;" class="d-flex align-items-center justify-content-center text-white small fw-bold">OT 10%</div>
+                    <div style="width:20%;background:#1cc88a;" class="d-flex align-items-center justify-content-center text-white small fw-bold">Rating 20%</div>
+                    <div style="width:20%;background:#f6c23e;" class="d-flex align-items-center justify-content-center text-dark small fw-bold">Review 20%</div>
+                </div>
+                <div class="row small text-center mt-1">
+                    <div class="col-3 text-primary fw-medium">Attend: {{ r.score_attendance }}</div>
+                    <div class="col-3 text-info fw-medium">On-Time: {{ r.score_on_time }}</div>
+                    <div class="col-3 text-success fw-medium">Rating: {{ r.score_ratings }}</div>
+                    <div class="col-3 text-warning fw-medium">Review: {{ r.score_reviews }}</div>
+                </div>
+            </div>
+        </div>
+
+        {% comment %}Stat Cards{% endcomment %}
         <div class="row g-3 mb-3">
             <div class="col-6 col-md-3">
                 <div class="card bg-light border-0 text-center py-3 h-100">
@@ -43,6 +75,7 @@
                         {{ r.attendance_rate }}%
                     </div>
                     <div class="small text-muted">{{ r.total_attended }} / {{ r.program_days }} days</div>
+                    <div class="small text-muted">{{ r.holiday_count }} holiday(s) excluded</div>
                 </div>
             </div>
             <div class="col-6 col-md-3">
@@ -65,20 +98,21 @@
             </div>
             <div class="col-6 col-md-3">
                 <div class="card bg-light border-0 text-center py-3 h-100">
-                    <div class="text-muted small text-uppercase">Overall</div>
-                    <div class="h2 mb-0 fw-bold {% if r.overall and r.overall >= 4 %}text-success{% elif r.overall and r.overall >= 3 %}text-warning{% else %}text-secondary{% endif %}">
-                        {% if r.overall %}{{ r.overall }}{% else %}&mdash;{% endif %}
+                    <div class="text-muted small text-uppercase">Avg Review</div>
+                    <div class="h2 mb-0 fw-bold {% if r.avg_review and r.avg_review >= 4 %}text-success{% elif r.avg_review and r.avg_review >= 3 %}text-warning{% else %}text-secondary{% endif %}">
+                        {% if r.avg_review %}{{ r.avg_review }}{% else %}&mdash;{% endif %}
                     </div>
                     <div class="small text-muted">{{ r.total_reviews }} reviews</div>
                 </div>
             </div>
         </div>
 
+        {% comment %}Charts{% endcomment %}
         <div class="row g-3">
             {% if r.rating_trend_labels %}
             <div class="col-md-6">
                 <div class="card h-100">
-                    <div class="card-header">Task Rating Trend</div>
+                    <div class="card-header py-2">Task Rating Trend</div>
                     <div class="card-body"><canvas id="ratingChart{{ forloop.counter }}" height="120"></canvas></div>
                 </div>
             </div>
@@ -86,17 +120,11 @@
             {% if r.review_trend_labels %}
             <div class="col-md-6">
                 <div class="card h-100">
-                    <div class="card-header">Weekly Review Trend</div>
+                    <div class="card-header py-2">Weekly Review Trend</div>
                     <div class="card-body"><canvas id="reviewChart{{ forloop.counter }}" height="120"></canvas></div>
                 </div>
             </div>
             {% endif %}
-            <div class="col-md-4">
-                <div class="card h-100">
-                    <div class="card-header">Attendance vs Reviews</div>
-                    <div class="card-body"><canvas id="radarChart{{ forloop.counter }}" height="120"></canvas></div>
-                </div>
-            </div>
         </div>
     </div>
 </div>
@@ -137,20 +165,6 @@ new Chart(document.getElementById('reviewChart{{ forloop.counter }}'), {
     }
 });
 {% endif %}
-new Chart(document.getElementById('radarChart{{ forloop.counter }}'), {
-    type: 'radar', data: {
-        labels: ['Attendance', 'On-Time', 'Avg Rating', 'Avg Review'],
-        datasets: [{
-            data: [{{ r.attendance_rate }}, {{ r.on_time_rate }}, {{ r.avg_rating|default:0 }} * 20, {{ r.avg_review|default:0 }} * 20],
-            backgroundColor: 'rgba(45,58,92,.15)',
-            borderColor: '#2d3a5c',
-            pointBackgroundColor: '#2d3a5c'
-        }]
-    }, options: { responsive: true,
-        plugins: { legend: { display: false } },
-        scales: { r: { min: 0, max: 100, ticks: { stepSize: 20 } } }
-    }
-});
 {% endfor %}
 </script>
 {% endblock %}

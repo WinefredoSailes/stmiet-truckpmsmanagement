@@ -110,3 +110,19 @@ class WeeklyReview(models.Model):
 
     def __str__(self):
         return f"{self.training.ojt.username} - Week of {self.week_start}"
+
+
+class Holiday(models.Model):
+    date = models.DateField(unique=True)
+    name = models.CharField(max_length=200)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-date']
+
+    def __str__(self):
+        return f"{self.date} - {self.name}"
