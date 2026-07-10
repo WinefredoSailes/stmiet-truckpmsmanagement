@@ -1,10 +1,10 @@
 import json
-from django.shortcuts import render
+from datetime import date, timedelta
+from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.db.models import Count, Sum, Q
+from django.db.models import Count, Sum, Q, Avg
 from django.db.models.functions import TruncMonth
 from django.utils import timezone
-from datetime import timedelta
 from accounts.decorators import role_required
 from accounts.models import User
 from joborders.models import JobOrder, JobOrderLineItem, LineItemPart
@@ -171,4 +171,114 @@ def predictive_analytics(request):
         'overdue_counts': json.dumps(overdue_counts),
         'part_labels': json.dumps(part_labels),
         'part_counts': json.dumps(part_counts),
+    })
+
+
+@login_required
+@role_required(User.Role.SUPER_ADMIN, User.Role.ADMIN, User.Role.STAFF, User.Role.TRAINEE)
+def trainee_kpi(request):
+    from training.models import Training, Attendance, TaskRating, WeeklyReview
+
+    today = timezone.localdate()
+    is_staff_or_above = request.user.role in (
+        User.Role.SUPER_ADMIN, User.Role.ADMIN, User.Role.STAFF
+    )
+
+    # Determine which trainee(s) to show
+    trainee_pk = request.GET.get('trainee')
+    if is_staff_or_above and trainee_pk:
+        trainees = User.objects.filter(pk=trainee_pk, role=User.Role.TRAINEE)
+    elif is_staff_or_above:
+        trainees = User.objects.filter(role=User.Role.TRAINEE).order_by('last_name', 'first_name')
+    else:
+        trainees = [request.user]
+
+    results = []
+    for t in trainees:
+        try:
+            profile = Training.objects.get(ojt=t)
+        except Training.DoesNotExist:
+            continue
+
+        # ── Attendance ────────────────────────────────────
+        attendances = profile.attendances.all()
+        total_attended = attendances.count()
+        if profile.start_date:
+            program_days = max((today - profile.start_date).days, 1)
+            attendance_rate = round(total_attended / program_days * 100, 1)
+        else:
+            program_days = 1
+            attendance_rate = 0.0
+
+        on_time = attendances.filter(time_in__lte='08:00:00').count()
+        on_time_rate = round(on_time / total_attended * 100, 1) if total_attended else 0.0
+        latest_attendance = attendances.first()
+
+        # check streak (consecutive days backwards from today/latest)
+        streak = 0
+        check_date = today
+        while attendances.filter(date=check_date).exists():
+            streak += 1
+            check_date -= timedelta(days=1)
+
+        # ── Task Ratings ──────────────────────────────────
+        ratings = profile.task_ratings.all()
+        avg_rating = ratings.aggregate(avg=Avg('rating'))['avg']
+        avg_rating = round(float(avg_rating), 2) if avg_rating else None
+        recent_ratings = list(ratings.select_related('task_template').order_by('-created_at')[:5])
+
+        # ── Weekly Reviews ────────────────────────────────
+        reviews = profile.weekly_reviews.filter(status='SUBMITTED')
+        avg_review = reviews.aggregate(avg=Avg('overall_score'))['avg']
+        avg_review = round(float(avg_review), 2) if avg_review else None
+        recent_reviews = list(reviews.order_by('-week_start')[:5])
+
+        # ── Composite Score ───────────────────────────────
+        scores = []
+        weights = []
+        if attendance_rate is not None:
+            scores.append(attendance_rate / 20)
+            weights.append(1)
+        if avg_rating is not None:
+            scores.append(avg_rating)
+            weights.append(2)
+        if avg_review is not None:
+            scores.append(avg_review)
+            weights.append(2)
+        overall = round(
+            sum(s * w for s, w in zip(scores, weights)) / sum(weights), 2
+        ) if scores else None
+
+        # ── Rating trend (last 5) ─────────────────────────
+        rating_trend_labels = [str(r.created_at.date()) for r in recent_ratings][::-1]
+        rating_trend_data = [r.rating for r in recent_ratings][::-1]
+        review_trend_labels = [f"Wk {r.week_start.isoformat()}" for r in recent_reviews][::-1]
+        review_trend_data = [float(r.overall_score) for r in recent_reviews][::-1]
+
+        results.append({
+            'trainee': t,
+            'profile': profile,
+            'total_attended': total_attended,
+            'program_days': program_days,
+            'attendance_rate': attendance_rate,
+            'on_time_rate': on_time_rate,
+            'streak': streak,
+            'latest_check_in': latest_attendance.date if latest_attendance else None,
+            'latest_check_out': latest_attendance.time_out if latest_attendance else None,
+            'avg_rating': avg_rating,
+            'total_ratings': ratings.count(),
+            'avg_review': avg_review,
+            'total_reviews': reviews.count(),
+            'overall': overall,
+            'rating_trend_labels': json.dumps(rating_trend_labels),
+            'rating_trend_data': json.dumps(rating_trend_data),
+            'review_trend_labels': json.dumps(review_trend_labels),
+            'review_trend_data': json.dumps(review_trend_data),
+        })
+
+    return render(request, 'kpi/trainee.html', {
+        'results': results,
+        'trainees': User.objects.filter(role=User.Role.TRAINEE).order_by('last_name', 'first_name') if is_staff_or_above else [],
+        'selected_trainee': trainee_pk,
+        'is_staff_or_above': is_staff_or_above,
     })

@@ -33,6 +33,7 @@ def sidebar_menu(request):
         menu.append({'label': 'Service Ledger', 'url': 'service_log:full_ledger', 'icon': 'bi-journal-text'})
         menu.append({'label': 'Contractors', 'url': 'contractors:list', 'icon': 'bi-building'})
         menu.append({'label': 'KPI Reports', 'url': 'kpi:mechanic', 'icon': 'bi-graph-up'})
+        menu.append({'label': 'Trainee KPIs', 'url': 'kpi:trainee', 'icon': 'bi-mortarboard'})
         menu.append({'label': 'Predictive Analytics', 'url': 'kpi:predictive', 'icon': 'bi-graph-up-arrow'})
 
     if role == User.Role.SUPER_ADMIN:
@@ -40,6 +41,7 @@ def sidebar_menu(request):
 
     if is_trainee:
         menu.append({'label': 'Training', 'url': 'training:dashboard', 'icon': 'bi-mortarboard-fill'})
+        menu.append({'label': 'My KPIs', 'url': 'kpi:trainee', 'icon': 'bi-graph-up'})
 
     if is_staff_or_above:
         menu.append({'label': 'Training', 'url': 'training:dashboard', 'icon': 'bi-mortarboard-fill'})

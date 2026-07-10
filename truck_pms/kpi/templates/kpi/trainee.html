@@ -1,0 +1,156 @@
+{% extends 'core/base.html' %}
+{% block title %}Trainee KPIs{% endblock %}
+{% block back_link %}<a href="{% url 'accounts:dashboard' %}" class="btn btn-sm btn-outline-secondary me-2"><i class="bi bi-arrow-left"></i></a>{% endblock %}
+{% block page_title %}Trainee Performance KPIs{% endblock %}
+{% block content %}
+
+{% if is_staff_or_above and trainees %}
+<form method="get" class="row g-2 align-items-end mb-3">
+    <div class="col-auto">
+        <label class="form-label mb-0">Trainee</label>
+        <select name="trainee" class="form-select form-select-sm" onchange="this.form.submit()">
+            <option value="">All Trainees</option>
+            {% for t in trainees %}
+            <option value="{{ t.pk }}" {% if selected_trainee|slugify == t.pk|slugify %}selected{% endif %}>
+                {{ t.get_full_name|default:t.username }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+</form>
+{% endif %}
+
+{% for r in results %}
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span>
+            <i class="bi bi-person-circle me-2"></i>
+            <strong>{{ r.trainee.get_full_name|default:r.trainee.username }}</strong>
+            <span class="badge bg-secondary badge-status ms-2">{{ r.trainee.get_role_display }}</span>
+        </span>
+        <span class="small text-muted">
+            {{ r.profile.get_status_display }}
+            &middot; Started {{ r.profile.start_date|date:"M d, Y" }}
+            {% if r.profile.end_date %}&middot; Ended {{ r.profile.end_date|date:"M d, Y" }}{% endif %}
+        </span>
+    </div>
+    <div class="card-body">
+        <div class="row g-3 mb-3">
+            <div class="col-6 col-md-3">
+                <div class="card bg-light border-0 text-center py-3 h-100">
+                    <div class="text-muted small text-uppercase">Attendance</div>
+                    <div class="h2 mb-0 fw-bold {% if r.attendance_rate >= 80 %}text-success{% elif r.attendance_rate >= 60 %}text-warning{% else %}text-danger{% endif %}">
+                        {{ r.attendance_rate }}%
+                    </div>
+                    <div class="small text-muted">{{ r.total_attended }} / {{ r.program_days }} days</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card bg-light border-0 text-center py-3 h-100">
+                    <div class="text-muted small text-uppercase">On-Time</div>
+                    <div class="h2 mb-0 fw-bold {% if r.on_time_rate >= 80 %}text-success{% elif r.on_time_rate >= 60 %}text-warning{% else %}text-danger{% endif %}">
+                        {{ r.on_time_rate }}%
+                    </div>
+                    <div class="small text-muted">{{ r.streak }} day streak</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card bg-light border-0 text-center py-3 h-100">
+                    <div class="text-muted small text-uppercase">Avg Rating</div>
+                    <div class="h2 mb-0 fw-bold {% if r.avg_rating and r.avg_rating >= 4 %}text-success{% elif r.avg_rating and r.avg_rating >= 3 %}text-warning{% else %}text-secondary{% endif %}">
+                        {% if r.avg_rating %}{{ r.avg_rating }}{% else %}&mdash;{% endif %}
+                    </div>
+                    <div class="small text-muted">{{ r.total_ratings }} ratings</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card bg-light border-0 text-center py-3 h-100">
+                    <div class="text-muted small text-uppercase">Overall</div>
+                    <div class="h2 mb-0 fw-bold {% if r.overall and r.overall >= 4 %}text-success{% elif r.overall and r.overall >= 3 %}text-warning{% else %}text-secondary{% endif %}">
+                        {% if r.overall %}{{ r.overall }}{% else %}&mdash;{% endif %}
+                    </div>
+                    <div class="small text-muted">{{ r.total_reviews }} reviews</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3">
+            {% if r.rating_trend_labels %}
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header">Task Rating Trend</div>
+                    <div class="card-body"><canvas id="ratingChart{{ forloop.counter }}" height="120"></canvas></div>
+                </div>
+            </div>
+            {% endif %}
+            {% if r.review_trend_labels %}
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header">Weekly Review Trend</div>
+                    <div class="card-body"><canvas id="reviewChart{{ forloop.counter }}" height="120"></canvas></div>
+                </div>
+            </div>
+            {% endif %}
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-header">Attendance vs Reviews</div>
+                    <div class="card-body"><canvas id="radarChart{{ forloop.counter }}" height="120"></canvas></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% empty %}
+<div class="card"><div class="card-body text-center py-5 text-muted">
+    <i class="bi bi-people display-6 d-block mb-2"></i>
+    No trainee data found.
+</div></div>
+{% endfor %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script>
+{% for r in results %}
+{% if r.rating_trend_labels %}
+new Chart(document.getElementById('ratingChart{{ forloop.counter }}'), {
+    type: 'line', data: {
+        labels: {{ r.rating_trend_labels|safe }},
+        datasets: [{ label: 'Rating', data: {{ r.rating_trend_data|safe }},
+            borderColor: '#2d3a5c', backgroundColor: 'rgba(45,58,92,.1)',
+            tension: 0.3, fill: true, pointRadius: 4 }]
+    }, options: { responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { y: { min: 0, max: 5, ticks: { stepSize: 1 } } }
+    }
+});
+{% endif %}
+{% if r.review_trend_labels %}
+new Chart(document.getElementById('reviewChart{{ forloop.counter }}'), {
+    type: 'bar', data: {
+        labels: {{ r.review_trend_labels|safe }},
+        datasets: [{ label: 'Score', data: {{ r.review_trend_data|safe }},
+            backgroundColor: '#1cc88a' }]
+    }, options: { responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { y: { min: 0, max: 5, ticks: { stepSize: 1 } } }
+    }
+});
+{% endif %}
+new Chart(document.getElementById('radarChart{{ forloop.counter }}'), {
+    type: 'radar', data: {
+        labels: ['Attendance', 'On-Time', 'Avg Rating', 'Avg Review'],
+        datasets: [{
+            data: [{{ r.attendance_rate }}, {{ r.on_time_rate }}, {{ r.avg_rating|default:0 }} * 20, {{ r.avg_review|default:0 }} * 20],
+            backgroundColor: 'rgba(45,58,92,.15)',
+            borderColor: '#2d3a5c',
+            pointBackgroundColor: '#2d3a5c'
+        }]
+    }, options: { responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { r: { min: 0, max: 100, ticks: { stepSize: 20 } } }
+    }
+});
+{% endfor %}
+</script>
+{% endblock %}
