@@ -279,6 +279,7 @@ class ViewTests(TestCase):
         response = self.client.post(reverse('trucks:create'), {
             'unit_number': 'T-002', 'plate_number': 'XYZ-999',
             'make': 'Hino', 'model': 'GH', 'year': 2021,
+            'status': 'ACTIVE',
             'current_mileage_km': 5000,
             'current_engine_hours': 0,
         }, follow=True)
