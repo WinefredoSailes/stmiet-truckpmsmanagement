@@ -25,8 +25,10 @@
         <span>Truck PMS</span>
     </div>
     <ul class="nav flex-column">
-        <li class="sidebar-heading">Main Menu</li>
         {% for item in sidebar_menu %}
+        {% if item.heading %}
+        <li class="sidebar-heading">{{ item.heading }}</li>
+        {% else %}
         <li class="nav-item">
             <a class="nav-link {% if request.path == item.url %}active{% endif %}"
                href="{% url item.url %}">
@@ -34,6 +36,7 @@
                 <span>{{ item.label }}</span>
             </a>
         </li>
+        {% endif %}
         {% endfor %}
         <li class="sidebar-heading mt-2">Account</li>
         <li class="nav-item">
