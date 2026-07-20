@@ -27,14 +27,14 @@
 
 ### Role Overview
 
-| Role | Description | Sidebar Menu |
-|---|---|---|
-| **Super Admin** | Full system ownership. Can manage users, everything. | Dashboard, Trucks, PMS Schedules, PM Categories, PM Templates, Job Orders, Service Ledger, Contractors, KPI Reports, Predictive Analytics, User Management, Training, Assign Training |
-| **Admin** | Operations manager. Can do everything except user management. | Same as Super Admin minus User Management + Assign Training |
-| **Staff** | Shop floor supervisor. Creates/manages job orders, supervises OJTs. | Dashboard, Trucks, PMS Schedules, PM Categories, PM Templates, Job Orders, Service Ledger, Contractors, KPI Reports, Predictive Analytics, Training |
-| **Mechanic** | Technician assigned to jobs. Can only see their own assignments. | Dashboard, Trucks, Job Orders, My Assignments |
-| **Contractor** | External vendor. Same as Mechanic but limited to contractor JOs. | Trucks, My Assignments |
-| **OJT / Trainee** | Under training. Checks in/out, views ratings and reviews. | Dashboard, Trucks, Training |
+| Role | Description | Sidebar Sections |
+|---|---|---|---|
+| **Super Admin** | Full system ownership. Can manage users, everything. | Overview, Fleet, Preventive Maintenance, Work Orders, Service & Contractors, Analytics, Training, Administration, Resources |
+| **Admin** | Operations manager. Can do everything except user management. | Overview, Fleet, Preventive Maintenance, Work Orders, Service & Contractors, Analytics, Training (incl. Assign + Manage Holidays), Resources |
+| **Staff** | Shop floor supervisor. Creates/manages JOs, supervises OJTs. | Overview, Fleet, Preventive Maintenance (PMS Schedules), Work Orders, Training Dashboard, Resources |
+| **Mechanic** | Technician assigned to jobs. Can only see their own assignments. | Overview, Fleet, Work Orders (Job Orders + My Assignments), Resources |
+| **Contractor** | External vendor. Same as Mechanic but limited to contractor JOs. | Overview, Fleet, Work Orders (Job Orders + My Assignments), Resources |
+| **OJT / Trainee** | Under training. Checks in/out, views KPIs and reviews. | Overview, Fleet, Training (My Training, My KPIs, Holidays), Resources |
 
 ### Login Behavior by Role
 
@@ -367,12 +367,37 @@ A Chart.js dashboard with 5 charts:
 
 All data is **live** — queries the database on every page load.
 
+### Trainee KPIs
+
+**Access:** Admin, Staff (view any trainee) | Trainee (view own)
+**Navigation:** Sidebar → Trainee KPIs (admin) / My KPIs (trainee)
+
+A weighted composite score built from four metrics:
+
+| Component | Weight | How It's Calculated |
+|-----------|--------|---------------------|
+| **Attendance Rate** | **50%** | Days attended ÷ (program days − holidays) × 100 |
+| **On-Time Rate** | **10%** | Check-ins before 08:00 ÷ total attended × 100 |
+| **Average Rating** | **20%** | Mean of all supervisor task ratings (1–5), mapped to 0–20 |
+| **Average Review** | **20%** | Mean of all submitted weekly review scores (1–5), mapped to 0–20 |
+
+Each component is scored and summed for a **composite out of 100**.
+
+**Features per trainee card:**
+- **Streak** — consecutive calendar days with attendance
+- **Latest check-in / check-out**
+- **Rating trend chart** — last 5 ratings over time
+- **Review trend chart** — last 5 weekly review scores
+- **Attendance is holiday-aware** — holidays (configured in Manage Holidays) are excluded from program day count
+
+The holidays dropdown also shows the selected trainee's KPIs when viewing from staff/admin — filter by trainee to drill down.
+
 ---
 
 ## 9. OJT / Training Management
 
 **Access:** Varies by feature
-**Navigation:** Sidebar → Training, Assign Training
+**Navigation:** Sidebar → Training (staff+), My Training (trainee), Assign Training, My KPIs
 
 ### Overview
 
@@ -380,6 +405,7 @@ The training module allows onboarding OJTs (Trainees) with:
 - **Daily attendance** (check-in/check-out)
 - **Task ratings** (supervisor rates on specific PM tasks)
 - **Weekly reviews** (supervisor evaluation)
+- **My KPIs** (trainee self-view) / **Trainee KPIs** (admin view) — weighted composite score with holiday-aware attendance, ratings, reviews, and trend charts
 
 ### Setup: Assigning an OJT to Training
 
@@ -400,6 +426,8 @@ When an OJT logs in, they see:
 | **Training Info** | Start date, supervisor name, status |
 | **Recent Ratings** | Last 10 task ratings with scores |
 | **Weekly Reviews** | Last 5 weekly review summaries |
+
+From the sidebar, trainees can also access **My KPIs** — a weighted composite score (attendance 50%, on-time 10%, ratings 20%, reviews 20%) with holiday-aware attendance rate, streak, and trend charts.
 
 #### Checking In / Out
 
@@ -525,6 +553,14 @@ Use the Django admin for:
 
 1. Sidebar → **KPI Reports** → **Mechanic KPI**
 2. Shows: jobs completed, total labor hours, total parts cost per mechanic
+
+### "How do I see an OJT's overall performance?"
+
+1. **Admin/Staff:** Sidebar → **Trainee KPIs**
+2. Select a trainee from the dropdown
+3. View: attendance rate (holiday-aware), on-time rate, streak, average task rating, average review score, and a **weighted composite score** (50/10/20/20)
+4. Trend charts show recent ratings and review scores over time
+5. **Trainees** can see their own KPIs via Sidebar → **My KPIs**
 
 ### "The server is running slow, what's happening?"
 

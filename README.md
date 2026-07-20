@@ -1,6 +1,8 @@
 # Truck PMS & Servicing System
 
-A Django-based Preventive Maintenance System for internal fuel tanker fleet management. Tracks maintenance schedules, job orders (repairs/PMS), parts usage, contractor services, mechanic KPI, and OJT training — all in one system.
+A Django-based Preventive Maintenance System for internal fuel tanker fleet management. Tracks maintenance schedules, job orders (repairs/PMS), parts usage, contractor services, mechanic KPI, OJT training and trainee KPIs — all in one system.
+
+> **Detailed operational procedures** — tools/equipment handling, step-by-step repair and PMS actions, PPE requirements, safety protocols — are documented in the built-in **SOP Manual** (Sidebar → SOP Manual). This README covers system setup and architecture only.
 
 **Live:** https://stmiet-truckpmsmanagement.onrender.com
 
@@ -62,7 +64,7 @@ python manage.py runserver 0.0.0.0:8000
 | `andres` | `password123` | **Mechanic** | Brakes specialist |
 | `contractor1` | `password123` | **Contractor** | Limited to contractor-assigned JOs |
 
-> **Note:** OJT/Trainee accounts must be created manually via User Management since they need a supervisor assignment.
+> **Note:** Pre-seeded trainee accounts (`jose`, `maria` — password `password123`) still need a **supervisor assignment** via Sidebar → Assign Training before they can use the training module.
 
 ### Quick Start Script
 
@@ -126,8 +128,8 @@ python manage.py runserver 0.0.0.0:8000
 | `joborders` | Job Orders, line items, parts tracking, close-flow with PM schedule update |
 | `service_log` | Immutable audit trail of all work done (populated on JO close) |
 | `contractors` | External vendor registry (skills, contact, history) |
-| `kpi` | Computed reports: mechanic KPI, contractor rates, truck frequency, predictive analytics |
-| `training` | OJT onboarding: attendance check-in/out, task ratings (1-5), weekly reviews |
+| `kpi` | Computed reports: mechanic KPI, contractor rates, truck frequency, predictive analytics, **trainee KPIs (weighted 50/10/20/20)** |
+| `training` | OJT onboarding: attendance check-in/out (holiday-aware), task ratings (1-5), weekly reviews, **holiday calendar model** |
 | `sop` | SOP Manual — PDF generator (WeasyPrint), full 8-volume handbook with browser-print fallback |
 | `core` | Base template, shared CSS, form mixin, request-timing middleware, sidebar context processor |
 
@@ -143,7 +145,8 @@ JobOrder ──1:N── JobOrderLineItem ──1:N── LineItemPart
 
 Training ──1:N── Attendance
          ├── TaskRating (links to TaskTemplate)
-         └── WeeklyReview
+         ├── WeeklyReview
+         └── Holiday (global calendar, referenced by KPI)
 ```
 
 ### Status Calculation (PM Schedule)
@@ -175,9 +178,11 @@ Each PMSchedule's `status()` method runs live (no stored field):
 
 A downloadable SOP handbook is available at **Sidebar → SOP Manual** for all logged-in users.
 
-- **English Edition:** Full 8-volume, 4-appendix manual covering 23 PM category procedures, repair workflow, safety, HAZMAT, training, and more.
-- **Tagalog Edition:** Same content in Filipino (ready for translation).
+- **English Edition:** Full 8-volume, 4-appendix manual covering 23 PM category procedures (with step-by-step instructions, required tools/PPE, and acceptance criteria), repair workflow, safety, HAZMAT, training, and more.
+- **Tagalog Edition:** Same content in Filipino.
 - **Browser-Print Fallback:** If PDF is not yet generated, the system serves the full HTML page — use Ctrl+P → "Save as PDF."
+
+> This manual is the authoritative reference for **tools handling, equipment procedures, repair triage, and preventive maintenance actions** — not the README.
 
 Regenerate PDFs on content changes:
 ```bash
@@ -187,11 +192,11 @@ python manage.py build_sop
 
 ### Quick Reference by Role
 
-| Role | Login Redirect | Key Features Available |
-|---|---|---|
-| **Super Admin** | Dashboard | Everything + User Management + Django Admin |
-| **Admin** | Dashboard | All ops + Training (Assign + Supervise) + KPI + Predictive Analytics |
-| **Staff** | Dashboard | Create/manage JOs, view PM, Training (Supervise OJTs) |
-| **Mechanic** | Dashboard | My Assignments, line item status updates, parts logging |
-| **Contractor** | My Assignments | Same as Mechanic, limited to own JOs |
-| **OJT / Trainee** | Training Dashboard | Check-in/out, view ratings & reviews |
+| Role | Login Redirect | Sidebar Sections |
+|---|---|---|---|
+| **Super Admin** | Dashboard | Overview, Fleet, Preventive Maintenance, Work Orders, Service & Contractors, Analytics, Training, Administration (User Mgmt), Resources |
+| **Admin** | Dashboard | Overview, Fleet, Preventive Maintenance, Work Orders, Service & Contractors, Analytics, Training (incl. Assign + Manage Holidays), Resources |
+| **Staff** | Dashboard | Overview, Fleet, Preventive Maintenance (PMS Schedules), Work Orders, Training (Dashboard), Resources |
+| **Mechanic** | Dashboard | Overview, Fleet, Work Orders (Job Orders + My Assignments), Resources |
+| **Contractor** | My Assignments | Overview, Fleet, Work Orders (Job Orders + My Assignments), Resources |
+| **OJT / Trainee** | Training Dashboard | Overview, Fleet, Training (My Training, My KPIs, Holidays), Resources |
