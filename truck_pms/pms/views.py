@@ -325,3 +325,45 @@ def sync_all_trucks(request):
     return redirect('pms:schedule_list')
 
 
+@login_required
+@role_required(User.Role.SUPER_ADMIN, User.Role.ADMIN, User.Role.STAFF)
+def complete_task(request, pk):
+    schedule = get_object_or_404(
+        PMSchedule.objects.select_related('truck', 'task_template'),
+        pk=pk,
+    )
+    truck = schedule.truck
+
+    if request.method == 'POST':
+        import re
+        from django.utils.dateparse import parse_datetime
+
+        raw_dt = request.POST.get('completed_at', '')
+        if raw_dt:
+            dt = parse_datetime(raw_dt)
+        else:
+            dt = timezone.now()
+        mileage = request.POST.get('mileage_km', truck.current_mileage_km)
+        hours = request.POST.get('engine_hours', truck.current_engine_hours)
+
+        schedule.last_completed_at = dt
+        schedule.last_mileage_km = mileage
+        schedule.last_engine_hours = hours
+        schedule.save()
+
+        messages.success(
+            request,
+            f'"{schedule.task_template.name}" marked complete for '
+            f'{truck.unit_number}.'
+        )
+        next_url = request.POST.get('next', 'pms:schedule_list')
+        return redirect(next_url)
+
+    now = timezone.now()
+    return render(request, 'pms/complete_form.html', {
+        'schedule': schedule,
+        'truck': truck,
+        'now': now,
+    })
+
+

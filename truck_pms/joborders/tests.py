@@ -626,3 +626,63 @@ class ViewTests(TestCase):
             )
         response = self.client.get(reverse('trucks:list'), {'page': 1})
         self.assertEqual(response.status_code, 200)
+
+    # ── PM Complete Task ──
+
+    def test_pm_complete_task_loads_for_admin(self):
+        self.client.login(username='admin', password='pass')
+        pm = PMSchedule.objects.first()
+        response = self.client.get(reverse('pms:complete_task', args=[pm.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Change Oil')
+        self.assertContains(response, '10000')
+
+    def test_pm_complete_task_loads_for_staff(self):
+        self.client.login(username='staff', password='pass')
+        pm = PMSchedule.objects.first()
+        response = self.client.get(reverse('pms:complete_task', args=[pm.pk]))
+        self.assertEqual(response.status_code, 200)
+
+    def test_pm_complete_task_denied_for_mechanic(self):
+        self.client.login(username='mech', password='pass')
+        pm = PMSchedule.objects.first()
+        response = self.client.get(reverse('pms:complete_task', args=[pm.pk]))
+        self.assertEqual(response.status_code, 403)
+
+    def test_pm_complete_task_denied_for_contractor(self):
+        self.client.login(username='conuser', password='pass')
+        pm = PMSchedule.objects.first()
+        response = self.client.get(reverse('pms:complete_task', args=[pm.pk]))
+        self.assertEqual(response.status_code, 403)
+
+    def test_pm_complete_task_updates_schedule(self):
+        self.client.login(username='staff', password='pass')
+        pm = PMSchedule.objects.first()
+        self.assertIsNone(pm.last_completed_at)
+        response = self.client.post(reverse('pms:complete_task', args=[pm.pk]), {
+            'completed_at': '2026-07-20T10:00',
+            'mileage_km': 10500,
+            'engine_hours': 150,
+        })
+        pm.refresh_from_db()
+        self.assertIsNotNone(pm.last_completed_at)
+        self.assertEqual(pm.last_mileage_km, 10500)
+        self.assertEqual(float(pm.last_engine_hours), 150.0)
+
+    def test_pm_complete_task_prefills_truck_values(self):
+        self.client.login(username='admin', password='pass')
+        pm = PMSchedule.objects.first()
+        response = self.client.get(reverse('pms:complete_task', args=[pm.pk]))
+        self.assertContains(response, 'value="10000"')
+        self.assertContains(response, str(self.truck.current_engine_hours))
+
+    def test_pm_complete_task_redirects_to_next(self):
+        self.client.login(username='admin', password='pass')
+        pm = PMSchedule.objects.first()
+        response = self.client.post(reverse('pms:complete_task', args=[pm.pk]), {
+            'completed_at': '2026-07-20T10:00',
+            'mileage_km': 10500,
+            'engine_hours': 150,
+            'next': reverse('trucks:detail', args=[self.truck.pk]),
+        })
+        self.assertRedirects(response, reverse('trucks:detail', args=[self.truck.pk]))

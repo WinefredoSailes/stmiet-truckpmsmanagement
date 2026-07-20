@@ -1,0 +1,53 @@
+{% extends 'core/base.html' %}
+{% block title %}Complete PM Task{% endblock %}
+{% block back_link %}<a href="#" onclick="history.back(); return false;" class="btn btn-sm btn-outline-secondary me-2"><i class="bi bi-arrow-left"></i></a>{% endblock %}
+{% block page_title %}Complete PM Task{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <dl class="row mb-3 small">
+                    <dt class="col-4">Truck</dt>
+                    <dd class="col-8 fw-medium">{{ truck.unit_number }} — {{ truck.plate_number }}</dd>
+                    <dt class="col-4">Task</dt>
+                    <dd class="col-8">{{ schedule.task_template.name }}</dd>
+                    <dt class="col-4">Category</dt>
+                    <dd class="col-8">{{ schedule.task_template.category.name }}</dd>
+                    <dt class="col-4">Interval</dt>
+                    <dd class="col-8">{% if schedule.task_template.interval_type == 'VISUAL' %}Visual{% else %}Every {{ schedule.task_template.interval_value }} {{ schedule.task_template.get_interval_type_display }}{% endif %}</dd>
+                    <dt class="col-4">Last Done</dt>
+                    <dd class="col-8">{{ schedule.last_completed_at|date:"M d, Y"|default:'Never' }}</dd>
+                    <dt class="col-4">Current Mileage</dt>
+                    <dd class="col-8">{{ truck.current_mileage_km }} km</dd>
+                    <dt class="col-4">Engine Hours</dt>
+                    <dd class="col-8">{{ truck.current_engine_hours }} hrs</dd>
+                </dl>
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.GET.next }}">
+                    <div class="mb-3">
+                        <label class="form-label">Completed At</label>
+                        <input type="datetime-local" name="completed_at" class="form-control"
+                               value="{{ now|date:'Y-m-d' }}T{{ now|time:'H:i' }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Mileage (km)</label>
+                        <input type="number" name="mileage_km" class="form-control"
+                               value="{{ truck.current_mileage_km }}" min="0" step="1">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Engine Hours</label>
+                        <input type="number" name="engine_hours" class="form-control"
+                               value="{{ truck.current_engine_hours }}" min="0" step="0.1">
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-success"><i class="bi bi-check-lg"></i> Mark Complete</button>
+                        <a href="#" onclick="history.back(); return false;" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

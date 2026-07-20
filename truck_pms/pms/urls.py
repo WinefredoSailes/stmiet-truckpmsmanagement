@@ -15,6 +15,7 @@ urlpatterns = [
     path('schedules/print/', views.schedule_print, name='schedule_print'),
     path('schedules/pdf/', views.schedule_pdf, name='schedule_pdf'),
     path('schedules/<int:pk>/edit/', views.schedule_update, name='schedule_update'),
+    path('schedules/<int:pk>/complete/', views.complete_task, name='complete_task'),
     path('sync-truck/<int:truck_pk>/', views.sync_truck, name='sync_truck'),
     path('sync-all/', views.sync_all_trucks, name='sync_all'),
 ]
