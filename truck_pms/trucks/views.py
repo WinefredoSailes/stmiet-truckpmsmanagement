@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.paginator import Paginator
+from django.db.models import Q
 from accounts.decorators import role_required
 from accounts.models import User
 from .models import Truck
@@ -21,9 +22,21 @@ def truck_list(request):
 @login_required
 def truck_detail(request, pk):
     truck = get_object_or_404(Truck, pk=pk)
+    search = request.GET.get('pm_search', '').strip()
     pm_schedules = PMSchedule.objects.filter(truck=truck).select_related(
         'task_template__category'
     )
+    if search:
+        pm_schedules = pm_schedules.filter(
+            Q(task_template__name__icontains=search) |
+            Q(task_template__category__name__icontains=search)
+        )
+    pm_list = list(pm_schedules)
+    if not search:
+        pm_list.sort(key=lambda s: (
+            'overdue' not in s.status(),
+            'due' not in s.status(),
+        ))
     job_orders = truck.job_orders.select_related(
         'assigned_to', 'created_by', 'contractor'
     ).order_by('-created_at')[:20]
@@ -40,10 +53,11 @@ def truck_detail(request, pk):
     ]
     context = {
         'truck': truck,
-        'pm_schedules': pm_schedules,
+        'pm_schedules': pm_list,
         'job_orders': job_orders,
         'service_logs': service_logs,
         'cr_has_data': any(cr_fields),
+        'pm_search': search,
     }
     return render(request, 'trucks/detail.html', context)
 
