@@ -35,7 +35,7 @@
                 <tr>
                     <td>{{ log.performed_at|date:"M d, H:i" }}</td>
                     <td class="fw-medium">{{ log.truck.unit_number }}</td>
-                    <td><a href="{% url 'joborders:detail' log.job_order.pk %}" class="text-decoration-none">{{ log.job_order.jo_number }}</a></td>
+                    <td>{% if log.job_order %}<a href="{% url 'joborders:detail' log.job_order.pk %}" class="text-decoration-none">{{ log.job_order.jo_number }}</a>{% else %}—{% endif %}</td>
                     <td><span class="badge bg-secondary badge-status">{{ log.action }}</span></td>
                     <td>{{ log.description|truncatechars:35 }}</td>
                     <td>{{ log.performed_by.get_full_name|default:log.performed_by.username|default:'—' }}</td>

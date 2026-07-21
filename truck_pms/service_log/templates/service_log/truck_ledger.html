@@ -13,7 +13,7 @@
                 {% for log in logs %}
                 <tr>
                     <td>{{ log.performed_at|date:"M d, Y H:i" }}</td>
-                    <td><a href="{% url 'joborders:detail' log.job_order.pk %}">{{ log.job_order.jo_number }}</a></td>
+                    <td>{% if log.job_order %}<a href="{% url 'joborders:detail' log.job_order.pk %}">{{ log.job_order.jo_number }}</a>{% else %}—{% endif %}</td>
                     <td><span class="badge bg-secondary badge-status">{{ log.action }}</span></td>
                     <td>{{ log.description|truncatechars:40 }}</td>
                     <td>{{ log.performed_by.get_full_name|default:log.performed_by.username|default:'-' }}</td>

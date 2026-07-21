@@ -18,4 +18,5 @@ urlpatterns = [
     path('schedules/<int:pk>/complete/', views.complete_task, name='complete_task'),
     path('sync-truck/<int:truck_pk>/', views.sync_truck, name='sync_truck'),
     path('sync-all/', views.sync_all_trucks, name='sync_all'),
+    path('pm-tasks-json/<int:truck_pk>/', views.pm_tasks_json, name='pm_tasks_json'),
 ]

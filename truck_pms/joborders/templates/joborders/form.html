@@ -21,23 +21,12 @@
                 {% endfor %}
             </div>
 
-            {% if pm_tasks %}
-            <div id="pmTaskSection" class="mt-3 border rounded p-3 bg-light">
+            <div id="pmTaskSection" class="mt-3 border rounded p-3 bg-light" style="display:none">
                 <h6 class="fw-bold mb-2"><i class="bi bi-list-check"></i> Due / Overdue PM Tasks</h6>
                 <p class="small text-muted mb-2">Select PM tasks to auto-create line items:</p>
-                {% for pm in pm_tasks %}
-                <div class="form-check">
-                    <input class="form-check-input pm-task-checkbox" type="checkbox"
-                           name="pm_tasks" value="{{ pm.pk }}" id="pm_{{ pm.pk }}">
-                    <label class="form-check-label" for="pm_{{ pm.pk }}">
-                        <span class="badge bg-{% if pm.status == 'overdue' %}danger{% elif pm.status == 'due' %}warning{% else %}secondary{% endif %} badge-status me-1">{{ pm.status|upper }}</span>
-                        {{ pm.task_template.name }}
-                        <span class="text-muted small">— {{ pm.task_template.category.name }}</span>
-                    </label>
-                </div>
-                {% endfor %}
+                <div id="pmTaskList"></div>
+                <div id="pmTaskLoading" class="text-muted small py-2" style="display:none"><i class="bi bi-hourglass"></i> Loading...</div>
             </div>
-            {% endif %}
 
             <div class="d-flex gap-2 mt-4">
                 <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> Save</button>
@@ -53,15 +42,50 @@
     var jobType = document.getElementById('id_job_type');
     var truck = document.getElementById('id_truck');
     var pmSection = document.getElementById('pmTaskSection');
-    function togglePmSection() {
-        if (pmSection) {
-            pmSection.style.display = (jobType.value === 'PM') ? 'block' : 'none';
+    var pmList = document.getElementById('pmTaskList');
+    var pmLoading = document.getElementById('pmTaskLoading');
+
+    function loadPmTasks() {
+        var t = truck.value;
+        var jt = jobType.value;
+        if (!t || jt !== 'PM') {
+            pmSection.style.display = 'none';
+            return;
         }
+        pmSection.style.display = 'block';
+        pmList.innerHTML = '';
+        pmLoading.style.display = 'block';
+        fetch('/pms/pm-tasks-json/' + t + '/')
+            .then(function(r) { return r.json(); })
+            .then(function(tasks) {
+                pmLoading.style.display = 'none';
+                if (tasks.length === 0) {
+                    pmList.innerHTML = '<p class="text-muted small mb-0">No due or overdue PM tasks for this truck.</p>';
+                    return;
+                }
+                var html = '';
+                for (var i = 0; i < tasks.length; i++) {
+                    var t = tasks[i];
+                    var badgeClass = t.status === 'overdue' ? 'danger' : 'warning';
+                    html += '<div class="form-check">' +
+                        '<input class="form-check-input" type="checkbox" name="pm_tasks" value="' + t.pk + '" id="pm_' + t.pk + '">' +
+                        '<label class="form-check-label" for="pm_' + t.pk + '">' +
+                        '<span class="badge bg-' + badgeClass + ' badge-status me-1">' + t.status.toUpperCase() + '</span> ' +
+                        t.name + ' <span class="text-muted small">— ' + t.category + '</span>' +
+                        '</label></div>';
+                }
+                pmList.innerHTML = html;
+            })
+            .catch(function() {
+                pmLoading.style.display = 'none';
+                pmList.innerHTML = '<p class="text-danger small mb-0">Failed to load PM tasks.</p>';
+            });
     }
-    if (jobType) {
-        jobType.addEventListener('change', togglePmSection);
-        togglePmSection();
-    }
+
+    if (truck) truck.addEventListener('change', loadPmTasks);
+    if (jobType) jobType.addEventListener('change', loadPmTasks);
+    loadPmTasks();
+
     var ctRow = document.getElementById('id_contractor')?.closest('.col-md-6');
     var asRow = document.getElementById('id_assigned_to')?.closest('.col-md-6');
     if (jobType && ctRow && asRow) {

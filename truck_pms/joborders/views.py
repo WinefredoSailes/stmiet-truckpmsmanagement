@@ -122,7 +122,6 @@ def job_order_pdf(request, pk):
 @login_required
 @role_required(User.Role.SUPER_ADMIN, User.Role.ADMIN, User.Role.STAFF)
 def job_order_create(request):
-    pm_tasks = []
     if request.method == 'POST':
         form = JobOrderForm(request.POST)
         if form.is_valid():
@@ -147,29 +146,21 @@ def job_order_create(request):
                         estimated_hours=pm.task_template.estimated_labor_hours,
                     )
 
-            messages.success(
-                request,
-                f'Job Order {order.jo_number} created '
-                f'with {len(selected_pm)} PM task(s).' if selected_pm
-                else f'Job Order {order.jo_number} created.'
-            )
+            msg = f'Job Order {order.jo_number} created'
+            if selected_pm:
+                msg += f' with {len(selected_pm)} PM task(s).'
+            else:
+                msg += '.'
+            messages.success(request, msg)
             return redirect('joborders:detail', pk=order.pk)
     else:
         form = JobOrderForm()
         truck_id = request.GET.get('truck')
         if truck_id:
             form.fields['truck'].initial = truck_id
-            pm_schedules = PMSchedule.objects.filter(
-                truck_id=truck_id, is_active=True
-            ).select_related('task_template__category')
-            for s in pm_schedules:
-                st = s.status()
-                if st in ('overdue', 'due'):
-                    pm_tasks.append(s)
     return render(request, 'joborders/form.html', {
         'form': form,
         'title': 'Create Job Order',
-        'pm_tasks': pm_tasks,
     })
 
 
