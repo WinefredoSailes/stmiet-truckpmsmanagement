@@ -4,7 +4,7 @@ from django.db import models
 class ServiceLogEntry(models.Model):
     job_order = models.ForeignKey(
         'joborders.JobOrder', on_delete=models.CASCADE,
-        related_name='log_entries'
+        null=True, blank=True, related_name='log_entries'
     )
     line_item = models.ForeignKey(
         'joborders.JobOrderLineItem', on_delete=models.SET_NULL,

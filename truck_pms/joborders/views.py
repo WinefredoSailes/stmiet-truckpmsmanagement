@@ -122,6 +122,7 @@ def job_order_pdf(request, pk):
 @login_required
 @role_required(User.Role.SUPER_ADMIN, User.Role.ADMIN, User.Role.STAFF)
 def job_order_create(request):
+    pm_tasks = []
     if request.method == 'POST':
         form = JobOrderForm(request.POST)
         if form.is_valid():
@@ -130,9 +131,27 @@ def job_order_create(request):
             if order.job_type == 'CONTRACTOR':
                 order.status = 'OPEN'
             order.save()
+
+            # Auto-create line items from selected PM tasks
+            selected_pm = request.POST.getlist('pm_tasks')
+            if selected_pm and order.job_type == 'PM':
+                pm_schedules = PMSchedule.objects.filter(
+                    pk__in=selected_pm, truck=order.truck
+                ).select_related('task_template')
+                for pm in pm_schedules:
+                    JobOrderLineItem.objects.create(
+                        job_order=order,
+                        task_template=pm.task_template,
+                        category=pm.task_template.category,
+                        description=pm.task_template.name,
+                        estimated_hours=pm.task_template.estimated_labor_hours,
+                    )
+
             messages.success(
                 request,
-                f'Job Order {order.jo_number} created.'
+                f'Job Order {order.jo_number} created '
+                f'with {len(selected_pm)} PM task(s).' if selected_pm
+                else f'Job Order {order.jo_number} created.'
             )
             return redirect('joborders:detail', pk=order.pk)
     else:
@@ -140,8 +159,17 @@ def job_order_create(request):
         truck_id = request.GET.get('truck')
         if truck_id:
             form.fields['truck'].initial = truck_id
+            pm_schedules = PMSchedule.objects.filter(
+                truck_id=truck_id, is_active=True
+            ).select_related('task_template__category')
+            for s in pm_schedules:
+                st = s.status()
+                if st in ('overdue', 'due'):
+                    pm_tasks.append(s)
     return render(request, 'joborders/form.html', {
-        'form': form, 'title': 'Create Job Order'
+        'form': form,
+        'title': 'Create Job Order',
+        'pm_tasks': pm_tasks,
     })
 
 

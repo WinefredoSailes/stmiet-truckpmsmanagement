@@ -101,7 +101,7 @@ def truck_frequency(request):
 def predictive_analytics(request):
     # ── Failure Frequency ──────────────────────────────────
     breakdowns = JobOrder.objects.filter(
-        job_type='BREAKDOWN', status='CLOSED'
+        job_type='REPAIR', status='CLOSED'
     ).values('truck__unit_number').annotate(
         count=Count('id')
     ).order_by('-count')[:10]
@@ -156,6 +156,34 @@ def predictive_analytics(request):
     part_labels = [p['part_name'] for p in top_parts]
     part_counts = [p['count'] for p in top_parts]
 
+    # ── PM vs Repair Trend (last 12 months) ────────────────
+    twelve_months_ago = timezone.now() - timedelta(days=365)
+    job_trend = JobOrder.objects.filter(
+        created_at__gte=twelve_months_ago
+    ).annotate(
+        month=TruncMonth('created_at')
+    ).values('month', 'job_type').annotate(
+        count=Count('id')
+    ).order_by('month', 'job_type')
+    trend_months = []
+    trend_pm = {}
+    trend_repair = {}
+    trend_inspection = {}
+    for j in job_trend:
+        m = j['month'].strftime('%b %Y') if j['month'] else ''
+        if m not in trend_months:
+            trend_months.append(m)
+        c = j['count']
+        if j['job_type'] == 'PM':
+            trend_pm[m] = c
+        elif j['job_type'] == 'REPAIR':
+            trend_repair[m] = c
+        elif j['job_type'] == 'INSPECTION':
+            trend_inspection[m] = c
+    trend_pm_data = [trend_pm.get(m, 0) for m in trend_months]
+    trend_repair_data = [trend_repair.get(m, 0) for m in trend_months]
+    trend_inspection_data = [trend_inspection.get(m, 0) for m in trend_months]
+
     return render(request, 'kpi/predictive.html', {
         'failure_labels': json.dumps(failure_labels),
         'failure_counts': json.dumps(failure_counts),
@@ -171,6 +199,10 @@ def predictive_analytics(request):
         'overdue_counts': json.dumps(overdue_counts),
         'part_labels': json.dumps(part_labels),
         'part_counts': json.dumps(part_counts),
+        'trend_months': json.dumps(trend_months),
+        'trend_pm_data': json.dumps(trend_pm_data),
+        'trend_repair_data': json.dumps(trend_repair_data),
+        'trend_inspection_data': json.dumps(trend_inspection_data),
     })
 
 

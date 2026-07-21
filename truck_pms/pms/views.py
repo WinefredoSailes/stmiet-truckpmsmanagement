@@ -11,6 +11,7 @@ from accounts.models import User
 from trucks.models import Truck
 from .models import TaskCategory, TaskTemplate, PMSchedule
 from .forms import TaskCategoryForm, TaskTemplateForm, PMScheduleForm
+from service_log.models import ServiceLogEntry
 
 
 @login_required
@@ -350,6 +351,18 @@ def complete_task(request, pk):
         schedule.last_mileage_km = mileage
         schedule.last_engine_hours = hours
         schedule.save()
+
+        ServiceLogEntry.objects.create(
+            truck=truck,
+            action=f'PM completed: {schedule.task_template.name}',
+            description=(
+                f'PM task "{schedule.task_template.name}" marked complete '
+                f'for {truck.unit_number} via direct completion.'
+            ),
+            performed_by=request.user,
+            mileage_at=mileage,
+            engine_hours_at=hours,
+        )
 
         messages.success(
             request,

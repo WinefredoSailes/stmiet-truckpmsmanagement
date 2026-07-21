@@ -20,6 +20,25 @@
                 </div>
                 {% endfor %}
             </div>
+
+            {% if pm_tasks %}
+            <div id="pmTaskSection" class="mt-3 border rounded p-3 bg-light">
+                <h6 class="fw-bold mb-2"><i class="bi bi-list-check"></i> Due / Overdue PM Tasks</h6>
+                <p class="small text-muted mb-2">Select PM tasks to auto-create line items:</p>
+                {% for pm in pm_tasks %}
+                <div class="form-check">
+                    <input class="form-check-input pm-task-checkbox" type="checkbox"
+                           name="pm_tasks" value="{{ pm.pk }}" id="pm_{{ pm.pk }}">
+                    <label class="form-check-label" for="pm_{{ pm.pk }}">
+                        <span class="badge bg-{% if pm.status == 'overdue' %}danger{% elif pm.status == 'due' %}warning{% else %}secondary{% endif %} badge-status me-1">{{ pm.status|upper }}</span>
+                        {{ pm.task_template.name }}
+                        <span class="text-muted small">— {{ pm.task_template.category.name }}</span>
+                    </label>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
             <div class="d-flex gap-2 mt-4">
                 <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> Save</button>
                 <a href="{% url 'joborders:list' %}" class="btn btn-outline-secondary">Cancel</a>
@@ -30,20 +49,34 @@
 {% endblock %}
 {% block extra_scripts %}
 <script>
-document.getElementById('id_job_type').addEventListener('change', function() {
-    var ctRow = document.getElementById('id_contractor').closest('.col-md-6');
-    var asRow = document.getElementById('id_assigned_to').closest('.col-md-6');
-    if (this.value === 'CONTRACTOR') {
-        ctRow.style.display = 'block';
-        asRow.style.display = 'none';
-    } else {
-        ctRow.style.display = 'none';
-        asRow.style.display = 'block';
+(function() {
+    var jobType = document.getElementById('id_job_type');
+    var truck = document.getElementById('id_truck');
+    var pmSection = document.getElementById('pmTaskSection');
+    function togglePmSection() {
+        if (pmSection) {
+            pmSection.style.display = (jobType.value === 'PM') ? 'block' : 'none';
+        }
     }
-});
-document.addEventListener('DOMContentLoaded', function() {
-    var e = document.getElementById('id_job_type');
-    if (e) e.dispatchEvent(new Event('change'));
-});
+    if (jobType) {
+        jobType.addEventListener('change', togglePmSection);
+        togglePmSection();
+    }
+    var ctRow = document.getElementById('id_contractor')?.closest('.col-md-6');
+    var asRow = document.getElementById('id_assigned_to')?.closest('.col-md-6');
+    if (jobType && ctRow && asRow) {
+        function toggleContractor() {
+            if (jobType.value === 'CONTRACTOR') {
+                ctRow.style.display = 'block';
+                asRow.style.display = 'none';
+            } else {
+                ctRow.style.display = 'none';
+                asRow.style.display = 'block';
+            }
+        }
+        jobType.addEventListener('change', toggleContractor);
+        toggleContractor();
+    }
+})();
 </script>
 {% endblock %}
