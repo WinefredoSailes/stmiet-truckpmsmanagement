@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 
 
 class ServiceLogEntry(models.Model):
@@ -20,7 +21,7 @@ class ServiceLogEntry(models.Model):
         'accounts.User', on_delete=models.SET_NULL,
         null=True, related_name='service_log_entries'
     )
-    performed_at = models.DateTimeField(auto_now_add=True)
+    performed_at = models.DateTimeField(default=timezone.now)
     mileage_at = models.IntegerField(null=True, blank=True)
     engine_hours_at = models.DecimalField(
         max_digits=10, decimal_places=1, null=True, blank=True

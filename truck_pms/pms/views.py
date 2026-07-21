@@ -361,6 +361,7 @@ def complete_task(request, pk):
                 f'for {truck.unit_number} via direct completion.'
             ),
             performed_by=request.user,
+            performed_at=dt,
             mileage_at=mileage,
             engine_hours_at=hours,
         )
