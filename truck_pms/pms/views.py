@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Count, Q
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse
 from django.utils import timezone
 from accounts.decorators import role_required
 from accounts.models import User
@@ -380,23 +380,4 @@ def complete_task(request, pk):
         'truck': truck,
         'now': now,
     })
-
-
-@login_required
-def pm_tasks_json(request, truck_pk):
-    pm_schedules = PMSchedule.objects.filter(
-        truck_id=truck_pk, is_active=True
-    ).select_related('task_template__category')
-    tasks = []
-    for s in pm_schedules:
-        st = s.status()
-        if st in ('overdue', 'due'):
-            tasks.append({
-                'pk': s.pk,
-                'name': s.task_template.name,
-                'category': s.task_template.category.name,
-                'status': st,
-            })
-    return JsonResponse(tasks, safe=False)
-
 

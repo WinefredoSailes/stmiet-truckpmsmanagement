@@ -130,28 +130,7 @@ def job_order_create(request):
             if order.job_type == 'CONTRACTOR':
                 order.status = 'OPEN'
             order.save()
-
-            # Auto-create line items from selected PM tasks
-            selected_pm = request.POST.getlist('pm_tasks')
-            if selected_pm and order.job_type == 'PM':
-                pm_schedules = PMSchedule.objects.filter(
-                    pk__in=selected_pm, truck=order.truck
-                ).select_related('task_template')
-                for pm in pm_schedules:
-                    JobOrderLineItem.objects.create(
-                        job_order=order,
-                        task_template=pm.task_template,
-                        category=pm.task_template.category,
-                        description=pm.task_template.name,
-                        estimated_hours=pm.task_template.estimated_labor_hours,
-                    )
-
-            msg = f'Job Order {order.jo_number} created'
-            if selected_pm:
-                msg += f' with {len(selected_pm)} PM task(s).'
-            else:
-                msg += '.'
-            messages.success(request, msg)
+            messages.success(request, f'Job Order {order.jo_number} created.')
             return redirect('joborders:detail', pk=order.pk)
     else:
         form = JobOrderForm()

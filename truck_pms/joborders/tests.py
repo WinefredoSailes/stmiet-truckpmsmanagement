@@ -686,3 +686,177 @@ class ViewTests(TestCase):
             'next': reverse('trucks:detail', args=[self.truck.pk]),
         })
         self.assertRedirects(response, reverse('trucks:detail', args=[self.truck.pk]))
+
+    # ── E2E: Simplified PM Workflow ──────────────────────────────
+
+    def test_e2e_pm_complete_creates_audit_entry(self):
+        """✅ Mark Complete button creates a ServiceLogEntry."""
+        self.client.login(username='staff', password='pass')
+        pm = PMSchedule.objects.first()
+        self.client.post(reverse('pms:complete_task', args=[pm.pk]), {
+            'completed_at': '2026-07-21T08:00',
+            'mileage_km': 11000,
+            'engine_hours': 200,
+            'next': reverse('trucks:detail', args=[self.truck.pk]),
+        })
+        # Audit trail created
+        entry = ServiceLogEntry.objects.filter(truck=self.truck).latest('pk')
+        self.assertIsNotNone(entry)
+        self.assertEqual(entry.performed_by, self.staff)
+        self.assertEqual(entry.mileage_at, 11000)
+        self.assertEqual(entry.engine_hours_at, 200)
+        self.assertIsNone(entry.job_order)  # no JO for direct PM complete
+        self.assertIn('PM completed', entry.action)
+
+    def test_e2e_pm_complete_updates_schedule(self):
+        """✅ Mark Complete updates PM schedule fields."""
+        self.client.login(username='staff', password='pass')
+        pm = PMSchedule.objects.first()
+        self.assertIsNone(pm.last_completed_at)
+        self.client.post(reverse('pms:complete_task', args=[pm.pk]), {
+            'completed_at': '2026-07-21T09:00',
+            'mileage_km': 11000,
+            'engine_hours': 200,
+        })
+        pm.refresh_from_db()
+        self.assertIsNotNone(pm.last_completed_at)
+        self.assertEqual(pm.last_mileage_km, 11000)
+        self.assertEqual(pm.last_engine_hours, 200)
+
+    def test_e2e_jo_create_no_pm_checklist(self):
+        """JO Create form no longer shows PM checklist or auto-creates line items."""
+        self.client.login(username='staff', password='pass')
+        response = self.client.post(reverse('joborders:create'), {
+            'truck': self.truck.pk,
+            'title': 'Test Repair',
+            'description': 'Fix engine',
+            'priority': 'MEDIUM',
+            'job_type': 'REPAIR',
+            'assigned_to': self.mechanic.pk,
+            'status': 'OPEN',
+        })
+        jo = JobOrder.objects.latest('pk')
+        self.assertRedirects(response, reverse('joborders:detail', args=[jo.pk]))
+        # No line items auto-created (JO was REPAIR type anyway)
+        self.assertEqual(jo.line_items.count(), 0)
+
+    def test_e2e_jo_create_pm_type_no_auto_items(self):
+        """JO of type PM does NOT auto-create line items."""
+        self.client.login(username='staff', password='pass')
+        response = self.client.post(reverse('joborders:create'), {
+            'truck': self.truck.pk,
+            'title': 'PM Service',
+            'description': 'Scheduled maintenance',
+            'priority': 'MEDIUM',
+            'job_type': 'PM',
+            'assigned_to': self.mechanic.pk,
+            'status': 'OPEN',
+        })
+        jo = JobOrder.objects.latest('pk')
+        self.assertRedirects(response, reverse('joborders:detail', args=[jo.pk]))
+        # No line items auto-created despite PM job type
+        self.assertEqual(jo.line_items.count(), 0)
+
+    def test_e2e_jo_create_contractor_toggle(self):
+        """CONTRACTOR job type shows contractor field, hides assigned_to."""
+        self.client.login(username='staff', password='pass')
+        # Create JO with CONTRACTOR type
+        response = self.client.post(reverse('joborders:create'), {
+            'truck': self.truck.pk,
+            'title': 'Contractor Work',
+            'description': 'Welding',
+            'priority': 'HIGH',
+            'job_type': 'CONTRACTOR',
+            'contractor': self.contractor.pk,
+            'status': 'OPEN',
+        })
+        jo = JobOrder.objects.latest('pk')
+        self.assertRedirects(response, reverse('joborders:detail', args=[jo.pk]))
+        self.assertEqual(jo.job_type, 'CONTRACTOR')
+        self.assertEqual(jo.contractor, self.contractor)
+        self.assertIsNone(jo.assigned_to)
+
+    def test_e2e_jo_close_updates_pm_schedule(self):
+        """Closing a JO with PM line items updates PMSchedule and creates audit entry."""
+        self.client.login(username='admin', password='pass')
+        # Create JO with a line item referencing a task template
+        jo = JobOrder.objects.create(
+            truck=self.truck, title='PM Close Test', description='Test',
+            priority='MEDIUM', job_type='PM', created_by=self.admin,
+            assigned_to=self.mechanic, status='IN_PROGRESS',
+        )
+        item = JobOrderLineItem.objects.create(
+            job_order=jo, task_template=self.tmpl,
+            category=self.cat, description='Oil Change',
+            status='DONE', actual_hours=1.0,
+        )
+        # Close the JO
+        response = self.client.post(reverse('joborders:close', args=[jo.pk]), {
+            'status': 'CLOSED',
+            'completed_mileage_km': 12000,
+            'completed_engine_hours': 250,
+        })
+        self.assertRedirects(response, reverse('joborders:detail', args=[jo.pk]))
+        # PMSchedule updated
+        pm = PMSchedule.objects.get(truck=self.truck, task_template=self.tmpl)
+        self.assertIsNotNone(pm.last_completed_at)
+        self.assertEqual(pm.last_mileage_km, 12000)
+        self.assertEqual(pm.last_engine_hours, 250)
+        # Audit entry created
+        entry = ServiceLogEntry.objects.filter(job_order=jo).latest('pk')
+        self.assertIsNotNone(entry)
+        self.assertEqual(entry.performed_by, self.admin)
+
+    def test_e2e_truck_detail_pm_list_loads(self):
+        """Truck detail page shows PM schedules with ✅ button."""
+        self.client.login(username='admin', password='pass')
+        response = self.client.get(reverse('trucks:detail', args=[self.truck.pk]))
+        self.assertEqual(response.status_code, 200)
+        # PM schedule rendered in the page
+        self.assertContains(response, 'Change Oil')
+
+    def test_e2e_role_separation_pm_complete(self):
+        """Mechanic and Contractor cannot access ✅ Mark Complete."""
+        pm = PMSchedule.objects.first()
+        for user in [self.mechanic, self.contractor_user]:
+            self.client.login(username=user.username, password='pass')
+            response = self.client.get(reverse('pms:complete_task', args=[pm.pk]))
+            self.assertEqual(response.status_code, 403)
+            self.client.logout()
+
+    def test_e2e_schedule_list_no_edit_link(self):
+        """PM Schedule list no longer shows pencil edit link."""
+        self.client.login(username='admin', password='pass')
+        response = self.client.get(reverse('pms:schedule_list'))
+        self.assertEqual(response.status_code, 200)
+        # Ensure no pencil icon
+        self.assertNotContains(response, 'bi-pencil')
+        # But ✅ button is present
+        self.assertContains(response, 'bi-check-lg')
+
+    def test_e2e_ledger_loads_with_null_job_order(self):
+        """Service ledger handles null job_order gracefully."""
+        self.client.login(username='admin', password='pass')
+        # Create a ServiceLogEntry with null job_order
+        ServiceLogEntry.objects.create(
+            truck=self.truck,
+            action='PM Complete',
+            description='Oil change done via ✅ button',
+            performed_by=self.admin,
+            mileage_at=11000,
+            engine_hours_at=200,
+        )
+        # Truck ledger loads without error
+        response = self.client.get(reverse('service_log:truck_ledger', args=[self.truck.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Oil change done via ✅ button')
+
+    def test_e2e_truck_detail_pm_search_filter(self):
+        """Truck detail page PM search filters results."""
+        self.client.login(username='admin', password='pass')
+        response = self.client.get(
+            reverse('trucks:detail', args=[self.truck.pk]),
+            {'pm_search': 'Change'}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Change Oil')
