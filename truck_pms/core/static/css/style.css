@@ -52,7 +52,13 @@ body {
   background: var(--sidebar-bg);
   box-shadow: 2px 0 5px rgba(0, 0, 0, .08);
   overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   transition: width .2s ease, transform .2s ease;
+}
+
+.sidebar::-webkit-scrollbar {
+  display: none;
 }
 
 .sidebar.collapsed {
