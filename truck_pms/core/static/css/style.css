@@ -80,6 +80,7 @@ body {
 
 .sidebar.collapsed .sidebar-brand span,
 .sidebar.collapsed .sidebar-heading,
+.sidebar.collapsed .nav-section-toggle span,
 .sidebar.collapsed .nav-link span {
   display: none;
 }
@@ -96,6 +97,46 @@ body {
   padding: .8rem 1rem .3rem;
   white-space: nowrap;
   overflow: hidden;
+}
+
+/* collapsible sections */
+.nav-section-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: .5rem 1rem;
+  margin: 2px 0;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, .45);
+  font-size: var(--fs-xxs);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: color .15s;
+}
+
+.nav-section-toggle:hover {
+  color: rgba(255, 255, 255, .7);
+}
+
+.nav-section-toggle .toggle-icon {
+  font-size: .6rem;
+  transition: transform .2s;
+  flex-shrink: 0;
+}
+
+.nav-section-toggle[aria-expanded="false"] .toggle-icon {
+  transform: rotate(-90deg);
+}
+
+.sidebar.collapsed .nav-section-toggle span,
+.sidebar.collapsed .collapse {
+  display: none;
 }
 
 .sidebar .nav-link {
@@ -597,6 +638,7 @@ textarea.form-control {
 
   .sidebar.collapsed .sidebar-brand span,
   .sidebar.collapsed .sidebar-heading,
+  .sidebar.collapsed .nav-section-toggle span,
   .sidebar.collapsed .nav-link span {
     display: inline;
   }

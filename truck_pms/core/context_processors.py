@@ -1,10 +1,14 @@
 from accounts.models import User
 
 
+def _link(label, url_name, icon):
+    return {'label': label, 'url': url_name, 'icon': icon}
+
+
 def sidebar_menu(request):
-    menu = []
+    sections = []
     if not request.user.is_authenticated:
-        return {'sidebar_menu': menu}
+        return {'sidebar_sections': sections}
     role = request.user.role
     is_admin = role in (User.Role.SUPER_ADMIN, User.Role.ADMIN)
     is_staff_or_above = role in (User.Role.SUPER_ADMIN, User.Role.ADMIN, User.Role.STAFF)
@@ -12,52 +16,73 @@ def sidebar_menu(request):
     is_contractor_user = role == User.Role.CONTRACTOR
     is_trainee = role == User.Role.TRAINEE
 
-    # ── Overview ──
-    menu.append({'label': 'Dashboard', 'url': 'accounts:dashboard', 'icon': 'bi-speedometer2'})
-    menu.append({'heading': 'Fleet'})
-    menu.append({'label': 'Trucks', 'url': 'trucks:list', 'icon': 'bi-truck'})
+    # Dashboard — always first, no collapsible section
+    sections.append({'heading': None, 'items': [
+        _link('Dashboard', 'accounts:dashboard', 'bi-speedometer2'),
+    ]})
 
+    # Fleet
+    fleet = [_link('Trucks', 'trucks:list', 'bi-truck')]
+    sections.append({'heading': 'Fleet', 'items': fleet})
+
+    # Preventive Maintenance
     if is_staff_or_above:
-        menu.append({'heading': 'Preventive Maintenance'})
-        menu.append({'label': 'PMS Schedules', 'url': 'pms:schedule_list', 'icon': 'bi-calendar-check'})
+        pm = [_link('PMS Schedules', 'pms:schedule_list', 'bi-calendar-check')]
         if is_admin:
-            menu.append({'label': 'PM Categories', 'url': 'pms:category_list', 'icon': 'bi-tags'})
-            menu.append({'label': 'PM Templates', 'url': 'pms:template_list', 'icon': 'bi-list-task'})
+            pm.append(_link('PM Categories', 'pms:category_list', 'bi-tags'))
+            pm.append(_link('PM Templates', 'pms:template_list', 'bi-list-task'))
+        sections.append({'heading': 'Preventive Maintenance', 'items': pm})
 
+    # Work Orders
     if not is_trainee:
-        menu.append({'heading': 'Work Orders'})
-        menu.append({'label': 'Job Orders', 'url': 'joborders:list', 'icon': 'bi-clipboard-check'})
+        wo = [_link('Job Orders', 'joborders:list', 'bi-clipboard-check')]
         if is_mechanic or is_contractor_user:
-            menu.append({'label': 'My Assignments', 'url': 'joborders:my_assignments', 'icon': 'bi-person-workspace'})
+            wo.append(_link('My Assignments', 'joborders:my_assignments', 'bi-person-workspace'))
+        sections.append({'heading': 'Work Orders', 'items': wo})
 
+    # Service & Contractors
     if is_admin:
-        menu.append({'heading': 'Service & Contractors'})
-        menu.append({'label': 'Service Ledger', 'url': 'service_log:full_ledger', 'icon': 'bi-journal-text'})
-        menu.append({'label': 'Contractors', 'url': 'contractors:list', 'icon': 'bi-building'})
+        sections.append({'heading': 'Service & Contractors', 'items': [
+            _link('Service Ledger', 'service_log:full_ledger', 'bi-journal-text'),
+            _link('Contractors', 'contractors:list', 'bi-building'),
+        ]})
 
-        menu.append({'heading': 'Analytics'})
-        menu.append({'label': 'KPI Reports', 'url': 'kpi:mechanic', 'icon': 'bi-graph-up'})
-        menu.append({'label': 'Trainee KPIs', 'url': 'kpi:trainee', 'icon': 'bi-mortarboard'})
-        menu.append({'label': 'Predictive Analytics', 'url': 'kpi:predictive', 'icon': 'bi-graph-up-arrow'})
+    # Analytics
+    if is_admin:
+        sections.append({'heading': 'Analytics', 'items': [
+            _link('KPI Reports', 'kpi:mechanic', 'bi-graph-up'),
+            _link('Trainee KPIs', 'kpi:trainee', 'bi-mortarboard'),
+            _link('Predictive Analytics', 'kpi:predictive', 'bi-graph-up-arrow'),
+        ]})
 
+    # Training
     if is_staff_or_above or is_trainee:
-        menu.append({'heading': 'Training'})
+        training = []
         if is_trainee:
-            menu.append({'label': 'My Training', 'url': 'training:dashboard', 'icon': 'bi-mortarboard-fill'})
-            menu.append({'label': 'My KPIs', 'url': 'kpi:trainee', 'icon': 'bi-graph-up'})
-            menu.append({'label': 'Holidays', 'url': 'training:holiday_list', 'icon': 'bi-calendar-event'})
+            training.append(_link('My Training', 'training:dashboard', 'bi-mortarboard-fill'))
+            training.append(_link('My KPIs', 'kpi:trainee', 'bi-graph-up'))
+            training.append(_link('Holidays', 'training:holiday_list', 'bi-calendar-event'))
         if is_staff_or_above:
-            menu.append({'label': 'Training Dashboard', 'url': 'training:dashboard', 'icon': 'bi-mortarboard-fill'})
+            training.append(_link('Training Dashboard', 'training:dashboard', 'bi-mortarboard-fill'))
             if is_admin:
-                menu.append({'label': 'Assign Training', 'url': 'training:assign', 'icon': 'bi-person-plus'})
-                menu.append({'label': 'Manage Holidays', 'url': 'training:holiday_list', 'icon': 'bi-calendar-event'})
+                training.append(_link('Assign Training', 'training:assign', 'bi-person-plus'))
+                training.append(_link('Manage Holidays', 'training:holiday_list', 'bi-calendar-event'))
+        sections.append({'heading': 'Training', 'items': training})
 
+    # Administration
     if role == User.Role.SUPER_ADMIN:
-        menu.append({'heading': 'Administration'})
-        menu.append({'label': 'User Management', 'url': 'accounts:user_list', 'icon': 'bi-people'})
+        sections.append({'heading': 'Administration', 'items': [
+            _link('User Management', 'accounts:user_list', 'bi-people'),
+        ]})
 
-    # SOP Manual — visible to all authenticated roles
-    menu.append({'heading': 'Resources'})
-    menu.append({'label': 'SOP Manual', 'url': 'sop:download_page', 'icon': 'bi-book'})
+    # Resources
+    sections.append({'heading': 'Resources', 'items': [
+        _link('SOP Manual', 'sop:download_page', 'bi-book'),
+    ]})
 
-    return {'sidebar_menu': menu}
+    # Account (logout)
+    sections.append({'heading': 'Account', 'items': [
+        _link('Logout', 'accounts:logout', 'bi-box-arrow-left'),
+    ], 'is_logout': True})
+
+    return {'sidebar_sections': sections}
