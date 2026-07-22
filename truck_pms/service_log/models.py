@@ -37,8 +37,31 @@ class ServiceLogEntry(models.Model):
         ordering = ['-performed_at']
         verbose_name_plural = "Service Log Entries"
 
+    def total_parts_cost(self):
+        return sum(p.total_cost() for p in self.parts.all())
+
     def __str__(self):
         return (
             f"{self.performed_at.date()} | "
             f"{self.truck.unit_number} | {self.action}"
         )
+
+
+class ServiceLogPart(models.Model):
+    service_log = models.ForeignKey(
+        ServiceLogEntry, on_delete=models.CASCADE,
+        related_name='parts'
+    )
+    part_name = models.CharField(max_length=200)
+    quantity = models.DecimalField(
+        max_digits=10, decimal_places=2, default=1
+    )
+    unit_cost = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0
+    )
+
+    def total_cost(self):
+        return self.quantity * self.unit_cost
+
+    def __str__(self):
+        return f"{self.part_name} x{self.quantity}"

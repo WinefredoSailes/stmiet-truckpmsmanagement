@@ -28,7 +28,7 @@
     <div class="card-body p-0">
         <table class="table table-hover mb-0">
             <thead><tr>
-                <th>Date</th><th>Truck</th><th>JO #</th><th>Action</th><th>Description</th><th>By</th><th>Labor</th><th>Cost</th>
+                <th>Date</th><th>Truck</th><th>JO #</th><th>Action</th><th>Description</th><th>By</th><th>Labor</th><th>Cost</th><th></th>
             </tr></thead>
             <tbody>
                 {% for log in logs %}
@@ -41,9 +41,21 @@
                     <td>{{ log.performed_by.get_full_name|default:log.performed_by.username|default:'—' }}</td>
                     <td>{{ log.labor_hours|default:'—' }} hrs</td>
                     <td>{% if log.parts_cost %}P{{ log.parts_cost|floatformat:2 }}{% else %}—{% endif %}</td>
+                    <td>{% if log.parts.all %}<button class="btn btn-sm btn-outline-info py-0 px-1" data-bs-toggle="collapse" data-bs-target="#parts-{{ log.pk }}"><i class="bi bi-box-seam"></i></button>{% endif %}</td>
                 </tr>
+                {% if log.parts.all %}
+                <tr class="collapse" id="parts-{{ log.pk }}">
+                    <td colspan="9" class="bg-light p-2">
+                        <ul class="mb-0 small">
+                            {% for p in log.parts.all %}
+                            <li>{{ p.part_name }} — {{ p.quantity }} x P{{ p.unit_cost|floatformat:2 }} = <strong>P{{ p.total_cost|floatformat:2 }}</strong></li>
+                            {% endfor %}
+                        </ul>
+                    </td>
+                </tr>
+                {% endif %}
                 {% empty %}
-                <tr><td colspan="8" class="text-center py-4 text-muted">No records found.</td></tr>
+                <tr><td colspan="9" class="text-center py-4 text-muted">No records found.</td></tr>
                 {% endfor %}
             </tbody>
         </table>

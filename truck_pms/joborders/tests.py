@@ -860,3 +860,126 @@ class ViewTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Change Oil')
+
+    # ── E2E: Truck Import / Export ───────────────────────────────
+
+    def test_e2e_truck_export_csv_downloads(self):
+        """Export CSV returns a CSV file with headers and truck data."""
+        self.client.login(username='admin', password='pass')
+        response = self.client.get(reverse('trucks:export_csv'))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'text/csv')
+        content = response.content.decode('utf-8')
+        self.assertIn('unit_number', content)
+        self.assertIn(self.truck.unit_number, content)
+
+    def test_e2e_truck_export_csv_allows_staff(self):
+        """Staff can export CSV (read-only access)."""
+        self.client.login(username='staff', password='pass')
+        response = self.client.get(reverse('trucks:export_csv'))
+        self.assertEqual(response.status_code, 200)
+
+    def test_e2e_truck_import_csv_creates_new(self):
+        """Import CSV creates new trucks."""
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        self.client.login(username='admin', password='pass')
+        csv_content = (
+            'unit_number,plate_number,make,model,year,status\n'
+            'IMP-001,XYZ-123,TestMake,TestModel,2025,ACTIVE\n'
+            'IMP-002,XYZ-456,TestMake,TestModel,2024,ACTIVE\n'
+        )
+        response = self.client.post(reverse('trucks:import_csv'), {
+            'csv_file': SimpleUploadedFile('trucks.csv', csv_content.encode(), content_type='text/csv'),
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(Truck.objects.filter(unit_number='IMP-001').exists())
+        self.assertTrue(Truck.objects.filter(unit_number='IMP-002').exists())
+        self.assertContains(response, '2 created')
+
+    def test_e2e_truck_import_csv_updates_existing(self):
+        """Import CSV updates existing trucks matched by unit_number."""
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        self.client.login(username='admin', password='pass')
+        csv_content = (
+            'unit_number,plate_number,make,model,year,status\n'
+            f'{self.truck.unit_number},UPDATED-001,{self.truck.make},{self.truck.model},{self.truck.year},ACTIVE\n'
+        )
+        response = self.client.post(reverse('trucks:import_csv'), {
+            'csv_file': SimpleUploadedFile('trucks.csv', csv_content.encode(), content_type='text/csv'),
+        })
+        self.assertEqual(response.status_code, 200)
+        self.truck.refresh_from_db()
+        self.assertEqual(self.truck.plate_number, 'UPDATED-001')
+        self.assertContains(response, '1 updated')
+
+    def test_e2e_truck_import_csv_denied_for_mechanic(self):
+        """Mechanic cannot import CSV."""
+        self.client.login(username='mech', password='pass')
+        response = self.client.get(reverse('trucks:import_csv'))
+        self.assertEqual(response.status_code, 403)
+
+    def test_e2e_pm_complete_saves_labor_hours(self):
+        """✅ Mark Complete saves labor hours to ServiceLogEntry."""
+        self.client.login(username='staff', password='pass')
+        pm = PMSchedule.objects.first()
+        self.client.post(reverse('pms:complete_task', args=[pm.pk]), {
+            'completed_at': '2026-07-22T08:00',
+            'mileage_km': 11000,
+            'engine_hours': 200,
+            'labor_hours': 2.5,
+        })
+        entry = ServiceLogEntry.objects.filter(truck=self.truck).latest('pk')
+        self.assertEqual(entry.labor_hours, 2.5)
+
+    def test_e2e_pm_complete_saves_parts(self):
+        """✅ Mark Complete saves parts and computes total cost."""
+        self.client.login(username='staff', password='pass')
+        pm = PMSchedule.objects.first()
+        self.client.post(reverse('pms:complete_task', args=[pm.pk]), {
+            'completed_at': '2026-07-22T09:00',
+            'mileage_km': 11000,
+            'engine_hours': 200,
+            'part_name_0': 'Oil Filter',
+            'part_qty_0': 1,
+            'part_cost_0': 350,
+            'part_name_1': 'Engine Oil',
+            'part_qty_1': 5,
+            'part_cost_1': 180,
+        })
+        entry = ServiceLogEntry.objects.filter(truck=self.truck).latest('pk')
+        parts = entry.parts.all()
+        self.assertEqual(parts.count(), 2)
+        self.assertEqual(entry.parts_cost, 350 + 5 * 180)
+        names = [p.part_name for p in parts]
+        self.assertIn('Oil Filter', names)
+        self.assertIn('Engine Oil', names)
+
+    def test_e2e_ledger_displays_parts(self):
+        """Service ledger shows parts breakdown for log entries with parts."""
+        self.client.login(username='admin', password='pass')
+        entry = ServiceLogEntry.objects.create(
+            truck=self.truck,
+            action='PM with parts',
+            description='Test with parts',
+            performed_by=self.admin,
+            parts_cost=100,
+        )
+        from service_log.models import ServiceLogPart
+        ServiceLogPart.objects.create(
+            service_log=entry, part_name='Brake Pad',
+            quantity=4, unit_cost=250,
+        )
+        response = self.client.get(reverse('service_log:truck_ledger', args=[self.truck.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Brake Pad')
+        self.assertContains(response, 'bi-box-seam')
+
+    def test_e2e_truck_import_csv_requires_csv_extension(self):
+        """Non-CSV file upload is rejected."""
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        self.client.login(username='admin', password='pass')
+        response = self.client.post(reverse('trucks:import_csv'), {
+            'csv_file': SimpleUploadedFile('test.txt', b'not csv', content_type='text/plain'),
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Only CSV files')

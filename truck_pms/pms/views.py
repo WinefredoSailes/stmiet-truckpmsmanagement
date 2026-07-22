@@ -12,7 +12,7 @@ from accounts.models import User
 from trucks.models import Truck
 from .models import TaskCategory, TaskTemplate, PMSchedule
 from .forms import TaskCategoryForm, TaskTemplateForm, PMScheduleForm
-from service_log.models import ServiceLogEntry
+from service_log.models import ServiceLogEntry, ServiceLogPart
 
 
 @login_required
@@ -353,7 +353,13 @@ def complete_task(request, pk):
         schedule.last_engine_hours = hours
         schedule.save()
 
-        ServiceLogEntry.objects.create(
+        labor = request.POST.get('labor_hours')
+        try:
+            labor_hours = float(labor) if labor else None
+        except (ValueError, TypeError):
+            labor_hours = None
+
+        entry = ServiceLogEntry.objects.create(
             truck=truck,
             action=f'PM completed: {schedule.task_template.name}',
             description=(
@@ -364,7 +370,28 @@ def complete_task(request, pk):
             performed_at=dt,
             mileage_at=mileage,
             engine_hours_at=hours,
+            labor_hours=labor_hours,
         )
+
+        parts_total = 0
+        for key, val in request.POST.items():
+            if key.startswith('part_name_'):
+                i = key.replace('part_name_', '')
+                name = val.strip()
+                if not name:
+                    continue
+                qty = request.POST.get(f'part_qty_{i}', '1')
+                cost = request.POST.get(f'part_cost_{i}', '0')
+                ServiceLogPart.objects.create(
+                    service_log=entry,
+                    part_name=name,
+                    quantity=float(qty) if qty else 1,
+                    unit_cost=float(cost) if cost else 0,
+                )
+                parts_total += float(qty) * float(cost)
+        if parts_total:
+            entry.parts_cost = parts_total
+            entry.save(update_fields=['parts_cost'])
 
         messages.success(
             request,

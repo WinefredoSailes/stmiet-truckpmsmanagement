@@ -4,7 +4,7 @@
 {% block page_title %}Complete PM Task{% endblock %}
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-md-6">
+    <div class="col-md-8">
         <div class="card">
             <div class="card-body">
                 <dl class="row mb-3 small">
@@ -41,6 +41,31 @@
                         <input type="number" name="engine_hours" class="form-control"
                                value="{{ truck.current_engine_hours }}" min="0" step="0.1">
                     </div>
+                    <div class="mb-3">
+                        <label class="form-label">Labor Hours</label>
+                        <input type="number" name="labor_hours" class="form-control"
+                               value="0" min="0" step="0.5" placeholder="e.g. 1.5">
+                    </div>
+
+                    <div class="mb-3 border rounded p-3 bg-light">
+                        <h6 class="fw-bold mb-2"><i class="bi bi-box-seam"></i> Parts Used</h6>
+                        <table class="table table-sm mb-0" id="partsTable">
+                            <thead>
+                                <tr><th style="width:50%">Part Name</th><th style="width:20%">Qty</th><th style="width:20%">Unit Cost</th><th style="width:10%"></th></tr>
+                            </thead>
+                            <tbody id="partsBody">
+                                <tr class="part-row">
+                                    <td><input type="text" name="part_name_0" class="form-control form-control-sm" placeholder="e.g. Oil Filter"></td>
+                                    <td><input type="number" name="part_qty_0" class="form-control form-control-sm" value="1" min="1" step="1"></td>
+                                    <td><input type="number" name="part_cost_0" class="form-control form-control-sm part-cost" value="0" min="0" step="0.01"></td>
+                                    <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger remove-part py-0 px-1"><i class="bi bi-x"></i></button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <button type="button" class="btn btn-sm btn-outline-primary mt-1" id="addPartBtn"><i class="bi bi-plus"></i> Add Part</button>
+                        <div class="mt-2 text-end small fw-bold">Total Parts: P<span id="partsTotal">0.00</span></div>
+                    </div>
+
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-success"><i class="bi bi-check-lg"></i> Mark Complete</button>
                         <a href="#" onclick="history.back(); return false;" class="btn btn-outline-secondary">Cancel</a>
@@ -50,4 +75,48 @@
         </div>
     </div>
 </div>
+{% endblock %}
+{% block extra_scripts %}
+<script>
+(function() {
+    var idx = 1;
+    var table = document.getElementById('partsBody');
+    var addBtn = document.getElementById('addPartBtn');
+
+    function updateTotal() {
+        var inputs = document.querySelectorAll('.part-cost');
+        var total = 0;
+        for (var i = 0; i < inputs.length; i++) {
+            total += parseFloat(inputs[i].value) || 0;
+        }
+        document.getElementById('partsTotal').textContent = total.toFixed(2);
+    }
+
+    addBtn.addEventListener('click', function() {
+        var tr = document.createElement('tr');
+        tr.className = 'part-row';
+        tr.innerHTML =
+            '<td><input type="text" name="part_name_' + idx + '" class="form-control form-control-sm" placeholder="e.g. Oil Filter"></td>' +
+            '<td><input type="number" name="part_qty_' + idx + '" class="form-control form-control-sm" value="1" min="1" step="1"></td>' +
+            '<td><input type="number" name="part_cost_' + idx + '" class="form-control form-control-sm part-cost" value="0" min="0" step="0.01"></td>' +
+            '<td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger remove-part py-0 px-1"><i class="bi bi-x"></i></button></td>';
+        table.appendChild(tr);
+        idx++;
+        tr.querySelector('.part-cost').addEventListener('input', updateTotal);
+        tr.querySelector('.remove-part').addEventListener('click', function() { tr.remove(); updateTotal(); });
+    });
+
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.remove-part')) {
+            e.target.closest('tr').remove();
+            updateTotal();
+        }
+    });
+
+    document.querySelectorAll('.part-cost').forEach(function(el) {
+        el.addEventListener('input', updateTotal);
+    });
+    updateTotal();
+})();
+</script>
 {% endblock %}

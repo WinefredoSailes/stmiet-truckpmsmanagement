@@ -1,0 +1,69 @@
+{% extends 'core/base.html' %}
+{% block title %}Import Trucks{% endblock %}
+{% block back_link %}<a href="{% url 'trucks:list' %}" class="btn btn-sm btn-outline-secondary me-2"><i class="bi bi-arrow-left"></i></a>{% endblock %}
+{% block page_title %}Import Trucks from CSV{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-3">
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger py-2 small">{{ form.non_field_errors|join:', ' }}</div>
+                    {% endif %}
+                    {% for field in form %}
+                    <div class="mb-3">
+                        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.errors %}<div class="text-danger small mt-1">{{ field.errors|join:', ' }}</div>{% endif %}
+                        {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                    </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-upload"></i> Import</button>
+                    <a href="{% url 'trucks:list' %}" class="btn btn-outline-secondary">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-info-circle"></i> Import Instructions</div>
+            <div class="card-body small">
+                <p>Upload a CSV file with the following columns (first row must be headers):</p>
+                <ul class="mb-2">
+                    <li><code>unit_number</code> (required, unique)</li>
+                    <li><code>plate_number</code></li>
+                    <li><code>make</code>, <code>model</code>, <code>year</code></li>
+                    <li><code>status</code> (ACTIVE, DOWN, or RETIRED)</li>
+                    <li><code>current_mileage_km</code></li>
+                    <li><code>current_engine_hours</code></li>
+                    <li><code>chassis_number</code>, <code>engine_number</code></li>
+                    <li><code>fuel_type</code>, <code>tank_capacity_liters</code></li>
+                    <li>CR fields: <code>mv_file_no</code>, <code>cr_number</code>, <code>or_number</code>, <code>or_expiry</code>, etc.</li>
+                    <li><code>notes</code></li>
+                </ul>
+                <p class="mb-0">If a truck with the same <code>unit_number</code> exists, it will be <strong>updated</strong>. Otherwise a new truck is <strong>created</strong>.</p>
+                <hr>
+                <p class="mb-0"><a href="{% url 'trucks:export_csv' %}" class="btn btn-sm btn-outline-success"><i class="bi bi-download"></i> Download sample CSV</a></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if results %}
+<div class="card mt-3">
+    <div class="card-header"><i class="bi bi-clipboard-check"></i> Import Results</div>
+    <div class="card-body">
+        <p><strong>{{ results.created }}</strong> truck(s) created, <strong>{{ results.updated }}</strong> truck(s) updated.</p>
+        {% if results.errors %}
+        <h6 class="text-danger">Errors ({{ results.errors|length }})</h6>
+        <ul class="small text-danger mb-0">
+            {% for e in results.errors %}<li>{{ e }}</li>{% endfor %}
+        </ul>
+        {% endif %}
+        <a href="{% url 'trucks:list' %}" class="btn btn-primary mt-2"><i class="bi bi-arrow-left"></i> Back to Fleet</a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

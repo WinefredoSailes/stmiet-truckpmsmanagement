@@ -4,9 +4,13 @@
 {% block content %}
 <div class="page-header">
     <span class="text-muted">{{ page_obj.paginator.count }} truck(s)</span>
-    {% if request.user.role == 'SUPER_ADMIN' or request.user.role == 'ADMIN' %}
-    <a href="{% url 'trucks:create' %}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg"></i> Add Truck</a>
-    {% endif %}
+    <div class="d-inline-block">
+        <a href="{% url 'trucks:export_csv' %}" class="btn btn-sm btn-outline-success"><i class="bi bi-download"></i> Export CSV</a>
+        {% if request.user.role == 'SUPER_ADMIN' or request.user.role == 'ADMIN' %}
+        <a href="{% url 'trucks:import_csv' %}" class="btn btn-sm btn-outline-info"><i class="bi bi-upload"></i> Import CSV</a>
+        <a href="{% url 'trucks:create' %}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg"></i> Add Truck</a>
+        {% endif %}
+    </div>
 </div>
 <div class="card">
     <div class="card-body p-0">
