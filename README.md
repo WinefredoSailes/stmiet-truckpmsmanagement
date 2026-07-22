@@ -1,5 +1,7 @@
 # Truck PMS & Servicing System
 
+**Status: 🟢 Live in Production** — actively used by STMIET fleet operations.
+
 A Django-based Preventive Maintenance System for internal fuel tanker fleet management. Tracks maintenance schedules, job orders (repairs/PMS), parts usage, contractor services, mechanic KPI, OJT training and trainee KPIs — all in one system.
 
 > **Detailed operational procedures** — tools/equipment handling, step-by-step repair and PMS actions, PPE requirements, safety protocols — are documented in the built-in **SOP Manual** (Sidebar → SOP Manual). This README covers system setup and architecture only.
@@ -126,7 +128,7 @@ python manage.py runserver 0.0.0.0:8000
 | `trucks` | Truck/fleet asset management with 17 Certificate of Registration fields |
 | `pms` | Task categories (23), task templates (154), per-truck PM schedules with auto-status |
 | `joborders` | Job Orders, line items, parts tracking, close-flow with PM schedule update |
-| `service_log` | Immutable audit trail of all work done (populated on JO close) |
+| `service_log` | Immutable audit trail of all work done — populated on JO close or ✅ PM completion. `ServiceLogPart` stores itemized parts breakdown. |
 | `contractors` | External vendor registry (skills, contact, history) |
 | `kpi` | Computed reports: mechanic KPI, contractor rates, truck frequency, predictive analytics, **trainee KPIs (weighted 50/10/20/20)** |
 | `training` | OJT onboarding: attendance check-in/out (holiday-aware), task ratings (1-5), weekly reviews, **holiday calendar model** |
@@ -141,7 +143,7 @@ TaskCategory ──1:N── TaskTemplate ──1:N── PMSchedule ──N:1�
                                                     ▼
 JobOrder ──1:N── JobOrderLineItem ──1:N── LineItemPart
     │
-    └──1:N── ServiceLogEntry
+    └──1:N── ServiceLogEntry ──1:N── ServiceLogPart
 
 Training ──1:N── Attendance
          ├── TaskRating (links to TaskTemplate)
@@ -158,6 +160,16 @@ Each PMSchedule's `status()` method runs live (no stored field):
 - **CALENDAR**: compares current datetime against `last_completed_at + interval_value` days
 - **VISUAL**: always returns `"visual"` (no auto-calculation)
 - **"Due" threshold**: within 10% of the interval value
+
+### New in This Release
+
+| Feature | Details |
+|---|---|
+| **Simplified PM Workflow** | ✅ Mark Complete button is the primary PM path — creates audit trail (`ServiceLogEntry`) without requiring a Job Order. PM-to-JO dynamic checklist removed to eliminate confusion. |
+| **Parts & Labor Tracking** | Inline parts entry on ✅ Mark Complete form (part name, qty, unit cost). Labor hours field. Parts stored in new `ServiceLogPart` model, displayed in service ledger with collapsible detail rows. |
+| **Fleet Import/Export** | Export all trucks as CSV (Staff+). Import CSV to batch create/update trucks (Admin+). Auto-seeds PM schedules for newly imported trucks. |
+| **Collapsible Sidebar** | Sidebar sections now collapse/expand with click. Sections start collapsed; active page auto-expands its parent. Scrollbar hidden for a cleaner look. |
+| **Audit Trail** | `ServiceLogEntry` tracks every PM completion with mileage, engine hours, labor hours, and parts cost. `job_order` field made nullable to support direct PM completions. |
 
 ### Tech Stack
 
@@ -192,8 +204,10 @@ python manage.py build_sop
 
 ### Quick Reference by Role
 
+Sidebar sections are **collapsible** — click a heading to expand/collapse. Sections start collapsed; the section containing the current page auto-expands.
+
 | Role | Login Redirect | Sidebar Sections |
-|---|---|---|---|
+|---|---|---|
 | **Super Admin** | Dashboard | Overview, Fleet, Preventive Maintenance, Work Orders, Service & Contractors, Analytics, Training, Administration (User Mgmt), Resources |
 | **Admin** | Dashboard | Overview, Fleet, Preventive Maintenance, Work Orders, Service & Contractors, Analytics, Training (incl. Assign + Manage Holidays), Resources |
 | **Staff** | Dashboard | Overview, Fleet, Preventive Maintenance (PMS Schedules), Work Orders, Training (Dashboard), Resources |
