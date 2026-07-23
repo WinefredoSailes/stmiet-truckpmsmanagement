@@ -9,7 +9,7 @@ from django.http import HttpResponse
 from accounts.decorators import role_required
 from accounts.models import User
 from .models import Truck
-from .forms import TruckForm, TruckImportForm, IMPORT_FIELDS
+from .forms import TruckForm, TruckImportForm, MileageUpdateForm, IMPORT_FIELDS
 from pms.models import PMSchedule, TaskTemplate, TaskCategory
 
 
@@ -25,6 +25,14 @@ def truck_list(request):
 @login_required
 def truck_detail(request, pk):
     truck = get_object_or_404(Truck, pk=pk)
+    if request.method == 'POST' and 'mileage_update' in request.POST:
+        form = MileageUpdateForm(request.POST)
+        if form.is_valid() and request.user.role in (User.Role.SUPER_ADMIN, User.Role.ADMIN, User.Role.STAFF):
+            truck.current_mileage_km = form.cleaned_data['current_mileage_km']
+            truck.current_engine_hours = form.cleaned_data['current_engine_hours']
+            truck.save(update_fields=['current_mileage_km', 'current_engine_hours', 'updated_at'])
+            messages.success(request, 'Mileage & hours updated.')
+            return redirect('trucks:detail', pk=truck.pk)
     search = request.GET.get('pm_search', '').strip()
     pm_schedules = PMSchedule.objects.filter(truck=truck).select_related(
         'task_template__category'
@@ -205,4 +213,39 @@ def truck_import_csv(request):
         form = TruckImportForm()
     return render(request, 'trucks/import.html', {
         'form': form, 'results': results, 'title': 'Import Trucks'
+    })
+
+
+@login_required
+@role_required(User.Role.SUPER_ADMIN, User.Role.ADMIN, User.Role.STAFF)
+def batch_update_mileage(request):
+    if request.method == 'POST':
+        updated = 0
+        errors = []
+        for key, value in request.POST.items():
+            if key.startswith('mileage_'):
+                truck_id = key.replace('mileage_', '')
+                hours_key = f'hours_{truck_id}'
+                try:
+                    truck = Truck.objects.get(pk=truck_id)
+                    old_mileage = truck.current_mileage_km
+                    old_hours = truck.current_engine_hours
+                    new_mileage = int(value) if value else truck.current_mileage_km
+                    new_hours = float(request.POST.get(hours_key, 0)) if request.POST.get(hours_key) else truck.current_engine_hours
+                    if new_mileage != old_mileage or new_hours != old_hours:
+                        truck.current_mileage_km = new_mileage
+                        truck.current_engine_hours = new_hours
+                        truck.save(update_fields=['current_mileage_km', 'current_engine_hours'])
+                        updated += 1
+                except (Truck.DoesNotExist, ValueError) as e:
+                    errors.append(f'Truck #{truck_id}: {e}')
+        if errors:
+            messages.warning(request, f'Mileage updated for {updated} truck(s). {len(errors)} error(s).')
+        else:
+            messages.success(request, f'Mileage updated for {updated} truck(s).')
+        return redirect('trucks:batch_mileage')
+    trucks = Truck.objects.filter(status='ACTIVE').order_by('unit_number')
+    return render(request, 'trucks/mileage_update.html', {
+        'trucks': trucks,
+        'title': 'Update Mileage & Engine Hours',
     })

@@ -10,4 +10,5 @@ urlpatterns = [
     path('<int:pk>/edit/', views.truck_update, name='update'),
     path('export-csv/', views.truck_export_csv, name='export_csv'),
     path('import-csv/', views.truck_import_csv, name='import_csv'),
+    path('update-mileage/', views.batch_update_mileage, name='batch_mileage'),
 ]

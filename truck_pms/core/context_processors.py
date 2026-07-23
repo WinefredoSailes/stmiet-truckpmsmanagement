@@ -23,6 +23,8 @@ def sidebar_menu(request):
 
     # Fleet
     fleet = [_link('Trucks', 'trucks:list', 'bi-truck')]
+    if is_staff_or_above:
+        fleet.append(_link('Update Mileage', 'trucks:batch_mileage', 'bi-speedometer'))
     sections.append({'heading': 'Fleet', 'items': fleet})
 
     # Preventive Maintenance

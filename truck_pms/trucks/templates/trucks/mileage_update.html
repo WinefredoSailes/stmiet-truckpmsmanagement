@@ -1,0 +1,81 @@
+{% extends 'core/base.html' %}
+{% block title %}Update Mileage{% endblock %}
+{% block page_title %}Update Mileage &amp; Engine Hours{% endblock %}
+{% block content %}
+<div class="page-header">
+    <span class="text-muted">{{ trucks|length }} active truck(s)</span>
+    <div>
+        <a href="{% url 'trucks:list' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> Back to Fleet</a>
+    </div>
+</div>
+<div class="card">
+    <div class="card-header fw-bold d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-speedometer2 me-1"></i> Batch Mileage Update</span>
+        <small class="text-muted">Enter current odometer readings from Cartrack or fuel logs</small>
+    </div>
+    <div class="card-body p-0">
+        <form method="post" id="mileage-form">
+            {% csrf_token %}
+            <div class="table-responsive">
+                <table class="table table-hover table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-3">Unit #</th>
+                            <th>Plate #</th>
+                            <th>Make / Model</th>
+                            <th style="width:160px">Current Mileage (km)</th>
+                            <th style="width:140px">Engine Hours</th>
+                            <th style="width:100px">Last Updated</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for t in trucks %}
+                        <tr>
+                            <td class="ps-3 fw-medium">{{ t.unit_number }}</td>
+                            <td>{{ t.plate_number }}</td>
+                            <td>{{ t.make }} {{ t.model }} ({{ t.year }})</td>
+                            <td>
+                                <input type="number" name="mileage_{{ t.pk }}" value="{{ t.current_mileage_km }}" min="0"
+                                    class="form-control form-control-sm mileage-input"
+                                    data-unit="{{ t.unit_number }}">
+                            </td>
+                            <td>
+                                <input type="number" name="hours_{{ t.pk }}" value="{{ t.current_engine_hours }}" step="0.1" min="0"
+                                    class="form-control form-control-sm">
+                            </td>
+                            <td class="small text-muted">{{ t.updated_at|date:'m/d'|default:'-' }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="6" class="text-center text-muted py-4">No active trucks found.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% if trucks %}
+            <div class="card-footer text-end">
+                <button type="submit" class="btn btn-success"><i class="bi bi-check-lg"></i> Update All</button>
+            </div>
+            {% endif %}
+        </form>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('mileage-form');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            const inputs = document.querySelectorAll('.mileage-input');
+            let count = 0;
+            inputs.forEach(function(inp) {
+                if (inp.value !== inp.defaultValue) count++;
+            });
+            if (count === 0 && !confirm('No values changed. Submit anyway?')) {
+                e.preventDefault();
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

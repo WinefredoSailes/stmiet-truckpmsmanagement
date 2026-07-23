@@ -47,3 +47,16 @@ class TruckImportForm(forms.Form):
         if not f.name.endswith('.csv'):
             raise ValidationError('Only CSV files are accepted.')
         return f
+
+
+class MileageUpdateForm(forms.Form):
+    """Single-truck mileage update — used on detail page."""
+    current_mileage_km = forms.IntegerField(
+        min_value=0, label='Current Mileage (km)',
+        widget=forms.NumberInput(attrs={'class': 'form-control form-control-sm'})
+    )
+    current_engine_hours = forms.DecimalField(
+        max_digits=10, decimal_places=1, min_value=0,
+        label='Engine Hours',
+        widget=forms.NumberInput(attrs={'class': 'form-control form-control-sm', 'step': '0.1'})
+    )

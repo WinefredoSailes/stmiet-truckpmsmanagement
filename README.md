@@ -17,6 +17,7 @@ A Django-based Preventive Maintenance System for internal fuel tanker fleet mana
 - [Quick Start](#quick-start-script)
 - [Deployment to Render](#deployment-to-render)
 - [Architecture](#architecture)
+- [Documentation](#documentation)
 - [User Guide](#user-guide)
 
 ---
@@ -165,8 +166,10 @@ Each PMSchedule's `status()` method runs live (no stored field):
 
 | Feature | Details |
 |---|---|
+| **SOP Expansion (34 Procedures)** | SOP manual expanded from 23 to 34 detailed procedures — added 11 new sections covering Transmission & Clutch (with clutch booster diagnostics), HVAC, Hydraulics, Suspension, Exhaust, Body & Chassis, Fuel System, Steering, Cooling Aux, Air Intake, and Pre-Trip Walk-Around. Bilingual (EN + TL). |
 | **Simplified PM Workflow** | ✅ Mark Complete button is the primary PM path — creates audit trail (`ServiceLogEntry`) without requiring a Job Order. PM-to-JO dynamic checklist removed to eliminate confusion. |
 | **Parts & Labor Tracking** | Inline parts entry on ✅ Mark Complete form (part name, qty, unit cost). Labor hours field. Parts stored in new `ServiceLogPart` model, displayed in service ledger with collapsible detail rows. |
+| **Batch Mileage Update** | Sidebar → Fleet → Update Mileage page (Staff+) — table of all active trucks with inline mileage/engine-hours fields. One-click update from Cartrack data. Quick-update form also on each truck detail page. Updates propagate instantly to PM schedule statuses. |
 | **Fleet Import/Export** | Export all trucks as CSV (Staff+). Import CSV to batch create/update trucks (Admin+). Auto-seeds PM schedules for newly imported trucks. |
 | **Collapsible Sidebar** | Sidebar sections now collapse/expand with click. Sections start collapsed; active page auto-expands its parent. Scrollbar hidden for a cleaner look. |
 | **Audit Trail** | `ServiceLogEntry` tracks every PM completion with mileage, engine hours, labor hours, and parts cost. `job_order` field made nullable to support direct PM completions. |
@@ -184,13 +187,19 @@ Each PMSchedule's `status()` method runs live (no stored field):
 
 ## User Guide
 
-> **Full user documentation** is available in [USER_GUIDE.md](USER_GUIDE.md) — covers every feature, role-by-role workflow, and step-by-step procedures for the SOP handbook.
+> **Full user documentation** is available in [docs/USER_GUIDE.md](docs/USER_GUIDE.md) — covers every feature, role-by-role workflow, and step-by-step procedures for the SOP handbook.
+>
+> **Developer handoff guide** → [docs/DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md)
+>
+> **System orientation outline** → [docs/ORIENTATION_GUIDE.md](docs/ORIENTATION_GUIDE.md)
+>
+> **Pre-seeded accounts reference** → [docs/SEED_ACCOUNTS.md](docs/SEED_ACCOUNTS.md)
 
 ### SOP Manual
 
 A downloadable SOP handbook is available at **Sidebar → SOP Manual** for all logged-in users.
 
-- **English Edition:** Full 8-volume, 4-appendix manual covering 23 PM category procedures (with step-by-step instructions, required tools/PPE, and acceptance criteria), repair workflow, safety, HAZMAT, training, and more.
+- **English Edition:** Full 8-volume, 4-appendix manual covering **34 PM procedures across 23 categories** (with step-by-step instructions, required tools/PPE, diagnostic criteria, and acceptance criteria), repair workflow, safety, HAZMAT, training, and more.
 - **Tagalog Edition:** Same content in Filipino.
 - **Browser-Print Fallback:** If PDF is not yet generated, the system serves the full HTML page — use Ctrl+P → "Save as PDF."
 
