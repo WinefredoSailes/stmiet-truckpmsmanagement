@@ -27,6 +27,7 @@ def sidebar_menu(request):
         fleet.append(_link('Update Mileage', 'trucks:batch_mileage', 'bi-speedometer'))
         fleet.append(_link('Daily Log', 'fleetops:daily_log', 'bi-journal-text'))
         fleet.append(_link('Fleet Performance', 'fleetops:fleet_performance', 'bi-graph-up'))
+        fleet.append(_link('Weekly Report', 'fleetops:weekly_report', 'bi-calendar-week'))
         fleet.append(_link('Driver Assignments', 'fleetops:assignment_list', 'bi-people'))
         fleet.append(_link('Compliance & Expiry', 'fleetops:compliance_dashboard', 'bi-shield-check'))
     if is_admin:

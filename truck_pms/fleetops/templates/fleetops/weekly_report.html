@@ -1,0 +1,160 @@
+{% extends 'core/base.html' %}
+{% load static %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0">Weekly Performance Report</h2>
+  <form method="get" class="row g-2 align-items-end">
+    <div class="col-auto">
+      <label class="form-label small mb-0">Start</label>
+      <input type="date" name="start" value="{{ start|date:'Y-m-d' }}" class="form-control form-control-sm">
+    </div>
+    <div class="col-auto">
+      <label class="form-label small mb-0">End</label>
+      <input type="date" name="end" value="{{ end|date:'Y-m-d' }}" class="form-control form-control-sm">
+    </div>
+    <div class="col-auto">
+      <label class="form-label small mb-0">&nbsp;</label>
+      <button type="submit" class="btn btn-sm btn-outline-primary d-block">Filter</button>
+    </div>
+  </form>
+</div>
+
+{% if truck_rows %}
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <div class="card text-center p-2">
+      <div class="small text-muted">Total Distance (km)</div>
+      <div class="h5 mb-0">{{ total_distance }}</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-center p-2">
+      <div class="small text-muted">Total Fuel (L)</div>
+      <div class="h5 mb-0">{{ total_fuel }}</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-center p-2">
+      <div class="small text-muted">Avg Efficiency (km/L)</div>
+      <div class="h5 mb-0">{{ total_efficiency|default:'—' }}</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-center p-2">
+      <div class="small text-muted">Utilization</div>
+      <div class="h5 mb-0">{{ total_utilization|default:'—' }}%</div>
+    </div>
+  </div>
+</div>
+
+<h4 class="mb-2">Per-Truck Summary</h4>
+<div class="table-responsive">
+  <table class="table table-sm table-bordered text-center small" style="font-size:11px">
+    <thead class="table-secondary">
+      <tr>
+        <th>Unit</th>
+        <th>Plate</th>
+        <th>Driver</th>
+        <th>Days</th>
+        <th>Dist (km)</th>
+        <th>Fuel (L)</th>
+        <th>km/L</th>
+        <th>L/hr</th>
+        <th>Op Hrs</th>
+        <th>Idle Hrs</th>
+        <th>Idle%</th>
+        <th>Brk</th>
+        <th>Acc</th>
+        <th>Trn</th>
+        <th>Harsh</th>
+        <th>Max Spd</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in truck_rows %}
+      <tr>
+        <td>{{ r.truck.unit_number }}</td>
+        <td>{{ r.truck.plate_number }}</td>
+        <td>{{ r.driver_name }}</td>
+        <td>{{ r.days }}</td>
+        <td>{{ r.distance }}</td>
+        <td>{{ r.fuel }}</td>
+        <td>{{ r.efficiency_kmpl|default:'—' }}</td>
+        <td>{{ r.efficiency_lph|default:'—' }}</td>
+        <td>{{ r.operating_hours }}</td>
+        <td>{{ r.idle_hours }}</td>
+        <td>{{ r.utilization|default:'—' }}%</td>
+        <td>{{ r.brake }}</td>
+        <td>{{ r.accel }}</td>
+        <td>{{ r.turn }}</td>
+        <td>{{ r.harsh_total }}</td>
+        <td>{{ r.max_speed|floatformat:0 }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if driver_scores %}
+<h4 class="mb-2 mt-4">Driver Scorecard</h4>
+<div class="table-responsive">
+  <table class="table table-sm table-bordered text-center small" style="font-size:11px">
+    <thead class="table-secondary">
+      <tr>
+        <th>Driver</th>
+        <th>Dist (km)</th>
+        <th>Brake</th>
+        <th>Accel</th>
+        <th>Turn</th>
+        <th>Idle</th>
+        <th>Avg Score</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in driver_scores %}
+      <tr>
+        <td>{{ s.driver.name }}</td>
+        <td>{{ s.distance }}</td>
+        <td>{{ s.brake_score }}</td>
+        <td>{{ s.accel_score }}</td>
+        <td>{{ s.turn_score }}</td>
+        <td>{{ s.idle_score }}</td>
+        <td><strong>{{ s.average_score }}</strong></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<h4 class="mb-2 mt-4">Idle Report</h4>
+<div class="table-responsive">
+  <table class="table table-sm table-bordered text-center small" style="font-size:11px">
+    <thead class="table-secondary">
+      <tr>
+        <th>Unit</th>
+        <th>Plate</th>
+        <th>Driver</th>
+        <th>Op Hrs</th>
+        <th>Idle Hrs</th>
+        <th>Idle%</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in idle_report %}
+      <tr>
+        <td>{{ r.truck.unit_number }}</td>
+        <td>{{ r.truck.plate_number }}</td>
+        <td>{{ r.driver_name }}</td>
+        <td>{{ r.operating_hours }}</td>
+        <td>{{ r.idle_hours }}</td>
+        <td>{{ r.utilization|default:'—' }}%</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="alert alert-info">No data for the selected period.</div>
+{% endif %}
+{% endblock %}

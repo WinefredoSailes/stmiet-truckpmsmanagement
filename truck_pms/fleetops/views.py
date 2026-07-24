@@ -306,6 +306,151 @@ def driver_scorecard(request, pk):
     })
 
 
+# ── Weekly Performance Report ──
+
+@login_required
+def weekly_report(request):
+    if not _staff_or_above(request.user):
+        messages.error(request, 'Access denied.')
+        return redirect('accounts:dashboard')
+    start_str = request.GET.get('start', '')
+    end_str = request.GET.get('end', '')
+    try:
+        start = timezone.datetime.strptime(start_str, '%Y-%m-%d').date() if start_str else date.today() - timedelta(days=6)
+        end = timezone.datetime.strptime(end_str, '%Y-%m-%d').date() if end_str else date.today()
+    except ValueError:
+        start = date.today() - timedelta(days=6)
+        end = date.today()
+
+    logs = DailyLog.objects.filter(date__gte=start, date__lte=end).select_related('truck', 'driver')
+    trucks = Truck.objects.filter(status='ACTIVE').order_by('unit_number')
+
+    truck_rows = []
+    driver_data = {}
+    total_dist = total_fuel = total_op = total_idle = 0
+    total_brake = total_accel = total_turn = total_speed = 0
+
+    for t in trucks:
+        t_logs = [l for l in logs if l.truck_id == t.pk]
+        if not t_logs:
+            continue
+        d = sum(float(l.distance_traveled_km) for l in t_logs)
+        f = sum(float(l.fuel_liters or 0) for l in t_logs)
+        op = sum(float(l.operating_hours) for l in t_logs)
+        idl = sum(float(l.idle_hours) for l in t_logs)
+        bk = sum(l.harsh_braking_count for l in t_logs)
+        ac = sum(l.harsh_acceleration_count for l in t_logs)
+        tn = sum(l.harsh_turning_count for l in t_logs)
+        max_spd = max((float(l.max_speed_kmh or 0) for l in t_logs), default=0)
+        days = len(t_logs)
+        eff = round(d / f, 2) if f > 0 else None
+        eff_kmpl = round(d / f, 2) if f > 0 else None  # km/L
+        eff_lph = round(f / op, 2) if op > 0 else None  # L/hr
+        util = round(op / (op + idl) * 100, 1) if (op + idl) > 0 else None
+
+        driver_name = t_logs[-1].driver.name if t_logs[-1].driver else 'Unassigned'
+
+        truck_rows.append({
+            'truck': t,
+            'driver_name': driver_name,
+            'distance': round(d, 1),
+            'fuel': round(f, 1),
+            'operating_hours': round(op, 2),
+            'idle_hours': round(idl, 2),
+            'brake': bk, 'accel': ac, 'turn': tn,
+            'harsh_total': bk + ac + tn,
+            'max_speed': max_spd,
+            'efficiency': eff,
+            'efficiency_kmpl': eff_kmpl,
+            'efficiency_lph': eff_lph,
+            'utilization': util,
+            'days': days,
+        })
+
+        total_dist += d
+        total_fuel += f
+        total_op += op
+        total_idle += idl
+        total_brake += bk
+        total_accel += ac
+        total_turn += tn
+
+        # Aggregate by driver
+        for l in t_logs:
+            drv = l.driver
+            if not drv:
+                continue
+            if drv.pk not in driver_data:
+                driver_data[drv.pk] = {
+                    'driver': drv,
+                    'distance': 0, 'fuel': 0, 'op': 0, 'idl': 0,
+                    'brake': 0, 'accel': 0, 'turn': 0,
+                }
+            dd = driver_data[drv.pk]
+            dd['distance'] += float(l.distance_traveled_km)
+            dd['fuel'] += float(l.fuel_liters or 0)
+            dd['op'] += float(l.operating_hours)
+            dd['idl'] += float(l.idle_hours)
+            dd['brake'] += l.harsh_braking_count
+            dd['accel'] += l.harsh_acceleration_count
+            dd['turn'] += l.harsh_turning_count
+
+    # Calculate driver scores
+    driver_scores = []
+    for dd in driver_data.values():
+        d = dd['distance']
+        op = dd['op']
+        idl = dd['idl']
+        bk = dd['brake']
+        ac = dd['accel']
+        tn = dd['turn']
+        # Score: 100 minus events per 100km × factor, min 0
+        def _score(events, divisor, factor=5):
+            if divisor <= 0:
+                return 100
+            return max(0, round(100 - (events / divisor * 100) * factor))
+        idle_pct = idl / (op + idl) * 100 if (op + idl) > 0 else 0
+        brake_s = _score(bk, d)
+        accel_s = _score(ac, d)
+        turn_s = _score(tn, d)
+        idle_s = max(0, round(100 - idle_pct))
+        avg_s = round((brake_s + accel_s + turn_s + idle_s) / 4, 2)
+        driver_scores.append({
+            'driver': dd['driver'],
+            'distance': round(d, 1),
+            'brake_score': brake_s,
+            'accel_score': accel_s,
+            'turn_score': turn_s,
+            'idle_score': idle_s,
+            'average_score': avg_s,
+        })
+    driver_scores.sort(key=lambda x: x['average_score'], reverse=True)
+
+    # Idle report
+    idle_report = []
+    for tr in truck_rows:
+        if tr['idle_hours'] > 0 or tr['operating_hours'] > 0:
+            idle_report.append(tr)
+
+    ctx = {
+        'start': start, 'end': end,
+        'truck_rows': truck_rows,
+        'driver_scores': driver_scores,
+        'idle_report': idle_report,
+        'total_distance': round(total_dist, 1),
+        'total_fuel': round(total_fuel, 1),
+        'total_operating': round(total_op, 2),
+        'total_idle': round(total_idle, 2),
+        'total_brake': total_brake,
+        'total_accel': total_accel,
+        'total_turn': total_turn,
+        'total_efficiency': round(total_dist / total_fuel, 2) if total_fuel > 0 else None,
+        'total_utilization': round(total_op / (total_op + total_idle) * 100, 1) if (total_op + total_idle) > 0 else None,
+        'title': 'Weekly Performance Report',
+    }
+    return render(request, 'fleetops/weekly_report.html', ctx)
+
+
 # ── Driver Assignments ──
 
 @login_required

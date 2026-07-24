@@ -79,12 +79,14 @@ def import_cartrack_data(import_date=None, days_back=1, api_token='', api_userna
         max_spd = max((t.get('max_speed', 0) or 0 for t in matching_trips), default=None)
         total_idle = sum(float(t.get('idle_time_seconds', 0) or 0) for t in matching_trips) / 3600
         total_op = sum(float(t.get('trip_duration_seconds', 0) or 0) for t in matching_trips) / 3600
-        mileage = int(max((t.get('end_odometer', 0) or 0 for t in matching_trips), default=0) / 1000)
-        eng_hrs = float(max((t.get('clock_end', 0) or 0 for t in matching_trips), default=0)) / 3600
-
         trips_brake = sum(int(t.get('harsh_braking_events', 0) or 0) for t in matching_trips)
         trips_accel = sum(int(t.get('harsh_acceleration_events', 0) or 0) for t in matching_trips)
         trips_turn = sum(int(t.get('harsh_cornering_events', 0) or 0) for t in matching_trips)
+        total_idle_count = sum(int(t.get('events_idle', 0) or 0) for t in matching_trips)
+        # Latest trip's odometer/clock for accumulated readings
+        latest = max(matching_trips, key=lambda t: t.get('end_timestamp', ''))
+        mileage = int(float(latest.get('end_odometer', 0) or 0) / 1000)
+        eng_hrs = float(latest.get('clock_end', 0) or 0) / 3600
 
         ev = events_by_vehicle.get(plate, events_by_vehicle.get(unit, {}))
         fuel_l = fuel_by_vehicle.get(plate, fuel_by_vehicle.get(unit, None))
@@ -94,10 +96,11 @@ def import_cartrack_data(import_date=None, days_back=1, api_token='', api_userna
             'engine_hours': eng_hrs,
             'fuel_liters': fuel_l,
             'idle_hours': total_idle,
+            'idle_count': total_idle_count,
             'operating_hours': total_op,
             'distance_traveled_km': total_dist,
             'max_speed_kmh': float(max_spd) if max_spd else None,
-            'avg_speed_kmh': round(total_dist / total_op, 2) if total_op > 0 else None,
+            'avg_speed_kmh': round(total_dist / total_op, 1) if total_op > 0 else None,
             'harsh_braking_count': trips_brake + ev.get('brake', 0),
             'harsh_acceleration_count': trips_accel + ev.get('accel', 0),
             'harsh_turning_count': trips_turn + ev.get('turn', 0),
