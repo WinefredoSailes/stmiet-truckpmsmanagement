@@ -376,8 +376,17 @@ def pull_cartrack(request):
     if not _staff_or_above(request.user):
         messages.error(request, 'Access denied.')
         return redirect('accounts:dashboard')
-    days_back = int(request.POST.get('days_back', 1))
-    result = import_cartrack_data(days_back=days_back)
+    date_str = request.POST.get('date', '')
+    if date_str:
+        try:
+            import_date = timezone.datetime.strptime(date_str, '%Y-%m-%d').date()
+            result = import_cartrack_data(import_date=import_date)
+        except ValueError:
+            messages.error(request, 'Invalid date format.')
+            return redirect('fleetops:daily_log')
+    else:
+        days_back = int(request.POST.get('days_back', 1))
+        result = import_cartrack_data(days_back=days_back)
     if result['success']:
         if result['processed'] > 0:
             messages.success(

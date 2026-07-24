@@ -10,9 +10,9 @@
         <span class="text-muted small ms-2">{{ rows|length }} truck(s)</span>
     </form>
     <div class="d-flex gap-1">
-        <form method="post" action="{% url 'fleetops:pull_cartrack' %}" class="d-inline">
+        <form method="post" action="{% url 'fleetops:pull_cartrack' %}" class="d-inline" id="pullForm">
             {% csrf_token %}
-            <input type="hidden" name="days_back" value="1">
+            <input type="hidden" name="date" id="pullDate" value="{{ log_date|date:'Y-m-d' }}">
             <button type="submit" class="btn btn-outline-success btn-sm"><i class="bi bi-cloud-download"></i> Pull Cartrack</button>
         </form>
         <a href="{% url 'fleetops:fleet_performance' %}" class="btn btn-outline-info btn-sm"><i class="bi bi-graph-up"></i> Performance</a>
@@ -21,7 +21,7 @@
 <div class="card">
     <div class="card-header fw-bold d-flex justify-content-between align-items-center">
         <span><i class="bi bi-journal-text me-1"></i> Daily Log — {{ log_date|date:'l, M d, Y' }}</span>
-        <small class="text-muted">Enter values manually, or run <code>py manage.py import_cartrack</code> to pull from Cartrack API</small>
+        <small class="text-muted">Enter values manually, or click <strong>Pull Cartrack</strong> to import from API</small>
     </div>
     <div class="card-body p-0">
         <form method="post" action="{% url 'fleetops:daily_log_load' %}">
@@ -90,4 +90,14 @@
         </form>
     </div>
 </div>
+{% endblock %}
+{% block extra_scripts %}
+<script>
+document.getElementById('pullForm').addEventListener('submit', function() {
+    var dateInput = document.querySelector('input[name="date"]');
+    if (dateInput) {
+        document.getElementById('pullDate').value = dateInput.value;
+    }
+});
+</script>
 {% endblock %}
