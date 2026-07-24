@@ -91,14 +91,14 @@ def daily_log_load(request):
                 date=log_date,
                 defaults={
                     'mileage_km': int(request.POST.get(mileage_key, 0)),
-                    'engine_hours': float(request.POST.get(hours_key, 0)),
+                    'engine_hours': round(float(request.POST.get(hours_key, 0)), 1),
                     'data_source': DailyLog.DataSource.MANUAL,
                     'created_by': request.user,
                 }
             )
             if not created:
                 log.mileage_km = int(request.POST.get(mileage_key, log.mileage_km))
-                log.engine_hours = float(request.POST.get(hours_key, float(log.engine_hours)))
+                log.engine_hours = round(float(request.POST.get(hours_key, float(log.engine_hours))), 1)
             if driver_key in request.POST and request.POST[driver_key]:
                 try:
                     log.driver_id = int(request.POST[driver_key])
@@ -109,19 +109,19 @@ def daily_log_load(request):
                 if active:
                     log.driver = active.driver
             if fuel_key in request.POST and request.POST[fuel_key]:
-                log.fuel_liters = float(request.POST[fuel_key])
+                log.fuel_liters = round(float(request.POST[fuel_key]), 2)
             if idle_hrs_key in request.POST and request.POST[idle_hrs_key]:
-                log.idle_hours = float(request.POST[idle_hrs_key])
+                log.idle_hours = round(float(request.POST[idle_hrs_key]), 2)
             if idle_cnt_key in request.POST and request.POST[idle_cnt_key]:
                 log.idle_count = int(request.POST[idle_cnt_key])
             if op_hrs_key in request.POST and request.POST[op_hrs_key]:
-                log.operating_hours = float(request.POST[op_hrs_key])
+                log.operating_hours = round(float(request.POST[op_hrs_key]), 2)
             if dist_key in request.POST and request.POST[dist_key]:
-                log.distance_traveled_km = float(request.POST[dist_key])
+                log.distance_traveled_km = round(float(request.POST[dist_key]), 1)
             if max_spd_key in request.POST and request.POST[max_spd_key]:
-                log.max_speed_kmh = float(request.POST[max_spd_key])
+                log.max_speed_kmh = round(float(request.POST[max_spd_key]), 1)
             if avg_spd_key in request.POST and request.POST[avg_spd_key]:
-                log.avg_speed_kmh = float(request.POST[avg_spd_key])
+                log.avg_speed_kmh = round(float(request.POST[avg_spd_key]), 1)
             if brake_key in request.POST and request.POST[brake_key]:
                 log.harsh_braking_count = int(request.POST[brake_key])
             if accel_key in request.POST and request.POST[accel_key]:
