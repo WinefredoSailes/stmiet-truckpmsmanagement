@@ -11,8 +11,7 @@ try:
 except ImportError:
     REQUESTS_AVAILABLE = False
 
-
-def import_cartrack_data(import_date=None, days_back=1, api_token='', api_url='https://api.cartrack.com/v1', dry_run=False):
+def import_cartrack_data(import_date=None, days_back=1, api_token='', api_url='https://api.cartrack.com/v1', dry_run=False, data_types=None):
     if not REQUESTS_AVAILABLE:
         return {'success': False, 'error': 'requests library required. Run: pip install requests'}
 
@@ -34,9 +33,20 @@ def import_cartrack_data(import_date=None, days_back=1, api_token='', api_url='h
         'dry_run': dry_run,
     }
 
-    trips = _fetch_trips(headers, api_url, import_date)
-    events = _fetch_events(headers, api_url, import_date)
-    fuel_entries = _fetch_fuel(headers, api_url, import_date)
+    data_types = data_types or ['trips', 'events', 'fuel']
+    trips = []
+    events = []
+    fuel_entries = []
+
+    try:
+        if 'trips' in data_types:
+            trips = _fetch_trips(headers, api_url, import_date)
+        if 'events' in data_types:
+            events = _fetch_events(headers, api_url, import_date)
+        if 'fuel' in data_types:
+            fuel_entries = _fetch_fuel(headers, api_url, import_date)
+    except Exception:
+        pass
 
     if not trips and not events:
         result['errors'].append('No trip or event data returned from Cartrack API.')

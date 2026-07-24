@@ -9,12 +9,45 @@
         <button type="submit" class="btn btn-sm btn-outline-primary"><i class="bi bi-search"></i> Load</button>
         <span class="text-muted small ms-2">{{ rows|length }} truck(s)</span>
     </form>
-    <div class="d-flex gap-1">
-        <form method="post" action="{% url 'fleetops:pull_cartrack' %}" class="d-inline" id="pullForm">
+    <div class="d-flex gap-1 flex-wrap align-items-center">
+        <form method="post" action="{% url 'fleetops:pull_cartrack' %}" class="d-inline-flex align-items-center gap-1" id="pullForm">
             {% csrf_token %}
             <input type="hidden" name="date" id="pullDate" value="{{ log_date|date:'Y-m-d' }}">
-            <button type="submit" class="btn btn-outline-success btn-sm"><i class="bi bi-cloud-download"></i> Pull Cartrack</button>
+            <label class="small mb-0 d-flex align-items-center gap-1" title="Import trip data (distance, speeds, hours, mileage)">
+                <input type="checkbox" name="type_trips" value="1" checked> Trips
+            </label>
+            <label class="small mb-0 d-flex align-items-center gap-1" title="Import harsh event counts (braking, acceleration, turning)">
+                <input type="checkbox" name="type_events" value="1"> Events
+            </label>
+            <label class="small mb-0 d-flex align-items-center gap-1" title="Import fuel consumption data">
+                <input type="checkbox" name="type_fuel" value="1"> Fuel
+            </label>
+            <button type="submit" class="btn btn-outline-success btn-sm"><i class="bi bi-cloud-download"></i> Pull</button>
         </form>
+        <div class="dropdown d-inline-block">
+            <button class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown">
+                <i class="bi bi-layout-three-columns"></i> Columns
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end p-2 column-toggler" style="min-width:150px;max-height:350px;overflow-y:auto">
+                <li><label class="dropdown-item d-flex align-items-center gap-2"><input type="checkbox" checked data-col="0"> Unit #</label></li>
+                <li><label class="dropdown-item d-flex align-items-center gap-2"><input type="checkbox" checked data-col="1"> Plate</label></li>
+                <li><label class="dropdown-item d-flex align-items-center gap-2"><input type="checkbox" checked data-col="2"> Driver</label></li>
+                <li><label class="dropdown-item d-flex align-items-center gap-2"><input type="checkbox" checked data-col="3"> Mileage</label></li>
+                <li><label class="dropdown-item d-flex align-items-center gap-2"><input type="checkbox" checked data-col="4"> Eng Hrs</label></li>
+                <li><label class="dropdown-item d-flex align-items-center gap-2"><input type="checkbox" checked data-col="5"> Fuel L</label></li>
+                <li><label class="dropdown-item d-flex align-items-center gap-2"><input type="checkbox" checked data-col="6"> Idle Hrs</label></li>
+                <li><label class="dropdown-item d-flex align-items-center gap-2"><input type="checkbox" data-col="7"> Idle #</label></li>
+                <li><label class="dropdown-item d-flex align-items-center gap-2"><input type="checkbox" checked data-col="8"> Op Hrs</label></li>
+                <li><label class="dropdown-item d-flex align-items-center gap-2"><input type="checkbox" checked data-col="9"> Dist km</label></li>
+                <li><label class="dropdown-item d-flex align-items-center gap-2"><input type="checkbox" data-col="10"> Max Spd</label></li>
+                <li><label class="dropdown-item d-flex align-items-center gap-2"><input type="checkbox" data-col="11"> Avg Spd</label></li>
+                <li><label class="dropdown-item d-flex align-items-center gap-2"><input type="checkbox" data-col="12"> Brk</label></li>
+                <li><label class="dropdown-item d-flex align-items-center gap-2"><input type="checkbox" data-col="13"> Acc</label></li>
+                <li><label class="dropdown-item d-flex align-items-center gap-2"><input type="checkbox" data-col="14"> Trn</label></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><button class="dropdown-item small text-primary" id="resetColumns">Reset to defaults</button></li>
+            </ul>
+        </div>
         <a href="{% url 'fleetops:fleet_performance' %}" class="btn btn-outline-info btn-sm"><i class="bi bi-graph-up"></i> Performance</a>
     </div>
 </div>
@@ -27,25 +60,25 @@
         <form method="post" action="{% url 'fleetops:daily_log_load' %}">
             {% csrf_token %}
             <input type="hidden" name="date" value="{{ log_date|date:'Y-m-d' }}">
-            <div class="table-responsive" style="min-width:1400px">
+            <div class="table-responsive" style="min-width:500px">
                 <table class="table table-hover mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th>Unit #</th>
-                            <th>Plate</th>
-                            <th style="min-width:120px">Driver</th>
-                            <th style="min-width:80px">Mileage</th>
-                            <th style="min-width:70px">Eng Hrs</th>
-                            <th style="min-width:65px">Fuel L</th>
-                            <th style="min-width:65px">Idle Hrs</th>
-                            <th style="min-width:55px">Idle #</th>
-                            <th style="min-width:65px">Op Hrs</th>
-                            <th style="min-width:65px">Dist km</th>
-                            <th style="min-width:60px">Max Spd</th>
-                            <th style="min-width:60px">Avg Spd</th>
-                            <th style="min-width:45px" title="Harsh Braking">Brk</th>
-                            <th style="min-width:45px" title="Harsh Acceleration">Acc</th>
-                            <th style="min-width:45px" title="Harsh Turning">Trn</th>
+                            <th data-col="0">Unit #</th>
+                            <th data-col="1">Plate</th>
+                            <th data-col="2" style="min-width:120px">Driver</th>
+                            <th data-col="3" style="min-width:80px">Mileage</th>
+                            <th data-col="4" style="min-width:70px">Eng Hrs</th>
+                            <th data-col="5" style="min-width:65px">Fuel L</th>
+                            <th data-col="6" style="min-width:65px">Idle Hrs</th>
+                            <th data-col="7" style="min-width:55px">Idle #</th>
+                            <th data-col="8" style="min-width:65px">Op Hrs</th>
+                            <th data-col="9" style="min-width:65px">Dist km</th>
+                            <th data-col="10" style="min-width:60px">Max Spd</th>
+                            <th data-col="11" style="min-width:60px">Avg Spd</th>
+                            <th data-col="12" style="min-width:45px" title="Harsh Braking">Brk</th>
+                            <th data-col="13" style="min-width:45px" title="Harsh Acceleration">Acc</th>
+                            <th data-col="14" style="min-width:45px" title="Harsh Turning">Trn</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -93,11 +126,73 @@
 {% endblock %}
 {% block extra_scripts %}
 <script>
-document.getElementById('pullForm').addEventListener('submit', function() {
-    var dateInput = document.querySelector('input[name="date"]');
-    if (dateInput) {
-        document.getElementById('pullDate').value = dateInput.value;
+(function() {
+    var STORAGE_KEY = 'daily_log_columns';
+
+    // ── Pull form: copy date picker value ──
+    document.getElementById('pullForm').addEventListener('submit', function() {
+        var dateInput = document.querySelector('input[name="date"]');
+        if (dateInput) {
+            document.getElementById('pullDate').value = dateInput.value;
+        }
+    });
+
+    // ── Column visibility toggler ──
+    var table = document.querySelector('.table');
+    var checkboxes = document.querySelectorAll('.column-toggler [data-col]');
+
+    function applyColumnState() {
+        checkboxes.forEach(function(cb) {
+            var col = parseInt(cb.getAttribute('data-col'), 10);
+            var visible = cb.checked;
+            // nth-child is 1-indexed
+            var nth = col + 1;
+            var cells = table.querySelectorAll('th:nth-child(' + nth + '), td:nth-child(' + nth + ')');
+            cells.forEach(function(cell) {
+                cell.style.display = visible ? '' : 'none';
+            });
+        });
     }
-});
+
+    function saveState() {
+        var state = {};
+        checkboxes.forEach(function(cb) {
+            state[cb.getAttribute('data-col')] = cb.checked;
+        });
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
+    }
+
+    function loadState() {
+        try {
+            var raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) return;
+            var state = JSON.parse(raw);
+            checkboxes.forEach(function(cb) {
+                var col = cb.getAttribute('data-col');
+                if (state[col] !== undefined) {
+                    cb.checked = state[col];
+                }
+            });
+        } catch(e) {}
+    }
+
+    loadState();
+    applyColumnState();
+
+    checkboxes.forEach(function(cb) {
+        cb.addEventListener('change', function() {
+            applyColumnState();
+            saveState();
+        });
+    });
+
+    document.getElementById('resetColumns').addEventListener('click', function(e) {
+        e.preventDefault();
+        try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
+        checkboxes.forEach(function(cb) { cb.checked = true; });
+        applyColumnState();
+    });
+
+})();
 </script>
 {% endblock %}

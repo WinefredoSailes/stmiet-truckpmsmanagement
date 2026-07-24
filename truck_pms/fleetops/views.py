@@ -388,16 +388,27 @@ def pull_cartrack(request):
         messages.error(request, 'Invalid date format.')
         return redirect('fleetops:daily_log')
 
+    data_types = []
+    if request.POST.get('type_trips'):
+        data_types.append('trips')
+    if request.POST.get('type_events'):
+        data_types.append('events')
+    if request.POST.get('type_fuel'):
+        data_types.append('fuel')
+    if not data_types:
+        data_types = ['trips']
+
     label = import_date.strftime('%b %d, %Y') if import_date else 'recent days'
-    messages.info(request, f'Cartrack import for {label} started in background. Check back in a moment.')
+    types_label = '+'.join(data_types)
+    messages.info(request, f'Importing {types_label} for {label} in background. Check back in a moment.')
 
     def _run():
         try:
             if import_date:
-                result = import_cartrack_data(import_date=import_date)
+                result = import_cartrack_data(import_date=import_date, data_types=data_types)
             else:
                 days_back = int(request.POST.get('days_back', 1))
-                result = import_cartrack_data(days_back=days_back)
+                result = import_cartrack_data(days_back=days_back, data_types=data_types)
             logger.info(f'Cartrack import result: {result}')
         except Exception as e:
             logger.exception(f'Cartrack import failed: {e}')
