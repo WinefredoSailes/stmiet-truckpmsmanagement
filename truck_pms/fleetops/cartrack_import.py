@@ -97,7 +97,7 @@ def import_cartrack_data(import_date=None, days_back=1, api_token='', api_userna
             'operating_hours': total_op,
             'distance_traveled_km': total_dist,
             'max_speed_kmh': float(max_spd) if max_spd else None,
-            'avg_speed_kmh': None,
+            'avg_speed_kmh': round(total_dist / total_op, 2) if total_op > 0 else None,
             'harsh_braking_count': trips_brake + ev.get('brake', 0),
             'harsh_acceleration_count': trips_accel + ev.get('accel', 0),
             'harsh_turning_count': trips_turn + ev.get('turn', 0),
