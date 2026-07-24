@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q, Avg, Sum, Count, F
@@ -133,7 +134,7 @@ def daily_log_load(request):
             log.save()
             saved += 1
         messages.success(request, f'Saved {saved} log entries for {log_date}.')
-        return redirect('fleetops:daily_log') + f'?date={log_date}'
+        return redirect(reverse('fleetops:daily_log') + f'?date={log_date}')
     return redirect('fleetops:daily_log')
 
 
