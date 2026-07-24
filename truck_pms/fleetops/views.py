@@ -9,10 +9,6 @@ from trucks.models import Truck
 from .models import Driver, DriverAssignment, DailyLog
 from .cartrack_import import import_cartrack_data
 from datetime import date, timedelta
-import logging
-import threading
-
-logger = logging.getLogger(__name__)
 
 
 def _staff_or_above(user):
@@ -398,24 +394,27 @@ def pull_cartrack(request):
     if not data_types:
         data_types = ['trips']
 
-    label = import_date.strftime('%b %d, %Y') if import_date else 'recent days'
-    types_label = '+'.join(data_types)
-    messages.info(request, f'Importing {types_label} for {label} in background. Check back in a moment.')
+    if import_date:
+        result = import_cartrack_data(import_date=import_date, data_types=data_types)
+    else:
+        days_back = int(request.POST.get('days_back', 1))
+        result = import_cartrack_data(days_back=days_back, data_types=data_types)
 
-    def _run():
-        try:
-            if import_date:
-                result = import_cartrack_data(import_date=import_date, data_types=data_types)
-            else:
-                days_back = int(request.POST.get('days_back', 1))
-                result = import_cartrack_data(days_back=days_back, data_types=data_types)
-            logger.info(f'Cartrack import result: {result}')
-        except Exception as e:
-            logger.exception(f'Cartrack import failed: {e}')
-
-    thread = threading.Thread(target=_run, daemon=True)
-    thread.start()
-
+    if result['success']:
+        if result['processed'] > 0:
+            messages.success(
+                request,
+                f"Cartrack import complete: {result['processed']} log(s) for {result['import_date']}."
+            )
+        else:
+            msg = "No Cartrack data found for the selected date."
+            if result['errors']:
+                msg += ' ' + ' '.join(result['errors'])
+            if result['trucks_found'] == 0:
+                msg += ' No active trucks found.'
+            messages.warning(request, msg)
+    else:
+        messages.error(request, f"Cartrack import failed: {result['error']}")
     return redirect('fleetops:daily_log')
 
 
