@@ -11,7 +11,7 @@ try:
 except ImportError:
     REQUESTS_AVAILABLE = False
 
-def import_cartrack_data(import_date=None, days_back=1, api_token='', api_url='https://api.cartrack.com/v1', dry_run=False, data_types=None):
+def import_cartrack_data(import_date=None, days_back=1, api_token='', api_url='https://fleetapi-ph.cartrack.com/rest', dry_run=False, data_types=None):
     if not REQUESTS_AVAILABLE:
         return {'success': False, 'error': 'requests library required. Run: pip install requests'}
 

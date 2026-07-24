@@ -8,7 +8,7 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument('--api-token', default='', help='Cartrack API token')
-        parser.add_argument('--api-url', default='https://api.cartrack.com/v1', help='Cartrack API base URL')
+        parser.add_argument('--api-url', default='https://fleetapi-ph.cartrack.com/rest', help='Cartrack API base URL')
         parser.add_argument('--days-back', type=int, default=1, help='Days back to import (default: 1 = yesterday)')
         parser.add_argument('--dry-run', action='store_true', help='Print what would be done without saving')
 

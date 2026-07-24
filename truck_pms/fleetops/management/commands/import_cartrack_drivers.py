@@ -17,7 +17,7 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument('--api-token', default='', help='Cartrack API token')
-        parser.add_argument('--api-url', default='https://api.cartrack.com/v1', help='Cartrack API base URL')
+        parser.add_argument('--api-url', default='https://fleetapi-ph.cartrack.com/rest', help='Cartrack API base URL')
 
     def handle(self, *args, **options):
         if not REQUESTS_AVAILABLE:
@@ -40,7 +40,7 @@ class Command(BaseCommand):
         # Fetch drivers from Cartrack
         self.stdout.write('Fetching drivers from Cartrack...')
         try:
-            resp = requests.get(f'{base_url}/drivers', headers=headers, timeout=30)
+            resp = requests.get(f'{base_url}/drivers', headers=headers, timeout=(3, 5))
             resp.raise_for_status()
             cartrack_drivers = resp.json().get('data', resp.json() if isinstance(resp.json(), list) else [])
         except Exception as e:
@@ -97,7 +97,7 @@ class Command(BaseCommand):
         # Try to fetch vehicle-driver linkages
         self.stdout.write('Fetching vehicle-driver linkages...')
         try:
-            resp = requests.get(f'{base_url}/vehicle-driver-linkage', headers=headers, timeout=30)
+            resp = requests.get(f'{base_url}/vehicle-driver-linkage', headers=headers, timeout=(3, 5))
             resp.raise_for_status()
             linkages = resp.json().get('data', resp.json() if isinstance(resp.json(), list) else [])
         except Exception as e:
