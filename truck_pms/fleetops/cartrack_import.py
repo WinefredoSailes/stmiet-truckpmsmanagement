@@ -62,6 +62,10 @@ def import_cartrack_data(import_date=None, import_date_end=None, days_back=1, ap
         if f['error']:
             result['errors'].append(f'Fuel API: {f["error"]}')
         fuel_entries = f['data']
+        if not fuel_entries:
+            result['errors'].append('Fuel API returned empty — no fill events in range.')
+        elif isinstance(fuel_entries[0], dict):
+            result['errors'].append(f'Fuel sample keys: {list(fuel_entries[0].keys())[:12]}')
 
     if not trips and not events:
         result['errors'].append('No trip or event data returned from Cartrack API.')
@@ -240,9 +244,10 @@ def _group_fuel_by_date(fuel_entries, fallback_date):
     for fe in fuel_entries:
         if not isinstance(fe, dict):
             continue
-        d = _parse_date(fe.get('fill_timestamp', fe.get('timestamp', fe.get('date', ''))), fallback_date)
-        vid = fe.get('registration', fe.get('vehiclePlate', '')).upper()
-        liters = fe.get('fill_amount_litres', fe.get('liters', fe.get('quantity', fe.get('amount', 0))))
+        ts = fe.get('fill_timestamp', fe.get('timestamp', fe.get('date', fe.get('transaction_date', fe.get('fill_date', '')))))
+        d = _parse_date(ts, fallback_date)
+        vid = fe.get('registration', fe.get('vehiclePlate', fe.get('vehicle_id', fe.get('vehicle_reg', '')))).upper()
+        liters = fe.get('fill_amount_litres', fe.get('liters', fe.get('quantity', fe.get('amount', fe.get('volume', 0)))))
         try:
             by_date.setdefault(d, {})[vid] = float(liters)
         except (ValueError, TypeError):
