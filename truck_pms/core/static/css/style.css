@@ -27,7 +27,7 @@
 
   /* type scale */
   --fs-body: 14px;
-  --fs-table: 13px;
+  --fs-table: 11px;
   --fs-sm: 12px;
   --fs-xs: 11px;
   --fs-xxs: 10px;
@@ -302,7 +302,7 @@ body {
 }
 
 .table td {
-  padding: .5rem .7rem;
+  padding: .4rem .6rem;
   vertical-align: middle;
 }
 
