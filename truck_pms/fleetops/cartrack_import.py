@@ -75,26 +75,25 @@ def import_cartrack_data(import_date=None, days_back=1, api_token='', api_userna
         if not trip_match:
             continue
 
-        dist = float(trip_match.get('distance', trip_match.get('distanceKm', 0)) or 0)
-        max_spd = trip_match.get('maxSpeed', trip_match.get('maxSpeedKmh', None))
-        avg_spd = trip_match.get('averageSpeed', trip_match.get('avgSpeedKmh', None))
-        idle = float(trip_match.get('idleTime', trip_match.get('idleHours', 0)) or 0)
-        op_hrs = float(trip_match.get('engineHours', trip_match.get('runningHours', trip_match.get('movingHours', 0))) or 0)
-        mileage = int(float(trip_match.get('odometerEnd', trip_match.get('endOdometer', 0)) or 0))
-        eng_hrs = float(trip_match.get('engineHoursTotal', trip_match.get('totalEngineHours', 0)) or 0)
+        dist = float(trip_match.get('trip_distance', 0) or 0) / 1000
+        max_spd = trip_match.get('max_speed', None)
+        idle = float(trip_match.get('idle_time_seconds', 0) or 0) / 3600
+        op_hrs = float(trip_match.get('trip_duration_seconds', 0) or 0) / 3600
+        mileage = int(float(trip_match.get('end_odometer', 0) or 0) / 1000)
+        eng_hrs = float(trip_match.get('clock_end', 0) or 0) / 60
 
         ev = events_by_vehicle.get(plate, events_by_vehicle.get(unit, {}))
         fuel_l = fuel_by_vehicle.get(plate, fuel_by_vehicle.get(unit, None))
 
         defaults = {
             'mileage_km': mileage,
-            'engine_hours': eng_hrs if eng_hrs else op_hrs,
+            'engine_hours': eng_hrs,
             'fuel_liters': fuel_l,
             'idle_hours': idle,
             'operating_hours': op_hrs,
             'distance_traveled_km': dist,
-            'max_speed_kmh': float(max_spd) if max_spd is not None else None,
-            'avg_speed_kmh': float(avg_spd) if avg_spd is not None else None,
+            'max_speed_kmh': float(max_spd) * 3.6 if max_spd is not None else None,
+            'avg_speed_kmh': None,
             'harsh_braking_count': ev.get('brake', 0),
             'harsh_acceleration_count': ev.get('accel', 0),
             'harsh_turning_count': ev.get('turn', 0),
@@ -149,11 +148,11 @@ def _fetch_events(headers, api_url, import_date):
         date_str = import_date.strftime('%Y-%m-%d')
         params = {
             'limit': '1000',
-            'start_timestamp': f'{date_str} 00:00:00',
-            'end_timestamp': f'{date_str} 23:59:59',
-            'types': 'HARSH_BRAKING,HARSH_ACCELERATION,HARSH_TURNING',
+            'date_from': f'{date_str} 00:00:00',
+            'date_to': f'{date_str} 23:59:59',
+            'types': 'HARSH_BRAKING,HARSH_ACCELERATION,HARSH_CORNERING',
         }
-        resp = requests.get(f'{api_url}/vehicle-events', headers=headers, params=params, timeout=(3, 5))
+        resp = requests.get(f'{api_url}/vehicles/events', headers=headers, params=params, timeout=(3, 5))
         resp.raise_for_status()
         data = resp.json()
         items = data.get('data', data if isinstance(data, list) else [])
@@ -169,10 +168,10 @@ def _fetch_fuel(headers, api_url, import_date):
         date_str = import_date.strftime('%Y-%m-%d')
         params = {
             'limit': '1000',
-            'start_timestamp': f'{date_str} 00:00:00',
-            'end_timestamp': f'{date_str} 23:59:59',
+            'date_from': f'{date_str} 00:00:00',
+            'date_to': f'{date_str} 23:59:59',
         }
-        resp = requests.get(f'{api_url}/fuel', headers=headers, params=params, timeout=(3, 5))
+        resp = requests.get(f'{api_url}/fuel/fills', headers=headers, params=params, timeout=(3, 5))
         resp.raise_for_status()
         data = resp.json()
         items = data.get('data', data if isinstance(data, list) else [])
@@ -187,15 +186,15 @@ def _organize_events(events):
     by_vehicle = {}
     for ev in events:
         if isinstance(ev, dict):
-            vid = ev.get('vehicleId', ev.get('vehiclePlate', ''))
-            event_type = ev.get('type', ev.get('eventType', ''))
+            vid = ev.get('registration', ev.get('vehiclePlate', '')).upper()
+            event_type = ev.get('event_description', ev.get('eventType', ''))
             if vid not in by_vehicle:
                 by_vehicle[vid] = {'brake': 0, 'accel': 0, 'turn': 0}
             if 'BRAKE' in event_type.upper():
                 by_vehicle[vid]['brake'] += 1
             elif 'ACCEL' in event_type.upper():
                 by_vehicle[vid]['accel'] += 1
-            elif 'TURN' in event_type.upper():
+            elif 'TURN' in event_type.upper() or 'CORNERING' in event_type.upper():
                 by_vehicle[vid]['turn'] += 1
     return by_vehicle
 
@@ -204,8 +203,8 @@ def _organize_fuel(fuel_entries):
     by_vehicle = {}
     for fe in fuel_entries:
         if isinstance(fe, dict):
-            vid = fe.get('vehicleId', fe.get('vehiclePlate', ''))
-            liters = fe.get('liters', fe.get('quantity', fe.get('amount', 0)))
+            vid = fe.get('registration', fe.get('vehiclePlate', '')).upper()
+            liters = fe.get('fill_amount_litres', fe.get('liters', fe.get('quantity', fe.get('amount', 0))))
             try:
                 by_vehicle[vid] = float(liters)
             except (ValueError, TypeError):
@@ -214,10 +213,18 @@ def _organize_fuel(fuel_entries):
 
 
 def _find_matching_trip(trips, plate, unit):
+    # Try exact match first
     for t in trips:
         if isinstance(t, dict):
-            t_plate = t.get('vehiclePlate', t.get('registration', '')).upper()
+            t_plate = t.get('registration', t.get('vehiclePlate', '')).upper()
             t_unit = t.get('vehicleName', t.get('name', '')).upper()
-            if plate in t_plate or unit in t_unit or plate in t_unit:
+            if plate == t_plate or unit == t_unit or plate == t_unit:
+                return t
+    # Fall back to substring match
+    for t in trips:
+        if isinstance(t, dict):
+            t_plate = t.get('registration', t.get('vehiclePlate', '')).upper()
+            t_unit = t.get('vehicleName', t.get('name', '')).upper()
+            if (plate and plate in t_plate) or (unit and unit in t_unit) or (plate and plate in t_unit):
                 return t
     return None
