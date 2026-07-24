@@ -124,9 +124,11 @@ def import_cartrack_data(import_date=None, days_back=1, api_token='', api_url=No
 
 def _fetch_trips(headers, api_url, import_date):
     try:
+        date_str = import_date.strftime('%Y-%m-%d')
         params = {
-            'from': import_date.strftime('%Y-%m-%dT00:00:00Z'),
-            'to': import_date.strftime('%Y-%m-%dT23:59:59Z'),
+            'limit': '1000',
+            'start_timestamp': f'{date_str} 00:00:00',
+            'end_timestamp': f'{date_str} 23:59:59',
         }
         resp = requests.get(f'{api_url}/trips', headers=headers, params=params, timeout=(3, 5))
         resp.raise_for_status()
@@ -141,9 +143,11 @@ def _fetch_trips(headers, api_url, import_date):
 
 def _fetch_events(headers, api_url, import_date):
     try:
+        date_str = import_date.strftime('%Y-%m-%d')
         params = {
-            'from': import_date.strftime('%Y-%m-%dT00:00:00Z'),
-            'to': import_date.strftime('%Y-%m-%dT23:59:59Z'),
+            'limit': '1000',
+            'start_timestamp': f'{date_str} 00:00:00',
+            'end_timestamp': f'{date_str} 23:59:59',
             'types': 'HARSH_BRAKING,HARSH_ACCELERATION,HARSH_TURNING',
         }
         resp = requests.get(f'{api_url}/vehicle-events', headers=headers, params=params, timeout=(3, 5))
@@ -159,9 +163,11 @@ def _fetch_events(headers, api_url, import_date):
 
 def _fetch_fuel(headers, api_url, import_date):
     try:
+        date_str = import_date.strftime('%Y-%m-%d')
         params = {
-            'from': import_date.strftime('%Y-%m-%dT00:00:00Z'),
-            'to': import_date.strftime('%Y-%m-%dT23:59:59Z'),
+            'limit': '1000',
+            'start_timestamp': f'{date_str} 00:00:00',
+            'end_timestamp': f'{date_str} 23:59:59',
         }
         resp = requests.get(f'{api_url}/fuel', headers=headers, params=params, timeout=(3, 5))
         resp.raise_for_status()
