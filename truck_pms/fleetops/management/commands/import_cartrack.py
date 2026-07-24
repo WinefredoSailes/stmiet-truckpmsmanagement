@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 from fleetops.cartrack_import import import_cartrack_data, REQUESTS_AVAILABLE, DEFAULT_API_URL
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 
 
 class Command(BaseCommand):
@@ -11,6 +11,7 @@ class Command(BaseCommand):
         parser.add_argument('--api-username', default='', help='Cartrack API username (default: SEVE00001)')
         parser.add_argument('--api-url', default=DEFAULT_API_URL, help='Cartrack API base URL')
         parser.add_argument('--days-back', type=int, default=1, help='Days back to import (default: 1 = yesterday)')
+        parser.add_argument('--end-date', type=str, default='', help='End date YYYY-MM-DD for range import (default: same as start)')
         parser.add_argument('--dry-run', action='store_true', help='Print what would be done without saving')
 
     def handle(self, *args, **options):
@@ -21,10 +22,20 @@ class Command(BaseCommand):
             return
 
         import_date = date.today() - timedelta(days=options['days_back'])
-        self.stdout.write(f'Importing data for {import_date}...')
+        end = None
+        if options['end_date']:
+            try:
+                end = datetime.strptime(options['end_date'], '%Y-%m-%d').date()
+            except ValueError:
+                self.stdout.write(self.style.ERROR('Invalid --end-date format. Use YYYY-MM-DD.'))
+                return
+
+        label = f'{import_date} to {end}' if end else str(import_date)
+        self.stdout.write(f'Importing data for {label}...')
 
         result = import_cartrack_data(
             import_date=import_date,
+            import_date_end=end,
             api_token=options['api_token'],
             api_username=options['api_username'],
             api_url=options['api_url'],
@@ -46,5 +57,5 @@ class Command(BaseCommand):
             ))
         else:
             self.stdout.write(self.style.SUCCESS(
-                f"Import complete: {result['processed']} log(s) created/updated for {import_date}."
+                f"Import complete: {result['processed']} log(s) created/updated for {label}."
             ))

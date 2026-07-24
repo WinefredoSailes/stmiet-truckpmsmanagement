@@ -589,29 +589,18 @@ def pull_cartrack_range(request):
 
     data_types = ['trips', 'events', 'fuel']
 
-    total_processed = 0
-    total_errors = []
-    current = start
-    while current <= end:
-        result = import_cartrack_data(import_date=current, data_types=data_types)
-        if result['success']:
-            total_processed += result['processed']
-            if result['errors']:
-                total_errors.extend(result['errors'])
-        else:
-            total_errors.append(f"{current}: {result['error']}")
-        current += timedelta(days=1)
+    result = import_cartrack_data(import_date=start, import_date_end=end, data_types=data_types)
 
-    if total_processed > 0:
+    if result['success'] and result['processed'] > 0:
         messages.success(
             request,
-            f"Cartrack range import complete: {total_processed} log(s) from {start} to {end}."
+            f"Cartrack range import complete: {result['processed']} log(s) from {start} to {end}."
         )
-    else:
-        msg = f"No Cartrack data found from {start} to {end}."
-        if total_errors:
-            msg += ' ' + ' '.join(total_errors)
+    elif result['errors']:
+        msg = ' '.join(result['errors'])
         messages.warning(request, msg)
+    else:
+        messages.warning(request, f"No Cartrack data found from {start} to {end}.")
     return redirect(reverse('fleetops:daily_log') + f'?date={start}')
 
 
