@@ -3,11 +3,13 @@
 {% block page_title %}Fleet Performance Dashboard{% endblock %}
 {% block content %}
 <div class="page-header">
-    <form method="get" class="d-flex align-items-center gap-2">
-        <label class="form-label mb-0 small fw-medium">Week starting:</label>
-        <input type="date" name="week" value="{{ week_start|date:'Y-m-d' }}" class="form-control form-control-sm" style="width:auto">
+    <form method="get" class="d-flex align-items-center gap-2 flex-wrap">
+        <label class="form-label mb-0 small fw-medium">From:</label>
+        <input type="date" name="start" value="{{ date_start|date:'Y-m-d' }}" class="form-control form-control-sm" style="width:auto">
+        <label class="form-label mb-0 small fw-medium">To:</label>
+        <input type="date" name="end" value="{{ date_end|date:'Y-m-d' }}" class="form-control form-control-sm" style="width:auto">
         <button type="submit" class="btn btn-sm btn-outline-primary"><i class="bi bi-search"></i> Load</button>
-        <span class="text-muted small ms-2">{{ week_start|date:'M d' }} — {{ week_end|date:'M d, Y' }}</span>
+        <span class="text-muted small ms-2">{{ date_start|date:'M d' }} — {{ date_end|date:'M d, Y' }}</span>
     </form>
     <div>
         <a href="{% url 'fleetops:daily_log' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-journal-text"></i> Daily Log</a>

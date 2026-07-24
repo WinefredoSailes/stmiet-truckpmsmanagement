@@ -145,18 +145,26 @@ def fleet_performance(request):
     if not _staff_or_above(request.user):
         messages.error(request, 'Access denied.')
         return redirect('accounts:dashboard')
-    week_start_str = request.GET.get('week', '')
+    start_str = request.GET.get('start', '')
+    end_str = request.GET.get('end', '')
+    week_str = request.GET.get('week', '')
     try:
-        if week_start_str:
-            week_start = timezone.datetime.strptime(week_start_str, '%Y-%m-%d').date()
+        if start_str and end_str:
+            date_start = timezone.datetime.strptime(start_str, '%Y-%m-%d').date()
+            date_end = timezone.datetime.strptime(end_str, '%Y-%m-%d').date()
+        elif week_str:
+            date_start = timezone.datetime.strptime(week_str, '%Y-%m-%d').date()
+            date_end = date_start + timedelta(days=6)
         else:
             today = date.today()
-            week_start = today - timedelta(days=today.weekday())
+            date_start = today - timedelta(days=today.weekday())
+            date_end = date_start + timedelta(days=6)
     except ValueError:
-        week_start = date.today() - timedelta(days=date.today().weekday())
-    week_end = week_start + timedelta(days=6)
+        today = date.today()
+        date_start = today - timedelta(days=today.weekday())
+        date_end = date_start + timedelta(days=6)
     logs = DailyLog.objects.filter(
-        date__gte=week_start, date__lte=week_end
+        date__gte=date_start, date__lte=date_end
     ).select_related('truck')
     trucks = Truck.objects.filter(status='ACTIVE').order_by('unit_number')
     perf = []
@@ -186,8 +194,8 @@ def fleet_performance(request):
             'log_count': len(t_logs),
         })
     return render(request, 'fleetops/fleet_performance.html', {
-        'week_start': week_start,
-        'week_end': week_end,
+        'date_start': date_start,
+        'date_end': date_end,
         'performance': perf,
         'title': 'Fleet Performance',
     })
