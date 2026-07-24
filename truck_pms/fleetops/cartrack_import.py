@@ -71,16 +71,20 @@ def import_cartrack_data(import_date=None, days_back=1, api_token='', api_userna
         plate = truck.plate_number.upper()
         unit = truck.unit_number.upper()
 
-        trip_match = _find_matching_trip(trips, plate, unit)
-        if not trip_match:
+        matching_trips = _matching_trips(trips, plate, unit)
+        if not matching_trips:
             continue
 
-        dist = float(trip_match.get('trip_distance', 0) or 0) / 1000
-        max_spd = trip_match.get('max_speed', None)
-        idle = float(trip_match.get('idle_time_seconds', 0) or 0) / 3600
-        op_hrs = float(trip_match.get('trip_duration_seconds', 0) or 0) / 3600
-        mileage = int(float(trip_match.get('end_odometer', 0) or 0) / 1000)
-        eng_hrs = float(trip_match.get('clock_end', 0) or 0) / 3600
+        total_dist = sum(float(t.get('trip_distance', 0) or 0) for t in matching_trips) / 1000
+        max_spd = max((t.get('max_speed', 0) or 0 for t in matching_trips), default=None)
+        total_idle = sum(float(t.get('idle_time_seconds', 0) or 0) for t in matching_trips) / 3600
+        total_op = sum(float(t.get('trip_duration_seconds', 0) or 0) for t in matching_trips) / 3600
+        mileage = int(max((t.get('end_odometer', 0) or 0 for t in matching_trips), default=0) / 1000)
+        eng_hrs = float(max((t.get('clock_end', 0) or 0 for t in matching_trips), default=0)) / 3600
+
+        trips_brake = sum(int(t.get('harsh_braking_events', 0) or 0) for t in matching_trips)
+        trips_accel = sum(int(t.get('harsh_acceleration_events', 0) or 0) for t in matching_trips)
+        trips_turn = sum(int(t.get('harsh_cornering_events', 0) or 0) for t in matching_trips)
 
         ev = events_by_vehicle.get(plate, events_by_vehicle.get(unit, {}))
         fuel_l = fuel_by_vehicle.get(plate, fuel_by_vehicle.get(unit, None))
@@ -89,14 +93,14 @@ def import_cartrack_data(import_date=None, days_back=1, api_token='', api_userna
             'mileage_km': mileage,
             'engine_hours': eng_hrs,
             'fuel_liters': fuel_l,
-            'idle_hours': idle,
-            'operating_hours': op_hrs,
-            'distance_traveled_km': dist,
-            'max_speed_kmh': float(max_spd) if max_spd is not None else None,
+            'idle_hours': total_idle,
+            'operating_hours': total_op,
+            'distance_traveled_km': total_dist,
+            'max_speed_kmh': float(max_spd) if max_spd else None,
             'avg_speed_kmh': None,
-            'harsh_braking_count': ev.get('brake', 0),
-            'harsh_acceleration_count': ev.get('accel', 0),
-            'harsh_turning_count': ev.get('turn', 0),
+            'harsh_braking_count': trips_brake + ev.get('brake', 0),
+            'harsh_acceleration_count': trips_accel + ev.get('accel', 0),
+            'harsh_turning_count': trips_turn + ev.get('turn', 0),
             'data_source': DailyLog.DataSource.CARTRACK,
         }
 
@@ -211,19 +215,23 @@ def _organize_fuel(fuel_entries):
     return by_vehicle
 
 
-def _find_matching_trip(trips, plate, unit):
-    # Try exact match first
+def _matching_trips(trips, plate, unit):
+    """Return all trips matching the given truck plate/unit."""
+    exact = []
     for t in trips:
         if isinstance(t, dict):
             t_plate = t.get('registration', t.get('vehiclePlate', '')).upper()
             t_unit = t.get('vehicleName', t.get('name', '')).upper()
             if plate == t_plate or unit == t_unit or plate == t_unit:
-                return t
+                exact.append(t)
+    if exact:
+        return exact
     # Fall back to substring match
+    loose = []
     for t in trips:
         if isinstance(t, dict):
             t_plate = t.get('registration', t.get('vehiclePlate', '')).upper()
             t_unit = t.get('vehicleName', t.get('name', '')).upper()
             if (plate and plate in t_plate) or (unit and unit in t_unit) or (plate and plate in t_unit):
-                return t
-    return None
+                loose.append(t)
+    return loose
