@@ -183,10 +183,11 @@ def fleet_performance(request):
         speed_count = sum(1 for l in t_logs if l.avg_speed_kmh)
         efficiency = round(total_dist / total_fuel, 2) if total_fuel > 0 else None
         utilization = round(total_op / (total_op + total_idle) * 100, 1) if (total_op + total_idle) > 0 else None
+        has_fuel = any(l.fuel_liters for l in t_logs)
         perf.append({
             'truck': t,
             'distance': round(total_dist, 1),
-            'fuel': round(total_fuel, 1),
+            'fuel': round(total_fuel, 1) if has_fuel else None,
             'efficiency': efficiency,
             'utilization': utilization,
             'avg_speed': round(avg_speed / speed_count, 1) if speed_count > 0 else None,

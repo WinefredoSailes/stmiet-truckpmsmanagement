@@ -30,7 +30,7 @@
                         <div class="small text-muted">km</div>
                     </div>
                     <div class="col-4">
-                        <div class="fs-5 fw-bold">{{ p.fuel }}</div>
+                        <div class="fs-5 fw-bold">{% if p.fuel != None %}{{ p.fuel }}{% else %}—{% endif %}</div>
                         <div class="small text-muted">L fuel</div>
                     </div>
                     <div class="col-4">

@@ -66,26 +66,16 @@ def import_cartrack_data(import_date=None, import_date_end=None, days_back=1, ap
     if not trips and not events:
         result['errors'].append('No trip or event data returned from Cartrack API.')
 
-    events_by_vehicle = _organize_events(events)
-    fuel_by_vehicle = _organize_fuel(fuel_entries)
-
-    # Group trips by their end_timestamp date
-    trips_by_date = {}
-    for trip in trips:
-        if not isinstance(trip, dict):
-            continue
-        ts = trip.get('end_timestamp', '')
-        try:
-            d = datetime.strptime(ts[:10], '%Y-%m-%d').date()
-        except (ValueError, IndexError):
-            d = import_date
-        trips_by_date.setdefault(d, []).append(trip)
+    # Group data by date for range imports
+    trips_by_date = _group_trips_by_date(trips, import_date)
+    events_by_date = _group_events_by_date(events, import_date)
+    fuel_by_date = _group_fuel_by_date(fuel_entries, import_date)
 
     current = import_date
     while current <= import_date_end:
         day_trips = trips_by_date.get(current, [])
-        day_events = events_by_vehicle  # events are already grouped by vehicle, not date
-        day_fuel = fuel_by_vehicle
+        day_events_by_vehicle = events_by_date.get(current, {})
+        day_fuel_by_vehicle = fuel_by_date.get(current, {})
 
         for truck in trucks:
             plate = truck.plate_number.upper()
@@ -107,8 +97,8 @@ def import_cartrack_data(import_date=None, import_date_end=None, days_back=1, ap
             mileage = int(float(latest.get('end_odometer', 0) or 0) / 1000)
             eng_hrs = float(latest.get('clock_end', 0) or 0) / 3600
 
-            ev = day_events.get(plate, day_events.get(unit, {}))
-            fuel_l = day_fuel.get(plate, day_fuel.get(unit, None))
+            ev = day_events_by_vehicle.get(plate, day_events_by_vehicle.get(unit, {}))
+            fuel_l = day_fuel_by_vehicle.get(plate, day_fuel_by_vehicle.get(unit, None))
 
             defaults = {
                 'mileage_km': mileage,
@@ -209,34 +199,55 @@ def _fetch_fuel(headers, api_url, start_date, end_date=None):
         return {'data': [], 'error': f'{type(e).__name__}: {e} (HTTP {status})', 'response_text': text}
 
 
-def _organize_events(events):
-    by_vehicle = {}
+def _parse_date(ts, fallback):
+    try:
+        return datetime.strptime(ts[:10], '%Y-%m-%d').date()
+    except (ValueError, IndexError, TypeError):
+        return fallback
+
+
+def _group_trips_by_date(trips, fallback_date):
+    by_date = {}
+    for trip in trips:
+        if not isinstance(trip, dict):
+            continue
+        d = _parse_date(trip.get('end_timestamp', ''), fallback_date)
+        by_date.setdefault(d, []).append(trip)
+    return by_date
+
+
+def _group_events_by_date(events, fallback_date):
+    by_date = {}
     for ev in events:
-        if isinstance(ev, dict):
-            vid = ev.get('registration', ev.get('vehiclePlate', '')).upper()
-            event_type = ev.get('event_description', ev.get('eventType', ''))
-            if vid not in by_vehicle:
-                by_vehicle[vid] = {'brake': 0, 'accel': 0, 'turn': 0}
-            if 'BRAKE' in event_type.upper():
-                by_vehicle[vid]['brake'] += 1
-            elif 'ACCEL' in event_type.upper():
-                by_vehicle[vid]['accel'] += 1
-            elif 'TURN' in event_type.upper() or 'CORNERING' in event_type.upper():
-                by_vehicle[vid]['turn'] += 1
-    return by_vehicle
+        if not isinstance(ev, dict):
+            continue
+        d = _parse_date(ev.get('event_timestamp', ev.get('timestamp', '')), fallback_date)
+        vid = ev.get('registration', ev.get('vehiclePlate', '')).upper()
+        event_type = ev.get('event_description', ev.get('eventType', ''))
+        bucket = by_date.setdefault(d, {})
+        counts = bucket.setdefault(vid, {'brake': 0, 'accel': 0, 'turn': 0})
+        if 'BRAKE' in event_type.upper():
+            counts['brake'] += 1
+        elif 'ACCEL' in event_type.upper():
+            counts['accel'] += 1
+        elif 'TURN' in event_type.upper() or 'CORNERING' in event_type.upper():
+            counts['turn'] += 1
+    return by_date
 
 
-def _organize_fuel(fuel_entries):
-    by_vehicle = {}
+def _group_fuel_by_date(fuel_entries, fallback_date):
+    by_date = {}
     for fe in fuel_entries:
-        if isinstance(fe, dict):
-            vid = fe.get('registration', fe.get('vehiclePlate', '')).upper()
-            liters = fe.get('fill_amount_litres', fe.get('liters', fe.get('quantity', fe.get('amount', 0))))
-            try:
-                by_vehicle[vid] = float(liters)
-            except (ValueError, TypeError):
-                pass
-    return by_vehicle
+        if not isinstance(fe, dict):
+            continue
+        d = _parse_date(fe.get('fill_timestamp', fe.get('timestamp', fe.get('date', ''))), fallback_date)
+        vid = fe.get('registration', fe.get('vehiclePlate', '')).upper()
+        liters = fe.get('fill_amount_litres', fe.get('liters', fe.get('quantity', fe.get('amount', 0))))
+        try:
+            by_date.setdefault(d, {})[vid] = float(liters)
+        except (ValueError, TypeError):
+            pass
+    return by_date
 
 
 def _matching_trips(trips, plate, unit):
