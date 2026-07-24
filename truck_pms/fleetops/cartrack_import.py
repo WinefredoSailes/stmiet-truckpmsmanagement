@@ -108,7 +108,7 @@ def _fetch_trips(headers, api_url, import_date):
             'from': import_date.strftime('%Y-%m-%dT00:00:00Z'),
             'to': import_date.strftime('%Y-%m-%dT23:59:59Z'),
         }
-        resp = requests.get(f'{api_url}/trips', headers=headers, params=params, timeout=60)
+        resp = requests.get(f'{api_url}/trips', headers=headers, params=params, timeout=(5, 10))
         resp.raise_for_status()
         data = resp.json()
         return data.get('data', data if isinstance(data, list) else [])
@@ -123,7 +123,7 @@ def _fetch_events(headers, api_url, import_date):
             'to': import_date.strftime('%Y-%m-%dT23:59:59Z'),
             'types': 'HARSH_BRAKING,HARSH_ACCELERATION,HARSH_TURNING',
         }
-        resp = requests.get(f'{api_url}/vehicle-events', headers=headers, params=params, timeout=60)
+        resp = requests.get(f'{api_url}/vehicle-events', headers=headers, params=params, timeout=(5, 10))
         resp.raise_for_status()
         data = resp.json()
         return data.get('data', data if isinstance(data, list) else [])
@@ -137,7 +137,7 @@ def _fetch_fuel(headers, api_url, import_date):
             'from': import_date.strftime('%Y-%m-%dT00:00:00Z'),
             'to': import_date.strftime('%Y-%m-%dT23:59:59Z'),
         }
-        resp = requests.get(f'{api_url}/fuel', headers=headers, params=params, timeout=60)
+        resp = requests.get(f'{api_url}/fuel', headers=headers, params=params, timeout=(5, 10))
         resp.raise_for_status()
         data = resp.json()
         return data.get('data', data if isinstance(data, list) else [])
