@@ -24,6 +24,15 @@
             </label>
             <button type="submit" class="btn btn-outline-success btn-sm"><i class="bi bi-cloud-download"></i> Pull</button>
         </form>
+        <form method="post" action="{% url 'fleetops:pull_cartrack_range' %}" class="d-inline-flex align-items-center gap-1">
+            {% csrf_token %}
+            <input type="date" name="start" value="{{ log_date|date:'Y-m-d' }}" class="form-control form-control-sm" style="width:140px">
+            <input type="date" name="end" value="{{ log_date|date:'Y-m-d' }}" class="form-control form-control-sm" style="width:140px">
+            <input type="hidden" name="type_trips" value="1">
+            <input type="hidden" name="type_events" value="1">
+            <input type="hidden" name="type_fuel" value="1">
+            <button type="submit" class="btn btn-outline-warning btn-sm"><i class="bi bi-cloud-download"></i> Pull Range</button>
+        </form>
         <div class="dropdown d-inline-block">
             <button class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown">
                 <i class="bi bi-layout-three-columns"></i> Columns
