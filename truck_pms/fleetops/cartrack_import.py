@@ -11,10 +11,14 @@ try:
 except ImportError:
     REQUESTS_AVAILABLE = False
 
-def import_cartrack_data(import_date=None, days_back=1, api_token='', api_url='https://fleetapi-ph.cartrack.com/rest', dry_run=False, data_types=None):
+DEFAULT_API_URL = os.environ.get('CARTRACK_API_URL', 'https://fleetapi-ph.cartrack.com/rest')
+
+
+def import_cartrack_data(import_date=None, days_back=1, api_token='', api_url=None, dry_run=False, data_types=None):
     if not REQUESTS_AVAILABLE:
         return {'success': False, 'error': 'requests library required. Run: pip install requests'}
 
+    api_url = api_url or DEFAULT_API_URL
     token = api_token or os.environ.get('CARTRACK_API_TOKEN', '')
     if not token:
         return {'success': False, 'error': 'No CARTRACK_API_TOKEN provided. Set env var or pass --api-token.'}
@@ -38,15 +42,21 @@ def import_cartrack_data(import_date=None, days_back=1, api_token='', api_url='h
     events = []
     fuel_entries = []
 
-    try:
-        if 'trips' in data_types:
-            trips = _fetch_trips(headers, api_url, import_date)
-        if 'events' in data_types:
-            events = _fetch_events(headers, api_url, import_date)
-        if 'fuel' in data_types:
-            fuel_entries = _fetch_fuel(headers, api_url, import_date)
-    except Exception:
-        pass
+    if 'trips' in data_types:
+        t = _fetch_trips(headers, api_url, import_date)
+        if t['error']:
+            result['errors'].append(f'Trips API: {t["error"]}')
+        trips = t['data']
+    if 'events' in data_types:
+        e = _fetch_events(headers, api_url, import_date)
+        if e['error']:
+            result['errors'].append(f'Events API: {e["error"]}')
+        events = e['data']
+    if 'fuel' in data_types:
+        f = _fetch_fuel(headers, api_url, import_date)
+        if f['error']:
+            result['errors'].append(f'Fuel API: {f["error"]}')
+        fuel_entries = f['data']
 
     if not trips and not events:
         result['errors'].append('No trip or event data returned from Cartrack API.')
@@ -121,9 +131,12 @@ def _fetch_trips(headers, api_url, import_date):
         resp = requests.get(f'{api_url}/trips', headers=headers, params=params, timeout=(3, 5))
         resp.raise_for_status()
         data = resp.json()
-        return data.get('data', data if isinstance(data, list) else [])
-    except Exception:
-        return []
+        items = data.get('data', data if isinstance(data, list) else [])
+        return {'data': items, 'error': None}
+    except Exception as e:
+        status = getattr(e.response, 'status_code', None) if hasattr(e, 'response') else None
+        text = (getattr(e.response, 'text', '') or '')[:300] if hasattr(e, 'response') else ''
+        return {'data': [], 'error': f'{type(e).__name__}: {e} (HTTP {status})', 'response_text': text}
 
 
 def _fetch_events(headers, api_url, import_date):
@@ -136,9 +149,12 @@ def _fetch_events(headers, api_url, import_date):
         resp = requests.get(f'{api_url}/vehicle-events', headers=headers, params=params, timeout=(3, 5))
         resp.raise_for_status()
         data = resp.json()
-        return data.get('data', data if isinstance(data, list) else [])
-    except Exception:
-        return []
+        items = data.get('data', data if isinstance(data, list) else [])
+        return {'data': items, 'error': None}
+    except Exception as e:
+        status = getattr(e.response, 'status_code', None) if hasattr(e, 'response') else None
+        text = (getattr(e.response, 'text', '') or '')[:300] if hasattr(e, 'response') else ''
+        return {'data': [], 'error': f'{type(e).__name__}: {e} (HTTP {status})', 'response_text': text}
 
 
 def _fetch_fuel(headers, api_url, import_date):
@@ -150,9 +166,12 @@ def _fetch_fuel(headers, api_url, import_date):
         resp = requests.get(f'{api_url}/fuel', headers=headers, params=params, timeout=(3, 5))
         resp.raise_for_status()
         data = resp.json()
-        return data.get('data', data if isinstance(data, list) else [])
-    except Exception:
-        return []
+        items = data.get('data', data if isinstance(data, list) else [])
+        return {'data': items, 'error': None}
+    except Exception as e:
+        status = getattr(e.response, 'status_code', None) if hasattr(e, 'response') else None
+        text = (getattr(e.response, 'text', '') or '')[:300] if hasattr(e, 'response') else ''
+        return {'data': [], 'error': f'{type(e).__name__}: {e} (HTTP {status})', 'response_text': text}
 
 
 def _organize_events(events):
