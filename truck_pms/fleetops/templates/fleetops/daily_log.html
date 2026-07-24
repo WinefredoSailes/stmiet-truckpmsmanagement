@@ -27,25 +27,25 @@
         <form method="post" action="{% url 'fleetops:daily_log_load' %}">
             {% csrf_token %}
             <input type="hidden" name="date" value="{{ log_date|date:'Y-m-d' }}">
-            <div class="table-responsive">
-                <table class="table table-hover table-sm mb-0">
+            <div class="table-responsive" style="min-width:1400px">
+                <table class="table table-hover mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th class="ps-3">Unit #</th>
+                            <th>Unit #</th>
                             <th>Plate</th>
-                            <th style="width:130px">Driver</th>
-                            <th style="width:85px">Mileage</th>
-                            <th style="width:75px">Eng Hrs</th>
-                            <th style="width:65px">Fuel L</th>
-                            <th style="width:60px">Idle Hrs</th>
-                            <th style="width:55px">Idle #</th>
-                            <th style="width:65px">Op Hrs</th>
-                            <th style="width:65px">Dist km</th>
-                            <th style="width:55px">Max Spd</th>
-                            <th style="width:55px">Avg Spd</th>
-                            <th style="width:45px" title="Harsh Braking">Brk</th>
-                            <th style="width:45px" title="Harsh Acceleration">Acc</th>
-                            <th style="width:45px" title="Harsh Turning">Trn</th>
+                            <th style="min-width:120px">Driver</th>
+                            <th style="min-width:80px">Mileage</th>
+                            <th style="min-width:70px">Eng Hrs</th>
+                            <th style="min-width:65px">Fuel L</th>
+                            <th style="min-width:65px">Idle Hrs</th>
+                            <th style="min-width:55px">Idle #</th>
+                            <th style="min-width:65px">Op Hrs</th>
+                            <th style="min-width:65px">Dist km</th>
+                            <th style="min-width:60px">Max Spd</th>
+                            <th style="min-width:60px">Avg Spd</th>
+                            <th style="min-width:45px" title="Harsh Braking">Brk</th>
+                            <th style="min-width:45px" title="Harsh Acceleration">Acc</th>
+                            <th style="min-width:45px" title="Harsh Turning">Trn</th>
                         </tr>
                     </thead>
                     <tbody>
