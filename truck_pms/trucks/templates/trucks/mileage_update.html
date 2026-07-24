@@ -17,23 +17,23 @@
         <form method="post" id="mileage-form">
             {% csrf_token %}
             <div class="table-responsive">
-                <table class="table table-hover table-sm mb-0">
+                <table class="table table-hover table-sm mb-0" id="mileage-table">
                     <thead class="table-light">
                         <tr>
-                            <th class="ps-3">Unit #</th>
-                            <th>Plate #</th>
-                            <th>Make / Model</th>
-                            <th style="width:160px">Current Mileage (km)</th>
-                            <th style="width:140px">Engine Hours</th>
-                            <th style="width:100px">Last Updated</th>
+                            <th class="ps-3 sortable" data-col="unit" data-type="text">Unit # <span class="sort-icon"></span></th>
+                            <th class="sortable" data-col="plate" data-type="text">Plate # <span class="sort-icon"></span></th>
+                            <th class="sortable" data-col="model" data-type="text">Make / Model <span class="sort-icon"></span></th>
+                            <th class="sortable" data-col="mileage" data-type="number" style="width:160px">Current Mileage (km) <span class="sort-icon"></span></th>
+                            <th class="sortable" data-col="hours" data-type="number" style="width:140px">Engine Hours <span class="sort-icon"></span></th>
+                            <th class="sortable" data-col="updated" data-type="text" style="width:100px">Last Updated <span class="sort-icon"></span></th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for t in trucks %}
                         <tr>
-                            <td class="ps-3 fw-medium">{{ t.unit_number }}</td>
-                            <td>{{ t.plate_number }}</td>
-                            <td>{{ t.make }} {{ t.model }} ({{ t.year }})</td>
+                            <td class="ps-3 fw-medium" data-val="{{ t.unit_number }}">{{ t.unit_number }}</td>
+                            <td data-val="{{ t.plate_number }}">{{ t.plate_number }}</td>
+                            <td data-val="{{ t.make }} {{ t.model }} ({{ t.year }})">{{ t.make }} {{ t.model }} ({{ t.year }})</td>
                             <td>
                                 <input type="number" name="mileage_{{ t.pk }}" value="{{ t.current_mileage_km }}" min="0"
                                     class="form-control form-control-sm mileage-input"
@@ -43,7 +43,7 @@
                                 <input type="number" name="hours_{{ t.pk }}" value="{{ t.current_engine_hours }}" step="0.1" min="0"
                                     class="form-control form-control-sm">
                             </td>
-                            <td class="small text-muted">{{ t.updated_at|date:'m/d'|default:'-' }}</td>
+                            <td class="small text-muted" data-val="{{ t.updated_at|date:'Y-m-d'|default:'-' }}">{{ t.updated_at|date:'m/d'|default:'-' }}</td>
                         </tr>
                         {% empty %}
                         <tr><td colspan="6" class="text-center text-muted py-4">No active trucks found.</td></tr>
@@ -63,17 +63,62 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const form = document.getElementById('mileage-form');
+    var form = document.getElementById('mileage-form');
     if (form) {
         form.addEventListener('submit', function(e) {
-            const inputs = document.querySelectorAll('.mileage-input');
-            let count = 0;
+            var inputs = document.querySelectorAll('.mileage-input');
+            var count = 0;
             inputs.forEach(function(inp) {
                 if (inp.value !== inp.defaultValue) count++;
             });
             if (count === 0 && !confirm('No values changed. Submit anyway?')) {
                 e.preventDefault();
             }
+        });
+    }
+
+    var table = document.getElementById('mileage-table');
+    if (table) {
+        var headers = table.querySelectorAll('.sortable');
+        var tbody = table.querySelector('tbody');
+        var sortDir = {};
+        headers.forEach(function(h) {
+            sortDir[h.dataset.col] = 'asc';
+            h.style.cursor = 'pointer';
+            h.addEventListener('click', function() {
+                var col = this.dataset.col;
+                var type = this.dataset.type;
+                var dir = sortDir[col] === 'asc' ? 'desc' : 'asc';
+                sortDir[col] = dir;
+
+                headers.forEach(function(x) {
+                    x.querySelector('.sort-icon').textContent = '';
+                });
+                this.querySelector('.sort-icon').textContent = dir === 'asc' ? ' \u25B2' : ' \u25BC';
+
+                var rows = Array.from(tbody.querySelectorAll('tr'));
+                if (rows.length === 1 && rows[0].colSpan) return;
+
+                rows.sort(function(a, b) {
+                    var va, vb;
+                    if (col === 'mileage') {
+                        va = parseFloat(a.querySelector('input[name^="mileage_"]').value) || 0;
+                        vb = parseFloat(b.querySelector('input[name^="mileage_"]').value) || 0;
+                    } else if (col === 'hours') {
+                        va = parseFloat(a.querySelector('input[name^="hours_"]').value) || 0;
+                        vb = parseFloat(b.querySelector('input[name^="hours_"]').value) || 0;
+                    } else {
+                        va = (a.querySelector('td[data-val]') && a.querySelector('td').dataset.val) || a.cells[0].textContent.trim();
+                        vb = (b.querySelector('td[data-val]') && b.querySelector('td').dataset.val) || b.cells[0].textContent.trim();
+                        if (type === 'number') { va = parseFloat(va) || 0; vb = parseFloat(vb) || 0; }
+                        else { va = va.toLowerCase(); vb = vb.toLowerCase(); }
+                    }
+                    if (va < vb) return dir === 'asc' ? -1 : 1;
+                    if (va > vb) return dir === 'asc' ? 1 : -1;
+                    return 0;
+                });
+                rows.forEach(function(r) { tbody.appendChild(r); });
+            });
         });
     }
 });

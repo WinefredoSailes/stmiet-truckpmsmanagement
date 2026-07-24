@@ -1,5 +1,7 @@
 from django.db import models
 from django.core.validators import MinValueValidator
+from django.utils import timezone
+from datetime import timedelta
 
 
 class Truck(models.Model):
@@ -77,6 +79,15 @@ class Truck(models.Model):
     cr_number = models.CharField(
         max_length=50, blank=True, verbose_name='CR Number'
     )
+    cr_expiry = models.DateField(
+        null=True, blank=True, verbose_name='CR Expiry/Validity'
+    )
+    fire_conveyance_expiry = models.DateField(
+        null=True, blank=True, verbose_name='Fire Conveyance Expiry'
+    )
+    dost_calibration_expiry = models.DateField(
+        null=True, blank=True, verbose_name='DoST Calibration Expiry'
+    )
     field_office_code = models.CharField(max_length=50, blank=True)
     lto_registered_address = models.TextField(
         blank=True, verbose_name='LTO Registered Address'
@@ -91,3 +102,31 @@ class Truck(models.Model):
 
     def __str__(self):
         return f"{self.unit_number} - {self.plate_number}"
+
+    def _compliance_badge(self, expiry_date):
+        if not expiry_date:
+            return 'unknown'
+        today = timezone.now().date()
+        delta = (expiry_date - today).days
+        if delta < 0:
+            return 'overdue'
+        if delta <= 30:
+            return 'due_soon'
+        return 'ok'
+
+    def compliance_items(self):
+        fields = [
+            ('LTO OR', self.or_expiry, self.or_number),
+            ('LTO CR', self.cr_expiry, self.cr_number),
+            ('Fire Conveyance', self.fire_conveyance_expiry, None),
+            ('DoST Calibration', self.dost_calibration_expiry, None),
+        ]
+        return [
+            {
+                'label': label,
+                'expiry': expiry,
+                'ref_number': ref or '',
+                'status': self._compliance_badge(expiry),
+            }
+            for label, expiry, ref in fields
+        ]

@@ -25,6 +25,12 @@ def sidebar_menu(request):
     fleet = [_link('Trucks', 'trucks:list', 'bi-truck')]
     if is_staff_or_above:
         fleet.append(_link('Update Mileage', 'trucks:batch_mileage', 'bi-speedometer'))
+        fleet.append(_link('Daily Log', 'fleetops:daily_log', 'bi-journal-text'))
+        fleet.append(_link('Fleet Performance', 'fleetops:fleet_performance', 'bi-graph-up'))
+        fleet.append(_link('Driver Assignments', 'fleetops:assignment_list', 'bi-people'))
+        fleet.append(_link('Compliance & Expiry', 'fleetops:compliance_dashboard', 'bi-shield-check'))
+    if is_admin:
+        fleet.append(_link('Drivers', 'fleetops:driver_list', 'bi-person-badge'))
     sections.append({'heading': 'Fleet', 'items': fleet})
 
     # Preventive Maintenance

@@ -1,0 +1,58 @@
+{% extends 'core/base.html' %}
+{% block title %}Fleet Performance{% endblock %}
+{% block page_title %}Fleet Performance Dashboard{% endblock %}
+{% block content %}
+<div class="page-header">
+    <form method="get" class="d-flex align-items-center gap-2">
+        <label class="form-label mb-0 small fw-medium">Week starting:</label>
+        <input type="date" name="week" value="{{ week_start|date:'Y-m-d' }}" class="form-control form-control-sm" style="width:auto">
+        <button type="submit" class="btn btn-sm btn-outline-primary"><i class="bi bi-search"></i> Load</button>
+        <span class="text-muted small ms-2">{{ week_start|date:'M d' }} — {{ week_end|date:'M d, Y' }}</span>
+    </form>
+    <div>
+        <a href="{% url 'fleetops:daily_log' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-journal-text"></i> Daily Log</a>
+    </div>
+</div>
+<div class="row g-3">
+    {% for p in performance %}
+    <div class="col-md-6 col-xl-4">
+        <div class="card h-100">
+            <div class="card-header fw-bold d-flex justify-content-between">
+                <span>{{ p.truck.unit_number }} — {{ p.truck.plate_number }}</span>
+                <small class="text-muted">{{ p.log_count }} day(s)</small>
+            </div>
+            <div class="card-body">
+                <div class="row g-2 text-center">
+                    <div class="col-4">
+                        <div class="fs-5 fw-bold">{{ p.distance }}</div>
+                        <div class="small text-muted">km</div>
+                    </div>
+                    <div class="col-4">
+                        <div class="fs-5 fw-bold">{{ p.fuel }}</div>
+                        <div class="small text-muted">L fuel</div>
+                    </div>
+                    <div class="col-4">
+                        <div class="fs-5 fw-bold">{% if p.efficiency %}{{ p.efficiency }}{% else %}—{% endif %}</div>
+                        <div class="small text-muted">km/L</div>
+                    </div>
+                    <div class="col-4">
+                        <div class="fs-5 fw-bold">{% if p.utilization %}{{ p.utilization }}%{% else %}—{% endif %}</div>
+                        <div class="small text-muted">Utilization</div>
+                    </div>
+                    <div class="col-4">
+                        <div class="fs-5 fw-bold">{% if p.avg_speed %}{{ p.avg_speed }}{% else %}—{% endif %}</div>
+                        <div class="small text-muted">Avg km/h</div>
+                    </div>
+                    <div class="col-4">
+                        <div class="fs-5 fw-bold">{{ p.harsh_events }}</div>
+                        <div class="small text-muted">Harsh events</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12"><div class="alert alert-info">No data for this week. <a href="{% url 'fleetops:daily_log' %}">Enter daily logs</a> first.</div></div>
+    {% endfor %}
+</div>
+{% endblock %}

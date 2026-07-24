@@ -1,0 +1,88 @@
+{% extends 'core/base.html' %}
+{% block title %}Daily Log{% endblock %}
+{% block page_title %}Daily Log Entry{% endblock %}
+{% block content %}
+<div class="page-header">
+    <form method="get" class="d-flex align-items-center gap-2">
+        <label class="form-label mb-0 small fw-medium">Date:</label>
+        <input type="date" name="date" value="{{ log_date|date:'Y-m-d' }}" class="form-control form-control-sm" style="width:auto">
+        <button type="submit" class="btn btn-sm btn-outline-primary"><i class="bi bi-search"></i> Load</button>
+        <span class="text-muted small ms-2">{{ rows|length }} truck(s)</span>
+    </form>
+    <div>
+        <a href="{% url 'fleetops:fleet_performance' %}" class="btn btn-outline-info btn-sm"><i class="bi bi-graph-up"></i> Performance</a>
+    </div>
+</div>
+<div class="card">
+    <div class="card-header fw-bold d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-journal-text me-1"></i> Daily Log — {{ log_date|date:'l, M d, Y' }}</span>
+        <small class="text-muted">Values from Cartrack auto-fill; edit as needed</small>
+    </div>
+    <div class="card-body p-0">
+        <form method="post" action="{% url 'fleetops:daily_log_load' %}">
+            {% csrf_token %}
+            <input type="hidden" name="date" value="{{ log_date|date:'Y-m-d' }}">
+            <div class="table-responsive">
+                <table class="table table-hover table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-3">Unit #</th>
+                            <th>Plate</th>
+                            <th style="width:130px">Driver</th>
+                            <th style="width:85px">Mileage</th>
+                            <th style="width:75px">Eng Hrs</th>
+                            <th style="width:65px">Fuel L</th>
+                            <th style="width:60px">Idle Hrs</th>
+                            <th style="width:55px">Idle #</th>
+                            <th style="width:65px">Op Hrs</th>
+                            <th style="width:65px">Dist km</th>
+                            <th style="width:55px">Max Spd</th>
+                            <th style="width:55px">Avg Spd</th>
+                            <th style="width:45px" title="Harsh Braking">Brk</th>
+                            <th style="width:45px" title="Harsh Acceleration">Acc</th>
+                            <th style="width:45px" title="Harsh Turning">Trn</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in rows %}
+                        {% with t=row.truck log=row.log %}
+                        <tr class="{% if log %}table-success{% endif %}">
+                            <td class="ps-3 fw-medium">{{ t.unit_number }}</td>
+                            <td>{{ t.plate_number }}</td>
+                            <td>
+                                <select name="driver_{{ t.pk }}" class="form-select form-select-sm">
+                                    <option value="">-- select driver --</option>
+                                    {% for d in drivers %}
+                                    <option value="{{ d.pk }}" {% if log and log.driver_id == d.pk %}selected{% endif %}>{{ d.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                            <td><input type="number" name="mileage_{{ t.pk }}" value="{% if log %}{{ log.mileage_km }}{% else %}{{ t.current_mileage_km }}{% endif %}" min="0" class="form-control form-control-sm"></td>
+                            <td><input type="number" name="hours_{{ t.pk }}" value="{% if log %}{{ log.engine_hours }}{% else %}{{ t.current_engine_hours }}{% endif %}" step="0.1" min="0" class="form-control form-control-sm"></td>
+                            <td><input type="number" name="fuel_{{ t.pk }}" value="{% if log %}{{ log.fuel_liters }}{% endif %}" step="0.01" min="0" placeholder="-" class="form-control form-control-sm"></td>
+                            <td><input type="number" name="idle_hrs_{{ t.pk }}" value="{% if log %}{{ log.idle_hours }}{% endif %}" step="0.1" min="0" class="form-control form-control-sm"></td>
+                            <td><input type="number" name="idle_cnt_{{ t.pk }}" value="{% if log %}{{ log.idle_count }}{% endif %}" min="0" class="form-control form-control-sm"></td>
+                            <td><input type="number" name="op_hrs_{{ t.pk }}" value="{% if log %}{{ log.operating_hours }}{% endif %}" step="0.1" min="0" class="form-control form-control-sm"></td>
+                            <td><input type="number" name="dist_{{ t.pk }}" value="{% if log %}{{ log.distance_traveled_km }}{% endif %}" step="0.1" min="0" class="form-control form-control-sm"></td>
+                            <td><input type="number" name="max_spd_{{ t.pk }}" value="{% if log %}{{ log.max_speed_kmh }}{% endif %}" step="0.1" min="0" class="form-control form-control-sm"></td>
+                            <td><input type="number" name="avg_spd_{{ t.pk }}" value="{% if log %}{{ log.avg_speed_kmh }}{% endif %}" step="0.1" min="0" class="form-control form-control-sm"></td>
+                            <td><input type="number" name="brake_{{ t.pk }}" value="{% if log %}{{ log.harsh_braking_count }}{% endif %}" min="0" class="form-control form-control-sm"></td>
+                            <td><input type="number" name="accel_{{ t.pk }}" value="{% if log %}{{ log.harsh_acceleration_count }}{% endif %}" min="0" class="form-control form-control-sm"></td>
+                            <td><input type="number" name="turn_{{ t.pk }}" value="{% if log %}{{ log.harsh_turning_count }}{% endif %}" min="0" class="form-control form-control-sm"></td>
+                        </tr>
+                        {% endwith %}
+                        {% empty %}
+                        <tr><td colspan="15" class="text-center text-muted py-4">No active trucks.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% if rows %}
+            <div class="card-footer text-end">
+                <button type="submit" class="btn btn-success"><i class="bi bi-check-lg"></i> Save All Entries</button>
+            </div>
+            {% endif %}
+        </form>
+    </div>
+</div>
+{% endblock %}

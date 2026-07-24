@@ -1,0 +1,101 @@
+{% extends 'core/base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ driver.name }} — Scorecard{% endblock %}
+{% block back_link %}<a href="{% url 'fleetops:driver_list' %}" class="btn btn-sm btn-outline-secondary me-2"><i class="bi bi-arrow-left"></i></a>{% endblock %}
+{% block content %}
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-header fw-bold">Driver Info</div>
+            <div class="card-body small">
+                <dl class="row mb-0">
+                    <dt class="col-5">License #</dt><dd class="col-7">{{ driver.license_number }}</dd>
+                    <dt class="col-5">License Expiry</dt><dd class="col-7">{{ driver.license_expiry|date:'M d, Y' }}
+                        <span class="badge bg-{% if driver.license_status == 'overdue' %}danger{% elif driver.license_status == 'due_soon' %}warning{% else %}success{% endif %} badge-status ms-1">{{ driver.license_status|upper }}</span>
+                    </dd>
+                    <dt class="col-5">Age</dt><dd class="col-7">{{ driver.age|default:'-' }}</dd>
+                    <dt class="col-5">Mobile</dt><dd class="col-7">{{ driver.mobile|default:'-' }}</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <div class="card h-100">
+            <div class="card-header fw-bold">Performance (Last 90 Days)</div>
+            <div class="card-body">
+                <div class="row g-3 text-center">
+                    <div class="col-3">
+                        <div class="fs-4 fw-bold">{{ total_dist }}</div>
+                        <div class="small text-muted">Total km</div>
+                    </div>
+                    <div class="col-3">
+                        <div class="fs-4 fw-bold">{% if efficiency %}{{ efficiency }}{% else %}—{% endif %}</div>
+                        <div class="small text-muted">km/L avg</div>
+                    </div>
+                    <div class="col-3">
+                        <div class="fs-4 fw-bold">{% if utilization %}{{ utilization }}%{% else %}—{% endif %}</div>
+                        <div class="small text-muted">Utilization</div>
+                    </div>
+                    <div class="col-3">
+                        <div class="fs-4 fw-bold">{% if harsh_per_100km %}{{ harsh_per_100km }}{% else %}0{% endif %}</div>
+                        <div class="small text-muted">Harsh ev/100km</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header fw-bold">Assignment History</div>
+    <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+            <thead class="table-light">
+                <tr><th>Truck</th><th>From</th><th>Until</th><th>Notes</th></tr>
+            </thead>
+            <tbody>
+                {% for a in assignments %}
+                <tr>
+                    <td>{{ a.truck.unit_number }} — {{ a.truck.plate_number }}</td>
+                    <td>{{ a.assigned_from|date:'M d, Y' }}</td>
+                    <td>{{ a.assigned_until|date:'M d, Y'|default:'Present' }}</td>
+                    <td>{{ a.notes|default:'-' }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" class="text-center text-muted py-3">No assignments.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card mt-4">
+    <div class="card-header fw-bold">Recent Daily Logs</div>
+    <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+            <thead class="table-light">
+                <tr><th>Date</th><th>Truck</th><th>Dist km</th><th>Fuel L</th><th>km/L</th><th>Idle Hrs</th><th>Op Hrs</th><th>Max Spd</th><th>Brk</th><th>Acc</th><th>Trn</th></tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td>{{ log.date|date:'M d' }}</td>
+                    <td>{{ log.truck.unit_number }}</td>
+                    <td>{{ log.distance_traveled_km }}</td>
+                    <td>{{ log.fuel_liters|default:'-' }}</td>
+                    <td>{{ log.fuel_efficiency|default:'-' }}</td>
+                    <td>{{ log.idle_hours }}</td>
+                    <td>{{ log.operating_hours }}</td>
+                    <td>{{ log.max_speed_kmh|default:'-' }}</td>
+                    <td>{{ log.harsh_braking_count }}</td>
+                    <td>{{ log.harsh_acceleration_count }}</td>
+                    <td>{{ log.harsh_turning_count }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="11" class="text-center text-muted py-3">No logs yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

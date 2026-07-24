@@ -14,4 +14,5 @@ urlpatterns = [
     path('kpi/', include('kpi.urls')),
     path('training/', include('training.urls')),
     path('sop/', include('sop.urls')),
+    path('fleetops/', include('fleetops.urls')),
 ]

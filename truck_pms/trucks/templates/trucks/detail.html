@@ -79,6 +79,32 @@
     {% endif %}
 </div>
 
+<div class="row g-4 mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header fw-bold"><i class="bi bi-shield-check me-1"></i> Compliance &amp; Expiries</div>
+            <div class="card-body">
+                <div class="row g-2">
+                    {% for item in truck.compliance_items %}
+                    <div class="col-md-3 col-6">
+                        <div class="d-flex align-items-center gap-2 p-2 rounded {% if item.status == 'overdue' %}bg-danger bg-opacity-10{% elif item.status == 'due_soon' %}bg-warning bg-opacity-10{% else %}bg-light{% endif %}">
+                            <span class="badge bg-{% if item.status == 'overdue' %}danger{% elif item.status == 'due_soon' %}warning{% elif item.status == 'ok' %}success{% else %}secondary{% endif %} badge-status" title="{{ item.status }}">&#9679;</span>
+                            <div class="small">
+                                <div class="fw-medium">{{ item.label }}</div>
+                                <div class="text-muted">
+                                    {% if item.expiry %}{{ item.expiry|date:'M d, Y' }}{% else %}Not set{% endif %}
+                                    {% if item.ref_number %}<span class="ms-1 text-muted">#{{ item.ref_number }}</span>{% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="row g-4">
     <div class="col-md-6">
         <div class="card mb-4">
