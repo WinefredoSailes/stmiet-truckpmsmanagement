@@ -9,6 +9,10 @@ from trucks.models import Truck
 from .models import Driver, DriverAssignment, DailyLog
 from .cartrack_import import import_cartrack_data
 from datetime import date, timedelta
+import logging
+import threading
+
+logger = logging.getLogger(__name__)
 
 
 def _staff_or_above(user):
@@ -376,31 +380,31 @@ def pull_cartrack(request):
     if not _staff_or_above(request.user):
         messages.error(request, 'Access denied.')
         return redirect('accounts:dashboard')
+
     date_str = request.POST.get('date', '')
-    if date_str:
+    try:
+        import_date = timezone.datetime.strptime(date_str, '%Y-%m-%d').date() if date_str else None
+    except ValueError:
+        messages.error(request, 'Invalid date format.')
+        return redirect('fleetops:daily_log')
+
+    label = import_date.strftime('%b %d, %Y') if import_date else 'recent days'
+    messages.info(request, f'Cartrack import for {label} started in background. Check back in a moment.')
+
+    def _run():
         try:
-            import_date = timezone.datetime.strptime(date_str, '%Y-%m-%d').date()
-            result = import_cartrack_data(import_date=import_date)
-        except ValueError:
-            messages.error(request, 'Invalid date format.')
-            return redirect('fleetops:daily_log')
-    else:
-        days_back = int(request.POST.get('days_back', 1))
-        result = import_cartrack_data(days_back=days_back)
-    if result['success']:
-        if result['processed'] > 0:
-            messages.success(
-                request,
-                f"Cartrack import complete: {result['processed']} log(s) for {result['import_date']}."
-            )
-        else:
-            messages.warning(
-                request,
-                "No new Cartrack data found for the selected date. "
-                "Check that trucks have matching plate numbers in Cartrack."
-            )
-    else:
-        messages.error(request, f"Cartrack import failed: {result['error']}")
+            if import_date:
+                result = import_cartrack_data(import_date=import_date)
+            else:
+                days_back = int(request.POST.get('days_back', 1))
+                result = import_cartrack_data(days_back=days_back)
+            logger.info(f'Cartrack import result: {result}')
+        except Exception as e:
+            logger.exception(f'Cartrack import failed: {e}')
+
+    thread = threading.Thread(target=_run, daemon=True)
+    thread.start()
+
     return redirect('fleetops:daily_log')
 
 
