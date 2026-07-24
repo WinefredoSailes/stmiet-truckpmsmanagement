@@ -54,7 +54,7 @@
         </div>
     </div>
     {% empty %}
-    <div class="col-12"><div class="alert alert-info">No data for this week. <a href="{% url 'fleetops:daily_log' %}">Enter daily logs</a> first.</div></div>
+    <div class="col-12"><div class="alert alert-info">No data for this period. <a href="{% url 'fleetops:daily_log' %}">Enter daily logs</a> or try different dates.</div></div>
     {% endfor %}
 </div>
 {% endblock %}
