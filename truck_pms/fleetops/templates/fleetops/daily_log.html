@@ -16,7 +16,7 @@
 <div class="card">
     <div class="card-header fw-bold d-flex justify-content-between align-items-center">
         <span><i class="bi bi-journal-text me-1"></i> Daily Log — {{ log_date|date:'l, M d, Y' }}</span>
-        <small class="text-muted">Values from Cartrack auto-fill; edit as needed</small>
+        <small class="text-muted">Enter values manually, or run <code>py manage.py import_cartrack</code> to pull from Cartrack API</small>
     </div>
     <div class="card-body p-0">
         <form method="post" action="{% url 'fleetops:daily_log_load' %}">

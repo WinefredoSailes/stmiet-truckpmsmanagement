@@ -155,6 +155,8 @@ def truck_import_csv(request):
                     'tank_capacity_liters', 'piston_displacement_cc',
                     'no_of_cylinders', 'gross_weight_kg', 'net_weight_kg',
                     'shipping_weight_kg', 'net_capacity_kg', 'or_expiry',
+                    'cr_expiry', 'fire_conveyance_expiry',
+                    'dost_calibration_expiry',
                 }
                 integer_fields = {'year', 'current_mileage_km', 'no_of_cylinders'}
                 decimal_fields = {
