@@ -96,14 +96,14 @@
                                 </select>
                             </td>
                             <td><input type="number" name="mileage_{{ t.pk }}" value="{% if log %}{{ log.mileage_km }}{% else %}{{ t.current_mileage_km }}{% endif %}" min="0" class="form-control form-control-sm"></td>
-                            <td><input type="number" name="hours_{{ t.pk }}" value="{% if log %}{{ log.engine_hours }}{% else %}{{ t.current_engine_hours }}{% endif %}" step="0.1" min="0" class="form-control form-control-sm"></td>
+                            <td><input type="number" name="hours_{{ t.pk }}" value="{% if log %}{{ log.engine_hours }}{% else %}{{ t.current_engine_hours }}{% endif %}" step="0.01" min="0" class="form-control form-control-sm"></td>
                             <td><input type="number" name="fuel_{{ t.pk }}" value="{% if log %}{{ log.fuel_liters }}{% endif %}" step="0.01" min="0" placeholder="-" class="form-control form-control-sm"></td>
-                            <td><input type="number" name="idle_hrs_{{ t.pk }}" value="{% if log %}{{ log.idle_hours }}{% endif %}" step="0.1" min="0" class="form-control form-control-sm"></td>
+                            <td><input type="number" name="idle_hrs_{{ t.pk }}" value="{% if log %}{{ log.idle_hours }}{% endif %}" step="0.01" min="0" class="form-control form-control-sm"></td>
                             <td><input type="number" name="idle_cnt_{{ t.pk }}" value="{% if log %}{{ log.idle_count }}{% endif %}" min="0" class="form-control form-control-sm"></td>
-                            <td><input type="number" name="op_hrs_{{ t.pk }}" value="{% if log %}{{ log.operating_hours }}{% endif %}" step="0.1" min="0" class="form-control form-control-sm"></td>
-                            <td><input type="number" name="dist_{{ t.pk }}" value="{% if log %}{{ log.distance_traveled_km }}{% endif %}" step="0.1" min="0" class="form-control form-control-sm"></td>
-                            <td><input type="number" name="max_spd_{{ t.pk }}" value="{% if log %}{{ log.max_speed_kmh }}{% endif %}" step="0.1" min="0" class="form-control form-control-sm"></td>
-                            <td><input type="number" name="avg_spd_{{ t.pk }}" value="{% if log %}{{ log.avg_speed_kmh }}{% endif %}" step="0.1" min="0" class="form-control form-control-sm"></td>
+                            <td><input type="number" name="op_hrs_{{ t.pk }}" value="{% if log %}{{ log.operating_hours }}{% endif %}" step="0.01" min="0" class="form-control form-control-sm"></td>
+                            <td><input type="number" name="dist_{{ t.pk }}" value="{% if log %}{{ log.distance_traveled_km }}{% endif %}" step="0.01" min="0" class="form-control form-control-sm"></td>
+                            <td><input type="number" name="max_spd_{{ t.pk }}" value="{% if log %}{{ log.max_speed_kmh }}{% endif %}" step="0.01" min="0" class="form-control form-control-sm"></td>
+                            <td><input type="number" name="avg_spd_{{ t.pk }}" value="{% if log %}{{ log.avg_speed_kmh }}{% endif %}" step="0.01" min="0" class="form-control form-control-sm"></td>
                             <td><input type="number" name="brake_{{ t.pk }}" value="{% if log %}{{ log.harsh_braking_count }}{% endif %}" min="0" class="form-control form-control-sm"></td>
                             <td><input type="number" name="accel_{{ t.pk }}" value="{% if log %}{{ log.harsh_acceleration_count }}{% endif %}" min="0" class="form-control form-control-sm"></td>
                             <td><input type="number" name="turn_{{ t.pk }}" value="{% if log %}{{ log.harsh_turning_count }}{% endif %}" min="0" class="form-control form-control-sm"></td>
