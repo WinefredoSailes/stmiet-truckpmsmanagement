@@ -9,7 +9,12 @@
         <button type="submit" class="btn btn-sm btn-outline-primary"><i class="bi bi-search"></i> Load</button>
         <span class="text-muted small ms-2">{{ rows|length }} truck(s)</span>
     </form>
-    <div>
+    <div class="d-flex gap-1">
+        <form method="post" action="{% url 'fleetops:pull_cartrack' %}" class="d-inline">
+            {% csrf_token %}
+            <input type="hidden" name="days_back" value="1">
+            <button type="submit" class="btn btn-outline-success btn-sm"><i class="bi bi-cloud-download"></i> Pull Cartrack</button>
+        </form>
         <a href="{% url 'fleetops:fleet_performance' %}" class="btn btn-outline-info btn-sm"><i class="bi bi-graph-up"></i> Performance</a>
     </div>
 </div>

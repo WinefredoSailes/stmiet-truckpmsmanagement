@@ -7,6 +7,7 @@ from accounts.decorators import role_required
 from accounts.models import User
 from trucks.models import Truck
 from .models import Driver, DriverAssignment, DailyLog
+from .cartrack_import import import_cartrack_data
 from datetime import date, timedelta
 
 
@@ -366,6 +367,32 @@ def assignment_create(request):
         'trucks': trucks,
         'title': 'New Assignment',
     })
+
+
+# ── Cartrack Pull ──
+
+@login_required
+def pull_cartrack(request):
+    if not _staff_or_above(request.user):
+        messages.error(request, 'Access denied.')
+        return redirect('accounts:dashboard')
+    days_back = int(request.POST.get('days_back', 1))
+    result = import_cartrack_data(days_back=days_back)
+    if result['success']:
+        if result['processed'] > 0:
+            messages.success(
+                request,
+                f"Cartrack import complete: {result['processed']} log(s) for {result['import_date']}."
+            )
+        else:
+            messages.warning(
+                request,
+                "No new Cartrack data found for the selected date. "
+                "Check that trucks have matching plate numbers in Cartrack."
+            )
+    else:
+        messages.error(request, f"Cartrack import failed: {result['error']}")
+    return redirect('fleetops:daily_log')
 
 
 # ── Compliance Dashboard ──
