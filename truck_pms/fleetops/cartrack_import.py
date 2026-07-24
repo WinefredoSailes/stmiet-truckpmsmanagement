@@ -80,7 +80,7 @@ def import_cartrack_data(import_date=None, days_back=1, api_token='', api_userna
         idle = float(trip_match.get('idle_time_seconds', 0) or 0) / 3600
         op_hrs = float(trip_match.get('trip_duration_seconds', 0) or 0) / 3600
         mileage = int(float(trip_match.get('end_odometer', 0) or 0) / 1000)
-        eng_hrs = float(trip_match.get('clock_end', 0) or 0) / 60
+        eng_hrs = float(trip_match.get('clock_end', 0) or 0) / 3600
 
         ev = events_by_vehicle.get(plate, events_by_vehicle.get(unit, {}))
         fuel_l = fuel_by_vehicle.get(plate, fuel_by_vehicle.get(unit, None))
@@ -148,9 +148,8 @@ def _fetch_events(headers, api_url, import_date):
         date_str = import_date.strftime('%Y-%m-%d')
         params = {
             'limit': '1000',
-            'date_from': f'{date_str} 00:00:00',
-            'date_to': f'{date_str} 23:59:59',
-            'types': 'HARSH_BRAKING,HARSH_ACCELERATION,HARSH_CORNERING',
+            'start_timestamp': f'{date_str} 00:00:00',
+            'end_timestamp': f'{date_str} 23:59:59',
         }
         resp = requests.get(f'{api_url}/vehicles/events', headers=headers, params=params, timeout=(3, 5))
         resp.raise_for_status()
@@ -168,8 +167,8 @@ def _fetch_fuel(headers, api_url, import_date):
         date_str = import_date.strftime('%Y-%m-%d')
         params = {
             'limit': '1000',
-            'date_from': f'{date_str} 00:00:00',
-            'date_to': f'{date_str} 23:59:59',
+            'start_timestamp': f'{date_str} 00:00:00',
+            'end_timestamp': f'{date_str} 23:59:59',
         }
         resp = requests.get(f'{api_url}/fuel/fills', headers=headers, params=params, timeout=(3, 5))
         resp.raise_for_status()
