@@ -7,7 +7,8 @@ class Command(BaseCommand):
     help = 'Import daily data from Cartrack API for all active trucks'
 
     def add_arguments(self, parser):
-        parser.add_argument('--api-token', default='', help='Cartrack API token')
+        parser.add_argument('--api-token', default='', help='Cartrack API token/password')
+        parser.add_argument('--api-username', default='', help='Cartrack API username (default: SEVE00001)')
         parser.add_argument('--api-url', default=DEFAULT_API_URL, help='Cartrack API base URL')
         parser.add_argument('--days-back', type=int, default=1, help='Days back to import (default: 1 = yesterday)')
         parser.add_argument('--dry-run', action='store_true', help='Print what would be done without saving')
@@ -25,6 +26,7 @@ class Command(BaseCommand):
         result = import_cartrack_data(
             import_date=import_date,
             api_token=options['api_token'],
+            api_username=options['api_username'],
             api_url=options['api_url'],
             dry_run=options['dry_run'],
         )

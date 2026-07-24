@@ -1,4 +1,5 @@
 import os
+import base64
 from datetime import date, timedelta
 from django.db import models
 from django.utils import timezone
@@ -14,7 +15,7 @@ except ImportError:
 DEFAULT_API_URL = os.environ.get('CARTRACK_API_URL', 'https://fleetapi-ph.cartrack.com/rest')
 
 
-def import_cartrack_data(import_date=None, days_back=1, api_token='', api_url=None, dry_run=False, data_types=None):
+def import_cartrack_data(import_date=None, days_back=1, api_token='', api_username='', api_url=None, dry_run=False, data_types=None):
     if not REQUESTS_AVAILABLE:
         return {'success': False, 'error': 'requests library required. Run: pip install requests'}
 
@@ -23,7 +24,9 @@ def import_cartrack_data(import_date=None, days_back=1, api_token='', api_url=No
     if not token:
         return {'success': False, 'error': 'No CARTRACK_API_TOKEN provided. Set env var or pass --api-token.'}
 
-    headers = {'Authorization': f'Bearer {token}', 'Accept': 'application/json'}
+    username = api_username or os.environ.get('CARTRACK_API_USERNAME', 'SEVE00001')
+    encoded = base64.b64encode(f'{username}:{token}'.encode()).decode()
+    headers = {'Authorization': f'Basic {encoded}', 'Accept': 'application/json'}
     import_date = import_date or (date.today() - timedelta(days=days_back))
 
     trucks = Truck.objects.filter(status='ACTIVE')

@@ -3,6 +3,7 @@ from fleetops.models import Driver, DriverAssignment
 from trucks.models import Truck
 from django.db.models import Q
 import os
+import base64
 from datetime import datetime
 
 try:
@@ -16,7 +17,8 @@ class Command(BaseCommand):
     help = 'One-time import of drivers from Cartrack API'
 
     def add_arguments(self, parser):
-        parser.add_argument('--api-token', default='', help='Cartrack API token')
+        parser.add_argument('--api-token', default='', help='Cartrack API token/password')
+        parser.add_argument('--api-username', default='', help='Cartrack API username (default: SEVE00001)')
         parser.add_argument('--api-url', default='https://fleetapi-ph.cartrack.com/rest', help='Cartrack API base URL')
 
     def handle(self, *args, **options):
@@ -35,7 +37,9 @@ class Command(BaseCommand):
             ))
             return
 
-        headers = {'Authorization': f'Bearer {token}', 'Accept': 'application/json'}
+        username = os.environ.get('CARTRACK_API_USERNAME', 'SEVE00001')
+        encoded = base64.b64encode(f'{username}:{token}'.encode()).decode()
+        headers = {'Authorization': f'Basic {encoded}', 'Accept': 'application/json'}
 
         # Fetch drivers from Cartrack
         self.stdout.write('Fetching drivers from Cartrack...')
