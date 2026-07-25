@@ -12,7 +12,7 @@
     <div class="d-flex gap-1 flex-wrap align-items-center">
         <form method="post" action="{% url 'fleetops:pull_cartrack' %}" class="d-inline-flex align-items-center gap-1" id="pullForm">
             {% csrf_token %}
-            <input type="hidden" name="date" id="pullDate" value="{{ log_date|date:'Y-m-d' }}">
+            <input type="date" name="date" id="pullDate" value="{{ log_date|date:'Y-m-d' }}" class="form-control form-control-sm" style="width:140px">
             <label class="small mb-0 d-flex align-items-center gap-1" title="Import trip data (distance, speeds, hours, mileage)">
                 <input type="checkbox" name="type_trips" value="1" checked> Trips
             </label>
