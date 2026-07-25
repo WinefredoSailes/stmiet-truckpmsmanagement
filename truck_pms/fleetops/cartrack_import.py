@@ -62,10 +62,31 @@ def import_cartrack_data(import_date=None, import_date_end=None, days_back=1, ap
         if f['error']:
             result['errors'].append(f'Fuel API: {f["error"]}')
         fuel_entries = f['data']
-        result['fuel_count'] = len(fuel_entries)
+        # If date-range query returned empty, try fetching ALL fills (no date filter)
         if not fuel_entries:
-            result['errors'].append('Fuel API returned empty — no fill events in range.')
-        elif isinstance(fuel_entries[0], dict):
+            all_f = _fetch_fuel_all(headers, api_url)
+            if all_f['error']:
+                result['errors'].append(f'Fuel API (all): {all_f["error"]}')
+            elif all_f['data']:
+                fuel_entries = all_f['data']
+                # Filter by date range server-side
+                start_ts = import_date.strftime('%Y-%m-%d')
+                end_ts = import_date_end.strftime('%Y-%m-%d')
+                filtered = []
+                for fe in fuel_entries:
+                    if not isinstance(fe, dict):
+                        continue
+                    ts = fe.get('fill_timestamp', fe.get('timestamp', fe.get('date', '')))
+                    if ts and len(ts) >= 10:
+                        d = ts[:10]
+                        if start_ts <= d <= end_ts:
+                            filtered.append(fe)
+                fuel_entries = filtered
+                result['errors'].append(f'Fuel API (all) returned {len(all_f["data"])} total, {len(fuel_entries)} in range.')
+            else:
+                result['errors'].append('Fuel API returned empty (both range and all queries).')
+        result['fuel_count'] = len(fuel_entries)
+        if fuel_entries and isinstance(fuel_entries[0], dict):
             result['errors'].append(f'Fuel sample keys: {list(fuel_entries[0].keys())[:12]}')
 
     if not trips and not events:
@@ -181,6 +202,21 @@ def _fetch_events(headers, api_url, start_date, end_date=None):
             'end_timestamp': f'{end_date.strftime("%Y-%m-%d")} 23:59:59',
         }
         resp = requests.get(f'{api_url}/vehicles/events', headers=headers, params=params, timeout=(3, 30))
+        resp.raise_for_status()
+        data = resp.json()
+        items = data.get('data', data if isinstance(data, list) else [])
+        return {'data': items, 'error': None}
+    except Exception as e:
+        status = getattr(e.response, 'status_code', None) if hasattr(e, 'response') else None
+        text = (getattr(e.response, 'text', '') or '')[:300] if hasattr(e, 'response') else ''
+        return {'data': [], 'error': f'{type(e).__name__}: {e} (HTTP {status})', 'response_text': text}
+
+
+def _fetch_fuel_all(headers, api_url):
+    """Fetch ALL fuel fill events (no date filter)."""
+    try:
+        params = {'limit': '5000'}
+        resp = requests.get(f'{api_url}/fuel/fills', headers=headers, params=params, timeout=(3, 30))
         resp.raise_for_status()
         data = resp.json()
         items = data.get('data', data if isinstance(data, list) else [])
