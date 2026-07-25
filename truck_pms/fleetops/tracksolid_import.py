@@ -57,25 +57,33 @@ class TracksolidClient:
         raw += self.app_secret
         return hashlib.md5(raw.encode('utf-8')).hexdigest().upper()
 
+    _METHOD_PATHS = {
+        'jimi.oauth.token.get': '/v1/oauth/getAccessToken',
+        'jimi.user.device.list': '/v1/user/device/list',
+        'jimi.track.device.detail': '/v1/track/device/detail',
+        'jimi.device.track.list': '/v1/device/track/list',
+    }
+
     def _call(self, method, private_params=None, use_token=True):
+        path = self._METHOD_PATHS.get(method, f'/v1/{method.replace(".", "/")}')
+        url = self.api_url.rstrip('/') + path
         params = {
-            'app_key': self.app_key,
+            'appKey': self.app_key,
             'format': 'json',
-            'method': method,
-            'sign_method': 'md5',
+            'signMethod': 'md5',
             'timestamp': self._now(),
             'v': '1.0',
         }
         if use_token:
             if not self._token:
                 self._get_token()
-            params['access_token'] = self._token
+            params['accessToken'] = self._token
         if private_params:
             params.update(private_params)
         params['sign'] = self._sign(params)
         body = ''
         try:
-            resp = requests.post(self.api_url, data=params, timeout=(5, 15))
+            resp = requests.post(url, data=params, timeout=(5, 15))
             body = resp.text[:1000]
             if not resp.text.strip():
                 return {'data': [], 'error': f'{method}: empty response (status {resp.status_code})'}
@@ -90,9 +98,9 @@ class TracksolidClient:
 
     def _get_token(self):
         private = {
-            'user_id': self.user_id,
-            'user_pwd_md5': self.user_pwd_md5,
-            'expires_in': '3600',
+            'userId': self.user_id,
+            'userPwdMd5': self.user_pwd_md5,
+            'expiresIn': '7200',
         }
         result = self._call('jimi.oauth.token.get', private_params=private, use_token=False)
         if result['error']:
