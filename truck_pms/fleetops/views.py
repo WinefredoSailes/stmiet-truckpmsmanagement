@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.db.models import Q, Avg, Sum, Count, F
+from django.db.models import Q, Avg, Sum, Count, F, Case, Value, When, FloatField, Max
 from django.utils import timezone
 from accounts.decorators import role_required
 from accounts.models import User
@@ -163,36 +163,40 @@ def fleet_performance(request):
         today = date.today()
         date_start = today - timedelta(days=today.weekday())
         date_end = date_start + timedelta(days=6)
-    logs = DailyLog.objects.filter(
+    qs = DailyLog.objects.filter(
         date__gte=date_start, date__lte=date_end
-    ).select_related('truck')
+    ).values('truck_id').annotate(
+        total_dist=Sum('distance_traveled_km'),
+        total_fuel=Sum('fuel_liters'),
+        total_op=Sum('operating_hours'),
+        total_idle=Sum('idle_hours'),
+        total_brake=Sum('harsh_braking_count'),
+        total_accel=Sum('harsh_acceleration_count'),
+        total_turn=Sum('harsh_turning_count'),
+        avg_speed=Avg('avg_speed_kmh'),
+        log_count=Count('id'),
+        has_fuel=Count(Case(When(fuel_liters__gt=0, then=1), output_field=FloatField())),
+    )
+    qs_by_truck = {r['truck_id']: r for r in qs}
     trucks = Truck.objects.filter(status='ACTIVE').order_by('unit_number')
     perf = []
     for t in trucks:
-        t_logs = [l for l in logs if l.truck_id == t.pk]
-        if not t_logs:
+        r = qs_by_truck.get(t.pk)
+        if not r:
             continue
-        total_dist = sum(float(l.distance_traveled_km) for l in t_logs)
-        total_fuel = sum(float(l.fuel_liters or 0) for l in t_logs)
-        total_op = sum(float(l.operating_hours) for l in t_logs)
-        total_idle = sum(float(l.idle_hours) for l in t_logs)
-        total_brake = sum(l.harsh_braking_count for l in t_logs)
-        total_accel = sum(l.harsh_acceleration_count for l in t_logs)
-        total_turn = sum(l.harsh_turning_count for l in t_logs)
-        avg_speed = sum(float(l.avg_speed_kmh or 0) for l in t_logs if l.avg_speed_kmh)
-        speed_count = sum(1 for l in t_logs if l.avg_speed_kmh)
-        efficiency = round(total_dist / total_fuel, 2) if total_fuel > 0 else None
-        utilization = round(total_op / (total_op + total_idle) * 100, 1) if (total_op + total_idle) > 0 else None
-        has_fuel = any(l.fuel_liters for l in t_logs)
+        d = float(r['total_dist'] or 0)
+        f = float(r['total_fuel'] or 0)
+        op = float(r['total_op'] or 0)
+        idl = float(r['total_idle'] or 0)
         perf.append({
             'truck': t,
-            'distance': round(total_dist, 1),
-            'fuel': round(total_fuel, 1) if has_fuel else None,
-            'efficiency': efficiency,
-            'utilization': utilization,
-            'avg_speed': round(avg_speed / speed_count, 1) if speed_count > 0 else None,
-            'harsh_events': total_brake + total_accel + total_turn,
-            'log_count': len(t_logs),
+            'distance': round(d, 1),
+            'fuel': round(f, 1) if r['has_fuel'] > 0 else None,
+            'efficiency': round(d / f, 2) if f > 0 else None,
+            'utilization': round(op / (op + idl) * 100, 1) if (op + idl) > 0 else None,
+            'avg_speed': round(float(r['avg_speed'] or 0), 1) if r['avg_speed'] else None,
+            'harsh_events': int(r['total_brake'] or 0) + int(r['total_accel'] or 0) + int(r['total_turn'] or 0),
+            'log_count': r['log_count'],
         })
     return render(request, 'fleetops/fleet_performance.html', {
         'date_start': date_start,
@@ -332,33 +336,60 @@ def weekly_report(request):
         start = date.today() - timedelta(days=6)
         end = date.today()
 
-    logs = DailyLog.objects.filter(date__gte=start, date__lte=end).select_related('truck', 'driver')
+    # Truck-level SQL aggregation
+    truck_qs = DailyLog.objects.filter(date__gte=start, date__lte=end).values('truck_id').annotate(
+        dist=Sum('distance_traveled_km'),
+        fuel=Sum('fuel_liters'),
+        op=Sum('operating_hours'),
+        idl=Sum('idle_hours'),
+        bk=Sum('harsh_braking_count'),
+        ac=Sum('harsh_acceleration_count'),
+        tn=Sum('harsh_turning_count'),
+        max_spd=Max('max_speed_kmh'),
+        days=Count('id'),
+    )
+    qs_by_truck = {r['truck_id']: r for r in truck_qs}
+
+    # Driver-level SQL aggregation
+    driver_qs = DailyLog.objects.filter(date__gte=start, date__lte=end, driver__isnull=False).values(
+        'driver_id', 'driver__name'
+    ).annotate(
+        dist=Sum('distance_traveled_km'),
+        fuel=Sum('fuel_liters'),
+        op=Sum('operating_hours'),
+        idl=Sum('idle_hours'),
+        bk=Sum('harsh_braking_count'),
+        ac=Sum('harsh_acceleration_count'),
+        tn=Sum('harsh_turning_count'),
+    )
+
     trucks = Truck.objects.filter(status='ACTIVE').order_by('unit_number')
 
-    truck_rows = []
-    driver_data = {}
-    total_dist = total_fuel = total_op = total_idle = 0
-    total_brake = total_accel = total_turn = total_speed = 0
+    # Preload active driver assignments
+    active_assignments = {
+        a.truck_id: a.driver.name
+        for a in DriverAssignment.objects.filter(assigned_until__isnull=True).select_related('driver')
+    }
+
+    truck_rows, driver_scores, idle_report = [], [], []
+    totals = {'dist': 0, 'fuel': 0, 'op': 0, 'idl': 0, 'bk': 0, 'ac': 0, 'tn': 0}
 
     for t in trucks:
-        t_logs = [l for l in logs if l.truck_id == t.pk]
-        if not t_logs:
+        r = qs_by_truck.get(t.pk)
+        if not r:
             continue
-        d = sum(float(l.distance_traveled_km) for l in t_logs)
-        f = sum(float(l.fuel_liters or 0) for l in t_logs)
-        op = sum(float(l.operating_hours) for l in t_logs)
-        idl = sum(float(l.idle_hours) for l in t_logs)
-        bk = sum(l.harsh_braking_count for l in t_logs)
-        ac = sum(l.harsh_acceleration_count for l in t_logs)
-        tn = sum(l.harsh_turning_count for l in t_logs)
-        max_spd = max((float(l.max_speed_kmh or 0) for l in t_logs), default=0)
-        days = len(t_logs)
-        eff = round(d / f, 2) if f > 0 else None
-        eff_kmpl = round(d / f, 2) if f > 0 else None  # km/L
-        eff_lph = round(f / op, 2) if op > 0 else None  # L/hr
+        d = float(r['dist'] or 0)
+        f = float(r['fuel'] or 0)
+        op = float(r['op'] or 0)
+        idl = float(r['idl'] or 0)
+        bk = int(r['bk'] or 0)
+        ac = int(r['ac'] or 0)
+        tn = int(r['tn'] or 0)
+        max_spd = float(r['max_spd'] or 0) if r.get('max_spd') else 0
+        days = r['days']
         util = round(op / (op + idl) * 100, 1) if (op + idl) > 0 else None
-
-        driver_name = t_logs[-1].driver.name if t_logs[-1].driver else 'Unassigned'
+        idle_pct = round(idl / op * 100, 1) if op > 0 else None
+        driver_name = active_assignments.get(t.pk) or 'Unassigned'
 
         truck_rows.append({
             'truck': t,
@@ -370,63 +401,44 @@ def weekly_report(request):
             'brake': bk, 'accel': ac, 'turn': tn,
             'harsh_total': bk + ac + tn,
             'max_speed': max_spd,
-            'efficiency': eff,
-            'efficiency_kmpl': eff_kmpl,
-            'efficiency_lph': eff_lph,
+            'efficiency': round(d / f, 2) if f > 0 else None,
+            'efficiency_kmpl': round(d / f, 2) if f > 0 else None,
+            'efficiency_lph': round(f / op, 2) if op > 0 else None,
             'utilization': util,
+            'idle_pct': idle_pct,
             'days': days,
         })
+        idle_report.append(truck_rows[-1])
+        totals['dist'] += d
+        totals['fuel'] += f
+        totals['op'] += op
+        totals['idl'] += idl
+        totals['bk'] += bk
+        totals['ac'] += ac
+        totals['tn'] += tn
 
-        total_dist += d
-        total_fuel += f
-        total_op += op
-        total_idle += idl
-        total_brake += bk
-        total_accel += ac
-        total_turn += tn
-
-        # Aggregate by driver
-        for l in t_logs:
-            drv = l.driver
-            if not drv:
-                continue
-            if drv.pk not in driver_data:
-                driver_data[drv.pk] = {
-                    'driver': drv,
-                    'distance': 0, 'fuel': 0, 'op': 0, 'idl': 0,
-                    'brake': 0, 'accel': 0, 'turn': 0,
-                }
-            dd = driver_data[drv.pk]
-            dd['distance'] += float(l.distance_traveled_km)
-            dd['fuel'] += float(l.fuel_liters or 0)
-            dd['op'] += float(l.operating_hours)
-            dd['idl'] += float(l.idle_hours)
-            dd['brake'] += l.harsh_braking_count
-            dd['accel'] += l.harsh_acceleration_count
-            dd['turn'] += l.harsh_turning_count
-
-    # Calculate driver scores
+    # Driver scores
     driver_scores = []
-    for dd in driver_data.values():
-        d = dd['distance']
-        op = dd['op']
-        idl = dd['idl']
-        bk = dd['brake']
-        ac = dd['accel']
-        tn = dd['turn']
-        # Score: 100 minus events per 100km × factor, min 0
+    for rd in driver_qs:
+        d = float(rd['dist'] or 0)
+        op = float(rd['op'] or 0)
+        idl = float(rd['idl'] or 0)
+        bk = int(rd['bk'] or 0)
+        ac = int(rd['ac'] or 0)
+        tn = int(rd['tn'] or 0)
+
         def _score(events, divisor, factor=5):
-            if divisor <= 0:
-                return 100
+            if divisor <= 0: return 100
             return max(0, round(100 - (events / divisor * 100) * factor))
-        idle_pct = idl / (op + idl) * 100 if (op + idl) > 0 else 0
+
         brake_s = _score(bk, d)
         accel_s = _score(ac, d)
         turn_s = _score(tn, d)
+        idle_pct = idl / (op + idl) * 100 if (op + idl) > 0 else 0
         idle_s = max(0, round(100 - idle_pct))
         avg_s = round((brake_s + accel_s + turn_s + idle_s) / 4, 2)
         driver_scores.append({
-            'driver': dd['driver'],
+            'driver': {'name': rd['driver__name']},
             'distance': round(d, 1),
             'brake_score': brake_s,
             'accel_score': accel_s,
@@ -436,26 +448,20 @@ def weekly_report(request):
         })
     driver_scores.sort(key=lambda x: x['average_score'], reverse=True)
 
-    # Idle report
-    idle_report = []
-    for tr in truck_rows:
-        if tr['idle_hours'] > 0 or tr['operating_hours'] > 0:
-            idle_report.append(tr)
-
     ctx = {
         'start': start, 'end': end,
         'truck_rows': truck_rows,
         'driver_scores': driver_scores,
         'idle_report': idle_report,
-        'total_distance': round(total_dist, 1),
-        'total_fuel': round(total_fuel, 1),
-        'total_operating': round(total_op, 2),
-        'total_idle': round(total_idle, 2),
-        'total_brake': total_brake,
-        'total_accel': total_accel,
-        'total_turn': total_turn,
-        'total_efficiency': round(total_dist / total_fuel, 2) if total_fuel > 0 else None,
-        'total_utilization': round(total_op / (total_op + total_idle) * 100, 1) if (total_op + total_idle) > 0 else None,
+        'total_distance': round(totals['dist'], 1),
+        'total_fuel': round(totals['fuel'], 1),
+        'total_operating': round(totals['op'], 2),
+        'total_idle': round(totals['idl'], 2),
+        'total_brake': totals['bk'],
+        'total_accel': totals['ac'],
+        'total_turn': totals['tn'],
+        'total_efficiency': round(totals['dist'] / totals['fuel'], 2) if totals['fuel'] > 0 else None,
+        'total_utilization': round(totals['op'] / (totals['op'] + totals['idl']) * 100, 1) if (totals['op'] + totals['idl']) > 0 else None,
         'title': 'Weekly Performance Report',
     }
     return render(request, 'fleetops/weekly_report.html', ctx)

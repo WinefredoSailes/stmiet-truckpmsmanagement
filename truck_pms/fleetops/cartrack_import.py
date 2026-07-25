@@ -15,218 +15,67 @@ except ImportError:
 DEFAULT_API_URL = os.environ.get('CARTRACK_API_URL', 'https://fleetapi-ph.cartrack.com/rest')
 
 
-def import_cartrack_data(import_date=None, import_date_end=None, days_back=1, api_token='', api_username='', api_url=None, dry_run=False, data_types=None):
-    if not REQUESTS_AVAILABLE:
-        return {'success': False, 'error': 'requests library required. Run: pip install requests'}
+class CartrackAPIClient:
+    def __init__(self, api_url=None, username='', token=''):
+        self.api_url = (api_url or DEFAULT_API_URL).rstrip('/')
+        self.username = username or os.environ.get('CARTRACK_API_USERNAME', 'SEVE00001')
+        self.token = token or os.environ.get('CARTRACK_API_TOKEN', '')
+        encoded = base64.b64encode(f'{self.username}:{self.token}'.encode()).decode()
+        self.headers = {'Authorization': f'Basic {encoded}', 'Accept': 'application/json'}
 
-    api_url = api_url or DEFAULT_API_URL
-    token = api_token or os.environ.get('CARTRACK_API_TOKEN', '')
-    if not token:
-        return {'success': False, 'error': 'No CARTRACK_API_TOKEN provided. Set env var or pass --api-token.'}
-
-    username = api_username or os.environ.get('CARTRACK_API_USERNAME', 'SEVE00001')
-    encoded = base64.b64encode(f'{username}:{token}'.encode()).decode()
-    headers = {'Authorization': f'Basic {encoded}', 'Accept': 'application/json'}
-    import_date = import_date or (date.today() - timedelta(days=days_back))
-    import_date_end = import_date_end or import_date
-
-    trucks = Truck.objects.filter(status='ACTIVE')
-
-    result = {
-        'success': True,
-        'import_date': import_date,
-        'import_date_end': import_date_end,
-        'trucks_found': trucks.count(),
-        'processed': 0,
-        'errors': [],
-        'dry_run': dry_run,
-    }
-
-    data_types = data_types or ['trips', 'events', 'fuel']
-    trips = []
-    events = []
-    fuel_entries = []
-
-    if 'trips' in data_types:
-        t = _fetch_trips(headers, api_url, import_date, import_date_end)
-        if t['error']:
-            result['errors'].append(f'Trips API: {t["error"]}')
-        trips = t['data']
-    if 'events' in data_types:
-        e = _fetch_events(headers, api_url, import_date, import_date_end)
-        if e['error']:
-            result['errors'].append(f'Events API: {e["error"]}')
-        events = e['data']
-    if 'fuel' in data_types:
-        f = _fetch_fuel(headers, api_url, import_date, import_date_end)
-        if f['error']:
-            result['errors'].append(f'Fuel API: {f["error"]}')
-        fuel_entries = f['data']
-        result['fuel_count'] = len(fuel_entries)
-        if fuel_entries and isinstance(fuel_entries[0], dict):
-            result['errors'].append(f'Fuel sample keys: {list(fuel_entries[0].keys())[:12]}')
-
-    if not trips and not events and 'trips' in data_types:
-        result['errors'].append('No trip or event data returned from Cartrack API.')
-
-    # Group data by date
-    trips_by_date = _group_trips_by_date(trips, import_date)
-    events_by_date = _group_events_by_date(events, import_date)
-    fuel_by_date = _group_fuel_by_date(fuel_entries, import_date)
-
-    has_any_trips = bool(trips)
-    has_any_fuel = bool(fuel_entries)
-
-    current = import_date
-    while current <= import_date_end:
-        day_trips = trips_by_date.get(current, [])
-        day_events_by_vehicle = events_by_date.get(current, {})
-        day_fuel_by_vehicle = fuel_by_date.get(current, {})
-
-        for truck in trucks:
-            plate = truck.plate_number.upper()
-            unit = truck.unit_number.upper()
-
-            matching_trips = _matching_trips(day_trips, plate, unit) if has_any_trips else []
-            ev = day_events_by_vehicle.get(plate, day_events_by_vehicle.get(unit, {}))
-            # Match fuel by exact plate/unit, then substring fallback
-            fuel_l = None
-            for fuel_key, fuel_val in day_fuel_by_vehicle.items():
-                if fuel_key == plate or fuel_key == unit or (plate and plate in fuel_key) or (unit and unit in fuel_key):
-                    fuel_l = fuel_val
-                    break
-
-            if not matching_trips and fuel_l is None:
-                continue
-
-            if matching_trips:
-                total_dist = sum(float(t.get('trip_distance', 0) or 0) for t in matching_trips) / 1000
-                max_spd = max((t.get('max_speed', 0) or 0 for t in matching_trips), default=None)
-                total_idle = sum(float(t.get('idle_time_seconds', 0) or 0) for t in matching_trips) / 3600
-                total_op = sum(float(t.get('trip_duration_seconds', 0) or 0) for t in matching_trips) / 3600
-                trips_brake = sum(int(t.get('harsh_braking_events', 0) or 0) for t in matching_trips)
-                trips_accel = sum(int(t.get('harsh_acceleration_events', 0) or 0) for t in matching_trips)
-                trips_turn = sum(int(t.get('harsh_cornering_events', 0) or 0) for t in matching_trips)
-                total_idle_count = sum(int(t.get('events_idle', 0) or 0) for t in matching_trips)
-                latest = max(matching_trips, key=lambda t: t.get('end_timestamp', ''))
-                mileage = int(float(latest.get('end_odometer', 0) or 0) / 1000)
-                eng_hrs = float(latest.get('clock_end', 0) or 0) / 3600
-            else:
-                total_dist = total_idle = total_op = 0
-                max_spd = None
-                trips_brake = trips_accel = trips_turn = total_idle_count = 0
-                mileage = eng_hrs = 0
-
-            defaults = {
-                'mileage_km': mileage,
-                'engine_hours': round(eng_hrs, 1),
-                'fuel_liters': round(float(fuel_l), 2) if fuel_l else None,
-                'idle_hours': round(total_idle, 2),
-                'idle_count': total_idle_count,
-                'operating_hours': round(total_op, 2),
-                'distance_traveled_km': round(total_dist, 1),
-                'max_speed_kmh': round(float(max_spd), 1) if max_spd else None,
-                'avg_speed_kmh': round(total_dist / total_op, 1) if total_op > 0 else None,
-                'harsh_braking_count': trips_brake + ev.get('brake', 0),
-                'harsh_acceleration_count': trips_accel + ev.get('accel', 0),
-                'harsh_turning_count': trips_turn + ev.get('turn', 0),
-                'data_source': DailyLog.DataSource.CARTRACK,
-            }
-
-            active = DriverAssignment.objects.filter(
-                truck=truck,
-                assigned_from__lte=current,
-            ).filter(
-                models.Q(assigned_until__isnull=True) |
-                models.Q(assigned_until__gte=current)
-            ).select_related('driver').first()
-            if active:
-                defaults['driver'] = active.driver
-
-            if dry_run:
-                result['processed'] += 1
-                continue
-
-            DailyLog.objects.update_or_create(
-                truck=truck,
-                date=current,
-                defaults=defaults,
-            )
-            result['processed'] += 1
-
-        current += timedelta(days=1)
-
-    return result
-
-
-def _fetch_trips(headers, api_url, start_date, end_date=None):
-    end_date = end_date or start_date
-    try:
-        params = {
-            'limit': '1000',
-            'start_timestamp': f'{start_date.strftime("%Y-%m-%d")} 00:00:00',
-            'end_timestamp': f'{end_date.strftime("%Y-%m-%d")} 23:59:59',
-        }
-        resp = requests.get(f'{api_url}/trips', headers=headers, params=params, timeout=(3, 30))
+    def _fetch(self, endpoint, params):
+        url = f'{self.api_url}/{endpoint.lstrip("/")}'
+        resp = requests.get(url, headers=self.headers, params=params, timeout=(3, 30))
         resp.raise_for_status()
         data = resp.json()
-        items = data.get('data', data if isinstance(data, list) else [])
-        return {'data': items, 'error': None}
-    except Exception as e:
-        status = getattr(e.response, 'status_code', None) if hasattr(e, 'response') else None
-        text = (getattr(e.response, 'text', '') or '')[:300] if hasattr(e, 'response') else ''
-        return {'data': [], 'error': f'{type(e).__name__}: {e} (HTTP {status})', 'response_text': text}
+        return data.get('data', data if isinstance(data, list) else [])
 
-
-def _fetch_events(headers, api_url, start_date, end_date=None):
-    end_date = end_date or start_date
-    try:
-        params = {
-            'limit': '1000',
-            'start_timestamp': f'{start_date.strftime("%Y-%m-%d")} 00:00:00',
-            'end_timestamp': f'{end_date.strftime("%Y-%m-%d")} 23:59:59',
-        }
-        resp = requests.get(f'{api_url}/vehicles/events', headers=headers, params=params, timeout=(3, 30))
-        resp.raise_for_status()
-        data = resp.json()
-        items = data.get('data', data if isinstance(data, list) else [])
-        return {'data': items, 'error': None}
-    except Exception as e:
-        status = getattr(e.response, 'status_code', None) if hasattr(e, 'response') else None
-        text = (getattr(e.response, 'text', '') or '')[:300] if hasattr(e, 'response') else ''
-        return {'data': [], 'error': f'{type(e).__name__}: {e} (HTTP {status})', 'response_text': text}
-
-
-def _fetch_fuel(headers, api_url, start_date, end_date=None):
-    end_date = end_date or start_date
-    date_fmt = '%Y-%m-%d %H:%M:%S'
-    start_ts = f'{start_date.strftime("%Y-%m-%d")} 00:00:00'
-    end_ts = f'{end_date.strftime("%Y-%m-%d")} 23:59:59'
-    # Try multiple parameter name combinations
-    param_sets = [
-        {'start_timestamp': start_ts, 'end_timestamp': end_ts},
-        {'date_from': start_date.strftime('%Y-%m-%d'), 'date_to': end_date.strftime('%Y-%m-%d')},
-        {'from': start_ts, 'to': end_ts},
-        {'from_date': start_date.strftime('%Y-%m-%d'), 'to_date': end_date.strftime('%Y-%m-%d')},
-    ]
-    errors = []
-    for params in param_sets:
+    def _safe_fetch(self, endpoint, params):
         try:
-            params['limit'] = '1000'
-            resp = requests.get(f'{api_url}/fuel/fills', headers=headers, params=params, timeout=(3, 10))
-            if resp.status_code == 422:
-                errors.append(f'params={list(params.keys())} → 422')
-                continue
-            resp.raise_for_status()
-            data = resp.json()
-            items = data.get('data', data if isinstance(data, list) else [])
-            if len(errors) > 0:
-                errors.insert(0, f'Fuel API OK with params={list(params.keys())}')
-            return {'data': items, 'error': None}
+            return {'data': self._fetch(endpoint, params), 'error': None}
         except Exception as e:
-            errors.append(f'{list(params.keys())}: {type(e).__name__}')
-            continue
-    return {'data': [], 'error': '; '.join(errors)}
+            status = getattr(e.response, 'status_code', None) if hasattr(e, 'response') else None
+            text = (getattr(e.response, 'text', '') or '')[:300] if hasattr(e, 'response') else ''
+            return {'data': [], 'error': f'{type(e).__name__}: {e} (HTTP {status})', 'response_text': text}
+
+    def fetch_trips(self, start_date, end_date=None):
+        end = end_date or start_date
+        params = {'limit': '1000',
+                  'start_timestamp': f'{start_date} 00:00:00',
+                  'end_timestamp': f'{end} 23:59:59'}
+        return self._safe_fetch('trips', params)
+
+    def fetch_events(self, start_date, end_date=None):
+        end = end_date or start_date
+        params = {'limit': '1000',
+                  'start_timestamp': f'{start_date} 00:00:00',
+                  'end_timestamp': f'{end} 23:59:59'}
+        return self._safe_fetch('vehicles/events', params)
+
+    def fetch_fuel(self, start_date, end_date=None):
+        end = end_date or start_date
+        param_sets = [
+            {'start_timestamp': f'{start_date} 00:00:00', 'end_timestamp': f'{end} 23:59:59'},
+            {'date_from': start_date, 'date_to': end},
+            {'from': f'{start_date} 00:00:00', 'to': f'{end} 23:59:59'},
+            {'from_date': start_date, 'to_date': end},
+        ]
+        errors = []
+        for p in param_sets:
+            try:
+                p['limit'] = '1000'
+                resp = requests.get(f'{self.api_url}/fuel/fills', headers=self.headers, params=p, timeout=(3, 10))
+                if resp.status_code == 422:
+                    errors.append(f'{list(p.keys())} → 422')
+                    continue
+                resp.raise_for_status()
+                data = resp.json()
+                items = data.get('data', data if isinstance(data, list) else [])
+                return {'data': items, 'error': None}
+            except Exception as e:
+                errors.append(f'{list(p.keys())}: {type(e).__name__}')
+                continue
+        return {'data': [], 'error': '; '.join(errors)}
 
 
 def _parse_date(ts, fallback):
@@ -236,73 +85,195 @@ def _parse_date(ts, fallback):
         return fallback
 
 
-def _group_trips_by_date(trips, fallback_date):
-    by_date = {}
-    for trip in trips:
-        if not isinstance(trip, dict):
-            continue
-        d = _parse_date(trip.get('end_timestamp', ''), fallback_date)
-        by_date.setdefault(d, []).append(trip)
-    return by_date
+def _vehicle_id(entry):
+    return entry.get('registration', entry.get('vehiclePlate', '')).upper()
 
 
-def _group_events_by_date(events, fallback_date):
-    by_date = {}
-    for ev in events:
-        if not isinstance(ev, dict):
-            continue
-        d = _parse_date(ev.get('event_timestamp', ev.get('timestamp', '')), fallback_date)
-        vid = ev.get('registration', ev.get('vehiclePlate', '')).upper()
-        event_type = ev.get('event_description', ev.get('eventType', ''))
-        bucket = by_date.setdefault(d, {})
-        counts = bucket.setdefault(vid, {'brake': 0, 'accel': 0, 'turn': 0})
-        if 'BRAKE' in event_type.upper():
-            counts['brake'] += 1
-        elif 'ACCEL' in event_type.upper():
-            counts['accel'] += 1
-        elif 'TURN' in event_type.upper() or 'CORNERING' in event_type.upper():
-            counts['turn'] += 1
-    return by_date
+def _vehicle_id2(entry):
+    return str(entry.get('vehicle_id', '')).upper()
 
 
-def _group_fuel_by_date(fuel_entries, fallback_date):
-    by_date = {}
-    for fe in fuel_entries:
-        if not isinstance(fe, dict):
-            continue
-        ts = fe.get('fill_timestamp', fe.get('timestamp', fe.get('date', fe.get('transaction_date', fe.get('fill_date', '')))))
-        d = _parse_date(ts, fallback_date)
-        vid = fe.get('registration', fe.get('vehiclePlate', '')).upper()
-        vid2 = str(fe.get('vehicle_id', '')).upper()
-        liters = fe.get('fill_amount_litres', fe.get('liters', fe.get('quantity', fe.get('amount', fe.get('volume', 0)))))
-        try:
-            liters = float(liters)
-        except (ValueError, TypeError):
-            continue
-        bucket = by_date.setdefault(d, {})
-        bucket[vid] = liters
-        if vid2:
-            bucket[vid2] = liters
-    return by_date
+def _group_by_date(items, date_field, fallback_date):
+    grouped = {}
+    for item in items:
+        d = _parse_date(item.get(date_field, item.get('timestamp', '')), fallback_date)
+        grouped.setdefault(d, []).append(item)
+    return grouped
 
 
-def _matching_trips(trips, plate, unit):
-    """Return all trips matching the given truck plate/unit."""
-    exact = []
-    for t in trips:
-        if isinstance(t, dict):
-            t_plate = t.get('registration', t.get('vehiclePlate', '')).upper()
-            t_unit = t.get('vehicleName', t.get('name', '')).upper()
-            if plate == t_plate or unit == t_unit or plate == t_unit:
-                exact.append(t)
+def _match_vehicle(items, plate, unit, key_fn=_vehicle_id):
+    """Return all items matching either plate or unit (exact then substring)."""
+    if not items:
+        return []
+    key = key_fn
+    exact = [i for i in items if key(i) == plate or key(i) == unit or plate == key(i)]
     if exact:
         return exact
-    # Fall back to substring match
-    loose = []
-    for t in trips:
-        if isinstance(t, dict):
-            t_plate = t.get('registration', t.get('vehiclePlate', '')).upper()
-            t_unit = t.get('vehicleName', t.get('name', '')).upper()
-            if (plate and plate in t_plate) or (unit and unit in t_unit) or (plate and plate in t_unit):
-                loose.append(t)
-    return loose
+    return [i for i in items if (plate and plate in key(i)) or (unit and unit in key(i)) or (plate and plate in key(i))]
+
+
+def _aggregate_trips(trips):
+    if not trips:
+        return {}
+    total_dist = sum(float(t.get('trip_distance', 0) or 0) for t in trips) / 1000
+    latest = max(trips, key=lambda t: t.get('end_timestamp', ''))
+    return {
+        'distance': total_dist,
+        'max_speed': max((float(t.get('max_speed', 0) or 0) for t in trips), default=None),
+        'idle': sum(float(t.get('idle_time_seconds', 0) or 0) for t in trips) / 3600,
+        'op': sum(float(t.get('trip_duration_seconds', 0) or 0) for t in trips) / 3600,
+        'brake': sum(int(t.get('harsh_braking_events', 0) or 0) for t in trips),
+        'accel': sum(int(t.get('harsh_acceleration_events', 0) or 0) for t in trips),
+        'turn': sum(int(t.get('harsh_cornering_events', 0) or 0) for t in trips),
+        'idle_count': sum(int(t.get('events_idle', 0) or 0) for t in trips),
+        'mileage': int(float(latest.get('end_odometer', 0) or 0) / 1000),
+        'eng_hrs': float(latest.get('clock_end', 0) or 0) / 3600,
+    }
+
+
+def import_cartrack_data(import_date=None, import_date_end=None, days_back=1, api_token='', api_username='', api_url=None, dry_run=False, data_types=None):
+    if not REQUESTS_AVAILABLE:
+        return {'success': False, 'error': 'requests library required. Run: pip install requests'}
+
+    client = CartrackAPIClient(api_url=api_url, username=api_username, token=api_token)
+    if not client.token:
+        return {'success': False, 'error': 'No CARTRACK_API_TOKEN provided. Set env var or pass --api-token.'}
+
+    import_date = import_date or (date.today() - timedelta(days=days_back))
+    import_date_end = import_date_end or import_date
+    date_fmt = '%Y-%m-%d'
+
+    trucks = list(Truck.objects.filter(status='ACTIVE'))
+    result = {
+        'success': True,
+        'import_date': import_date,
+        'import_date_end': import_date_end,
+        'trucks_found': len(trucks),
+        'processed': 0,
+        'errors': [],
+        'dry_run': dry_run,
+    }
+
+    data_types = data_types or ['trips', 'events', 'fuel']
+    trips = events = fuel_entries = []
+
+    if 'trips' in data_types:
+        r = client.fetch_trips(import_date.strftime(date_fmt), import_date_end.strftime(date_fmt))
+        if r['error']:
+            result['errors'].append(f'Trips: {r["error"]}')
+        trips = r['data']
+    if 'events' in data_types:
+        r = client.fetch_events(import_date.strftime(date_fmt), import_date_end.strftime(date_fmt))
+        if r['error']:
+            result['errors'].append(f'Events: {r["error"]}')
+        events = r['data']
+    if 'fuel' in data_types:
+        r = client.fetch_fuel(import_date.strftime(date_fmt), import_date_end.strftime(date_fmt))
+        if r['error']:
+            result['errors'].append(f'Fuel: {r["error"]}')
+        fuel_entries = r['data']
+        result['fuel_count'] = len(fuel_entries)
+
+    if not trips and not events and 'trips' in data_types:
+        result['errors'].append('No trip or event data returned from Cartrack API.')
+
+    # Group events/fuel by date
+    events_by_date = _group_by_date(events, 'event_timestamp', import_date)
+    fuel_by_date = _group_by_date(fuel_entries, 'fill_timestamp', import_date)
+
+    # Index events/fuel by vehicle under each date
+    ev_index = {}
+    for d, items in events_by_date.items():
+        idx = {}
+        for ev in items:
+            vid = _vehicle_id(ev)
+            t = ev.get('event_description', ev.get('eventType', ''))
+            c = idx.setdefault(vid, {'brake': 0, 'accel': 0, 'turn': 0})
+            if 'BRAKE' in t.upper(): c['brake'] += 1
+            elif 'ACCEL' in t.upper(): c['accel'] += 1
+            elif 'TURN' in t.upper() or 'CORNERING' in t.upper(): c['turn'] += 1
+        ev_index[d] = idx
+
+    fuel_index = {}
+    for d, items in fuel_by_date.items():
+        idx = {}
+        for fe in items:
+            vid = _vehicle_id(fe)
+            vid2 = _vehicle_id2(fe)
+            try:
+                ltrs = float(fe.get('fill_amount_litres', fe.get('liters', fe.get('quantity', fe.get('amount', fe.get('volume', 0))))))
+            except (ValueError, TypeError):
+                continue
+            idx[vid] = ltrs
+            if vid2:
+                idx[vid2] = ltrs
+        fuel_index[d] = idx
+
+    # Process each date
+    current = import_date
+    while current <= import_date_end:
+        day_ev = ev_index.get(current, {})
+        day_fl = fuel_index.get(current, {})
+
+        for truck in trucks:
+            plate = truck.plate_number.upper()
+            unit = truck.unit_number.upper()
+
+            trip_data = _aggregate_trips(_match_vehicle(trips, plate, unit))
+
+            # Match events
+            ev_counts = next(
+                (v for k, v in day_ev.items() if k == plate or k == unit or (plate and plate in k) or (unit and unit in k)),
+                {'brake': 0, 'accel': 0, 'turn': 0}
+            )
+
+            # Match fuel
+            fuel_l = None
+            for k, v in day_fl.items():
+                if k == plate or k == unit or (plate and plate in k) or (unit and unit in k):
+                    fuel_l = v
+                    break
+
+            if not trip_data and fuel_l is None:
+                continue
+
+            if trip_data:
+                defaults = {
+                    'mileage_km': trip_data['mileage'],
+                    'engine_hours': round(trip_data['eng_hrs'], 1),
+                    'fuel_liters': round(fuel_l, 2) if fuel_l else None,
+                    'idle_hours': round(trip_data['idle'], 2),
+                    'idle_count': trip_data['idle_count'],
+                    'operating_hours': round(trip_data['op'], 2),
+                    'distance_traveled_km': round(trip_data['distance'], 1),
+                    'max_speed_kmh': round(trip_data['max_speed'], 1) if trip_data['max_speed'] else None,
+                    'avg_speed_kmh': round(trip_data['distance'] / trip_data['op'], 1) if trip_data['op'] > 0 else None,
+                    'harsh_braking_count': trip_data['brake'] + ev_counts['brake'],
+                    'harsh_acceleration_count': trip_data['accel'] + ev_counts['accel'],
+                    'harsh_turning_count': trip_data['turn'] + ev_counts['turn'],
+                    'data_source': DailyLog.DataSource.CARTRACK,
+                }
+            else:
+                defaults = {
+                    'fuel_liters': round(fuel_l, 2) if fuel_l else None,
+                    'data_source': DailyLog.DataSource.CARTRACK,
+                }
+
+            driver = DriverAssignment.objects.filter(
+                truck=truck, assigned_from__lte=current
+            ).filter(
+                models.Q(assigned_until__isnull=True) | models.Q(assigned_until__gte=current)
+            ).select_related('driver').first()
+            if driver:
+                defaults['driver'] = driver.driver
+
+            if dry_run:
+                result['processed'] += 1
+                continue
+
+            DailyLog.objects.update_or_create(truck=truck, date=current, defaults=defaults)
+            result['processed'] += 1
+
+        current += timedelta(days=1)
+
+    return result

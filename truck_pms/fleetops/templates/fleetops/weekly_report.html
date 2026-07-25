@@ -83,7 +83,7 @@
         <td>{{ r.efficiency_lph|default:'—' }}</td>
         <td>{{ r.operating_hours }}</td>
         <td>{{ r.idle_hours }}</td>
-        <td>{{ r.utilization|default:'—' }}%</td>
+        <td>{{ r.idle_pct|default:'—' }}%</td>
         <td>{{ r.brake }}</td>
         <td>{{ r.accel }}</td>
         <td>{{ r.turn }}</td>
@@ -148,7 +148,7 @@
         <td>{{ r.driver_name }}</td>
         <td>{{ r.operating_hours }}</td>
         <td>{{ r.idle_hours }}</td>
-        <td>{{ r.utilization|default:'—' }}%</td>
+        <td>{{ r.idle_pct|default:'—' }}%</td>
       </tr>
       {% endfor %}
     </tbody>
