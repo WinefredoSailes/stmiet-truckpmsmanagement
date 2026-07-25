@@ -68,17 +68,17 @@ class TracksolidClient:
         path = self._METHOD_PATHS.get(method, f'/v1/{method.replace(".", "/")}')
         url = self.api_url.rstrip('/') + path
         params = {
-            'appKey': self.app_key,
-            'format': 'json',
+            'AppKey': self.app_key,
+            'Format': 'json',
             'method': method,
-            'signMethod': 'md5',
-            'timestamp': self._now(),
-            'v': '1.0',
+            'SignMethod': 'md5',
+            'Timestamp': self._now(),
+            'V': '1.0',
         }
         if use_token:
             if not self._token:
                 self._get_token()
-            params['accessToken'] = self._token
+            params['AccessToken'] = self._token
         if private_params:
             params.update(private_params)
         params['sign'] = self._sign(params)
@@ -99,9 +99,9 @@ class TracksolidClient:
 
     def _get_token(self):
         private = {
-            'userId': self.user_id,
-            'userPwdMd5': self.user_pwd_md5,
-            'expiresIn': '7200',
+            'UserId': self.user_id,
+            'UserPwdMd5': self.user_pwd_md5,
+            'ExpiresIn': '7200',
         }
         result = self._call('jimi.oauth.token.get', private_params=private, use_token=False)
         if result['error']:
