@@ -1,11 +1,14 @@
 import os
 import hashlib
 import math
+import logging
 from datetime import date, timedelta, datetime
 from django.db import models as db_models
 from django.utils import timezone
 from fleetops.models import DailyLog, DriverAssignment
 from trucks.models import Truck
+
+logger = logging.getLogger(__name__)
 
 try:
     import requests
@@ -70,13 +73,19 @@ class TracksolidClient:
         if private_params:
             params.update(private_params)
         params['sign'] = self._sign(params)
+        log_params = {k: (v if k not in ('app_secret', 'sign', 'access_token') else '***') for k, v in params.items()}
+        logger.info('TrackSolid API call: method=%s params=%s', method, log_params)
         try:
             resp = requests.post(self.api_url, data=params, timeout=(5, 15))
+            logger.info('TrackSolid response: status=%s body=%s', resp.status_code, resp.text[:2000])
+            if not resp.text.strip():
+                return {'data': [], 'error': f'{method}: empty response (status {resp.status_code})'}
             data = resp.json()
             if data.get('code') != 0:
-                return {'data': [], 'error': f"{method}: {data.get('message', '')}"}
+                return {'data': [], 'error': f"{method}: {data.get('message', '')} (code={data.get('code')})"}
             return {'data': data.get('result', []), 'error': None}
         except Exception as e:
+            logger.exception('TrackSolid API exception for method=%s', method)
             return {'data': [], 'error': f'{type(e).__name__}: {e}'}
 
     def _get_token(self):
