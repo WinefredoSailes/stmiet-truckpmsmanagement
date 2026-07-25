@@ -70,6 +70,7 @@ class TracksolidClient:
         params = {
             'appKey': self.app_key,
             'format': 'json',
+            'method': method,
             'signMethod': 'md5',
             'timestamp': self._now(),
             'v': '1.0',
