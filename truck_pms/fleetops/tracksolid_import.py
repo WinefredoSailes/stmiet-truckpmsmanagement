@@ -38,7 +38,10 @@ def _parse_ts(ts):
 
 class TracksolidClient:
     def __init__(self, api_url=None, app_key='', app_secret='', user_id='', user_pwd_md5=''):
-        self.api_url = (api_url or DEFAULT_API_URL).rstrip('/')
+        base = (api_url or DEFAULT_API_URL).rstrip('/')
+        self.api_url = base
+        # REST API is at same host without /route/rest prefix
+        self.rest_url = base.replace('/route/rest', '')
         self.app_key = app_key or os.environ.get('TRACKSOLID_APP_KEY', '')
         self.app_secret = app_secret or os.environ.get('TRACKSOLID_APP_SECRET', '')
         self.user_id = user_id or os.environ.get('TRACKSOLID_USER_ID', '')
@@ -66,11 +69,10 @@ class TracksolidClient:
 
     def _call(self, method, private_params=None, use_token=True):
         path = self._METHOD_PATHS.get(method, f'/v1/{method.replace(".", "/")}')
-        url = self.api_url.rstrip('/') + path
+        url = self.rest_url + path
         params = {
             'AppKey': self.app_key,
             'Format': 'json',
-            'method': method,
             'SignMethod': 'md5',
             'Timestamp': self._now(),
             'V': '1.0',
@@ -82,6 +84,7 @@ class TracksolidClient:
         if private_params:
             params.update(private_params)
         params['sign'] = self._sign(params)
+        params['Method'] = method
         body = ''
         try:
             resp = requests.post(url, data=params, timeout=(5, 15))
