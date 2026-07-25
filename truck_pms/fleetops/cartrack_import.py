@@ -55,59 +55,32 @@ class CartrackAPIClient:
     def fetch_fuel(self, start_date, end_date=None):
         """Try fuel efficiency report endpoint (preferred) then fall back to /fuel/fills."""
         end = end_date or start_date
-        # Try fuel efficiency report endpoint first
-        report_endpoints = [
-            'reports/fuel-efficiency',
-            'reports/fuelefficiency',
-            'reports/fuel_efficiency',
-            'vehicles/reports/fuel-efficiency',
-            'vehicles/reports/fuelefficiency',
-        ]
-        report_params_sets = [
-            {'start_date': start_date, 'end_date': end},
-            {'date_from': start_date, 'date_to': end},
-            {'start_timestamp': f'{start_date} 00:00:00', 'end_timestamp': f'{end} 23:59:59'},
-            {'from': start_date, 'to': end},
-        ]
-        for ep in report_endpoints:
-            for p in report_params_sets:
-                try:
-                    p['limit'] = '1000'
-                    resp = requests.get(f'{self.api_url}/{ep}', headers=self.headers, params=p, timeout=(3, 15))
-                    if resp.status_code == 422:
-                        continue
-                    resp.raise_for_status()
-                    data = resp.json()
-                    items = data.get('data', data if isinstance(data, list) else [])
-                    if items:
-                        return {'data': items, 'error': None, 'endpoint': ep}
-                except Exception:
-                    continue
-
-        # Fallback: /fuel/fills with multiple param patterns
-        param_sets = [
-            {'start_timestamp': f'{start_date} 00:00:00', 'end_timestamp': f'{end} 23:59:59'},
-            {'date_from': start_date, 'date_to': end},
-            {'from': f'{start_date} 00:00:00', 'to': f'{end} 23:59:59'},
-            {'from_date': start_date, 'to_date': end},
-        ]
-        errors = []
-        for p in param_sets:
+        params = {'start_date': start_date, 'end_date': end, 'limit': '1000'}
+        for ep in ('reports/fuel-efficiency', 'reports/fuelefficiency'):
             try:
-                p['limit'] = '1000'
-                resp = requests.get(f'{self.api_url}/fuel/fills', headers=self.headers, params=p, timeout=(3, 10))
+                resp = requests.get(f'{self.api_url}/{ep}', headers=self.headers, params=params, timeout=(3, 8))
                 if resp.status_code == 422:
-                    errors.append(f'{list(p.keys())} → 422')
                     continue
                 resp.raise_for_status()
                 data = resp.json()
                 items = data.get('data', data if isinstance(data, list) else [])
                 if items:
-                    return {'data': items, 'error': None, 'endpoint': 'fuel/fills'}
-            except Exception as e:
-                errors.append(f'{list(p.keys())}: {type(e).__name__}')
+                    return {'data': items, 'error': None, 'endpoint': ep}
+            except Exception:
                 continue
-        return {'data': [], 'error': '; '.join(errors), 'endpoint': 'none'}
+        # Fallback: /fuel/fills
+        try:
+            p = {'start_timestamp': f'{start_date} 00:00:00', 'end_timestamp': f'{end} 23:59:59', 'limit': '1000'}
+            resp = requests.get(f'{self.api_url}/fuel/fills', headers=self.headers, params=p, timeout=(3, 8))
+            if resp.status_code != 422:
+                resp.raise_for_status()
+                data = resp.json()
+                items = data.get('data', data if isinstance(data, list) else [])
+                if items:
+                    return {'data': items, 'error': None, 'endpoint': 'fuel/fills'}
+        except Exception:
+            pass
+        return {'data': [], 'error': 'No data', 'endpoint': 'none'}
 
 
 def _parse_date(ts, fallback):
@@ -203,7 +176,7 @@ def import_cartrack_data(import_date=None, import_date_end=None, days_back=1, ap
     if not trips and not events and 'trips' in data_types:
         result['errors'].append('No trip or event data returned from Cartrack API.')
 
-    # Group events by date (fuel is fetched per day in the loop below)
+    # Group events by date
     events_by_date = _group_by_date(events, 'event_timestamp', import_date)
 
     # Index events by vehicle under each date
@@ -219,40 +192,39 @@ def import_cartrack_data(import_date=None, import_date_end=None, days_back=1, ap
             elif 'TURN' in t.upper() or 'CORNERING' in t.upper(): c['turn'] += 1
         ev_index[d] = idx
 
-    # Process each date
-    current = import_date
-    fuel_count = 0
+    # Fetch fuel once upfront (report gives range aggregates)
+    fuel_by_vehicle = {}
     fuel_endpoint = None
-    while current <= import_date_end:
-        day_ev = ev_index.get(current, {})
-
-        # Fetch fuel per single day (report endpoint gives aggregates)
-        day_fl = {}
-        if 'fuel' in data_types:
-            r = client.fetch_fuel(current.strftime(date_fmt), current.strftime(date_fmt))
-            if r['endpoint'] and r['endpoint'] != 'none':
-                fuel_endpoint = r['endpoint']
-            # Try report format first (per-vehicle fields), fall back to fill events
-            for fe in r['data']:
-                fuel_count += 1
+    if 'fuel' in data_types:
+        r = client.fetch_fuel(import_date.strftime(date_fmt), import_date_end.strftime(date_fmt))
+        if r['endpoint'] and r['endpoint'] != 'none':
+            fuel_endpoint = r['endpoint']
+        for fe in r['data']:
+            ltrs = None
+            for key in ('fuel_consumed_litres', 'fuelConsumedLitres', 'fuel_consumed_l',
+                        'fuel_consumed', 'total_fuel_consumed', 'fill_amount_litres',
+                        'liters', 'quantity', 'amount', 'volume'):
+                val = fe.get(key)
+                if val is not None:
+                    try:
+                        ltrs = float(val)
+                        break
+                    except (ValueError, TypeError):
+                        continue
+            if ltrs is not None:
                 vid = _vehicle_id(fe)
                 vid2 = _vehicle_id2(fe)
-                # Report format fields: fuel_consumed_litres, fuelConsumedLitres, etc.
-                ltrs = None
-                for key in ('fuel_consumed_litres', 'fuelConsumedLitres', 'fuel_consumed_l',
-                            'fuel_consumed', 'total_fuel_consumed', 'fill_amount_litres',
-                            'liters', 'quantity', 'amount', 'volume'):
-                    val = fe.get(key)
-                    if val is not None:
-                        try:
-                            ltrs = float(val)
-                            break
-                        except (ValueError, TypeError):
-                            continue
-                if ltrs is not None:
-                    day_fl[vid] = ltrs
-                    if vid2:
-                        day_fl[vid2] = ltrs
+                fuel_by_vehicle[vid] = ltrs
+                if vid2:
+                    fuel_by_vehicle[vid2] = ltrs
+
+    days_in_range = (import_date_end - import_date).days + 1 if import_date_end else 1
+    result['fuel_count'] = len(fuel_by_vehicle)
+
+    # Process each date
+    current = import_date
+    while current <= import_date_end:
+        day_ev = ev_index.get(current, {})
 
         for truck in trucks:
             plate = truck.plate_number.upper()
@@ -266,12 +238,13 @@ def import_cartrack_data(import_date=None, import_date_end=None, days_back=1, ap
                 {'brake': 0, 'accel': 0, 'turn': 0}
             )
 
-            # Match fuel
+            # Match fuel (distribute range total evenly across days)
             fuel_l = None
-            for k, v in day_fl.items():
-                if k == plate or k == unit or (plate and plate in k) or (unit and unit in k):
-                    fuel_l = v
-                    break
+            if fuel_by_vehicle:
+                for k, v in fuel_by_vehicle.items():
+                    if k == plate or k == unit or (plate and plate in k) or (unit and unit in k):
+                        fuel_l = round(v / days_in_range, 2)
+                        break
 
             if not trip_data and fuel_l is None:
                 continue
@@ -317,5 +290,4 @@ def import_cartrack_data(import_date=None, import_date_end=None, days_back=1, ap
 
     if fuel_endpoint:
         result['fuel_endpoint'] = fuel_endpoint
-    result['fuel_count'] = fuel_count
     return result
