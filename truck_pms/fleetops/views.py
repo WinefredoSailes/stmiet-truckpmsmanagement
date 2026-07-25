@@ -781,95 +781,91 @@ def refresh_positions_api(request):
     if request.method != 'POST':
         return JsonResponse({'error': 'POST required'}, status=405)
     try:
+        import traceback
         client = CartrackAPIClient()
-    except Exception as e:
-        logger.error('refresh_positions: client init failed %s', e)
-        return JsonResponse({'refreshed': 0, 'errors': [f'Client init failed: {e}']})
-    r = client.get_positions()
-    logger.info('refresh_positions: get_positions returned error=%s endpoint=%s empty=%s items=%d',
-                r.get('error'), r.get('endpoint'), r.get('empty'), len(r.get('data', [])))
-    if r['error']:
-        return JsonResponse({'refreshed': 0, 'errors': [r['error']]})
-    items = r['data']
-    # Return a sample for debugging if no items
-    if not items:
-        sample = r.get('sample', '')[:500]
-        logger.info('refresh_positions: no items, endpoint=%s sample=%s', r.get('endpoint'), sample[:200])
-        return JsonResponse({'refreshed': 0, 'errors': [f'Empty response from {r.get("endpoint", "?")}', 'sample: ' + sample]})
-    # Build truck lookup by both plate and unit (exact + substring)
-    active_trucks = list(Truck.objects.filter(status='ACTIVE'))
-    logger.info('refresh_positions: %d active trucks, %d items to process', len(active_trucks), len(items))
-    refreshed = 0
-    errors = []
-    now_ts = timezone.now()
-    for i, item in enumerate(items):
-        if i == 0:
-            logger.info('refresh_positions: first item keys=%s values=%s', list(item.keys()), str(list(item.values()))[:500])
-        # Try multiple field names for vehicle identifier
-        vid_keys = ('registration', 'vehiclePlate', 'plateNumber', 'plate', 'name',
-                    'vehicleId', 'vehicle_id', 'unitNumber', 'unit', 'label')
-        vid = ''
-        for k in vid_keys:
-            v = item.get(k)
-            if v is not None:
-                vid = str(v).upper()
-                break
-        if not vid:
-            errors.append(f'Skipped item with no ID keys {vid_keys}: keys={list(item.keys())[:5]}')
-            continue
-        # Match truck: exact first, then substring
-        truck = None
-        for t in active_trucks:
-            if vid == t.plate_number.upper() or vid == t.unit_number.upper():
-                truck = t
-                break
-        if not truck:
+        r = client.get_positions()
+        logger.info('REFRESH: get_positions returned error=%s endpoint=%s empty=%s items=%d',
+                    r.get('error'), r.get('endpoint'), r.get('empty'), len(r.get('data', [])))
+        if r['error']:
+            return JsonResponse({'refreshed': 0, 'errors': [r['error']]})
+        items = r['data']
+        if not items:
+            sample = r.get('sample', '')[:500]
+            return JsonResponse({'refreshed': 0, 'errors': [f'Empty response from {r.get("endpoint", "?")}', 'sample: ' + sample]})
+        active_trucks = list(Truck.objects.filter(status='ACTIVE'))
+        refreshed = 0
+        errors = []
+        now_ts = timezone.now()
+        for i, item in enumerate(items):
+            if i == 0:
+                logger.info('REFRESH: first item=%s', str(item)[:600])
+            vid_keys = ('registration', 'vehiclePlate', 'plateNumber', 'plate', 'name',
+                        'vehicleId', 'vehicle_id', 'unitNumber', 'unit', 'label')
+            vid = ''
+            for k in vid_keys:
+                v = item.get(k)
+                if v is not None:
+                    vid = str(v).upper()
+                    break
+            if not vid:
+                errors.append(f'Skipped item no ID key, item keys={list(item.keys())[:6]}')
+                continue
+            truck = None
             for t in active_trucks:
-                if t.plate_number.upper() in vid or t.unit_number.upper() in vid or vid in t.plate_number.upper() or vid in t.unit_number.upper():
+                if vid == t.plate_number.upper() or vid == t.unit_number.upper():
                     truck = t
                     break
-        if not truck:
-            errors.append(f'No match for vehicle "{vid}" (raw item keys: {list(item.keys())[:6]})')
-            continue
-        try:
-            lat = float(item.get('latitude') or item.get('lat') or 0)
-            lng = float(item.get('longitude') or item.get('lng') or 0)
-        except (ValueError, TypeError):
-            errors.append(f'Bad lat/lng for {vid}')
-            continue
-        if lat == 0 and lng == 0:
-            continue
-        spd = item.get('speed', item.get('gpsSpeed'))
-        if spd is not None:
+            if not truck:
+                for t in active_trucks:
+                    if t.plate_number.upper() in vid or t.unit_number.upper() in vid or vid in t.plate_number.upper() or vid in t.unit_number.upper():
+                        truck = t
+                        break
+            if not truck:
+                errors.append(f'No match for "{vid}"')
+                continue
             try:
-                spd = float(spd)
+                lat = float(item.get('latitude') or item.get('lat') or 0)
+                lng = float(item.get('longitude') or item.get('lng') or 0)
             except (ValueError, TypeError):
-                spd = None
-        hdg = item.get('heading', item.get('direction'))
-        if hdg is not None:
-            try:
-                hdg = int(float(hdg))
-            except (ValueError, TypeError):
-                hdg = None
-        ign = item.get('ignition', item.get('ignitionOn'))
-        if ign is not None:
-            if isinstance(ign, str):
-                ign = ign.upper() in ('ON', 'TRUE', '1', 'YES')
-            else:
-                ign = bool(ign)
-        evt_ts = item.get('eventTime') or item.get('gpsTime') or now_ts
-        if isinstance(evt_ts, str):
-            try:
-                evt_ts = datetime.strptime(evt_ts[:19], '%Y-%m-%d %H:%M:%S')
-            except ValueError:
-                evt_ts = now_ts
-        VehiclePosition.objects.create(
-            truck=truck, provider=VehiclePosition.Provider.CARTRACK,
-            latitude=lat, longitude=lng,
-            speed_kmh=spd, heading=hdg,
-            recorded_at=evt_ts, ignition_on=ign,
-            extra_data=item,
-        )
-        refreshed += 1
-    logger.info('refresh_positions: done refreshed=%d errors=%d', refreshed, len(errors))
-    return JsonResponse({'refreshed': refreshed, 'errors': errors[:20]})
+                errors.append(f'Bad lat/lng for {vid}')
+                continue
+            if lat == 0 and lng == 0:
+                continue
+            spd = item.get('speed', item.get('gpsSpeed'))
+            if spd is not None:
+                try:
+                    spd = float(spd)
+                except (ValueError, TypeError):
+                    spd = None
+            hdg = item.get('heading', item.get('direction'))
+            if hdg is not None:
+                try:
+                    hdg = int(float(hdg))
+                except (ValueError, TypeError):
+                    hdg = None
+            ign = item.get('ignition', item.get('ignitionOn'))
+            if ign is not None:
+                if isinstance(ign, str):
+                    ign = ign.upper() in ('ON', 'TRUE', '1', 'YES')
+                else:
+                    ign = bool(ign)
+            evt_ts = item.get('eventTime') or item.get('gpsTime') or now_ts
+            if isinstance(evt_ts, str):
+                try:
+                    evt_ts = datetime.strptime(evt_ts[:19], '%Y-%m-%d %H:%M:%S')
+                except ValueError:
+                    evt_ts = now_ts
+            VehiclePosition.objects.create(
+                truck=truck, provider=VehiclePosition.Provider.CARTRACK,
+                latitude=lat, longitude=lng,
+                speed_kmh=spd, heading=hdg,
+                recorded_at=evt_ts, ignition_on=ign,
+                extra_data=item,
+            )
+            refreshed += 1
+        logger.info('REFRESH: done refreshed=%d errors=%d', refreshed, len(errors))
+        return JsonResponse({'refreshed': refreshed, 'errors': errors[:20]})
+    except Exception as e:
+        tb = traceback.format_exc()
+        logger.error('REFRESH: unhandled exception\n%s', tb)
+        return JsonResponse({'refreshed': 0, 'errors': [f'{type(e).__name__}: {e}', tb[:500]]})
