@@ -1,8 +1,11 @@
+import logging
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse
+
+logger = logging.getLogger(__name__)
 from django.db.models import Q, Avg, Sum, Count, F, Case, Value, When, FloatField, Max
 from django.utils import timezone
 from accounts.decorators import role_required
@@ -780,21 +783,28 @@ def refresh_positions_api(request):
     try:
         client = CartrackAPIClient()
     except Exception as e:
+        logger.error('refresh_positions: client init failed %s', e)
         return JsonResponse({'refreshed': 0, 'errors': [f'Client init failed: {e}']})
     r = client.get_positions()
+    logger.info('refresh_positions: get_positions returned error=%s endpoint=%s empty=%s items=%d',
+                r.get('error'), r.get('endpoint'), r.get('empty'), len(r.get('data', [])))
     if r['error']:
         return JsonResponse({'refreshed': 0, 'errors': [r['error']]})
     items = r['data']
     # Return a sample for debugging if no items
     if not items:
         sample = r.get('sample', '')[:500]
+        logger.info('refresh_positions: no items, endpoint=%s sample=%s', r.get('endpoint'), sample[:200])
         return JsonResponse({'refreshed': 0, 'errors': [f'Empty response from {r.get("endpoint", "?")}', 'sample: ' + sample]})
     # Build truck lookup by both plate and unit (exact + substring)
     active_trucks = list(Truck.objects.filter(status='ACTIVE'))
+    logger.info('refresh_positions: %d active trucks, %d items to process', len(active_trucks), len(items))
     refreshed = 0
     errors = []
     now_ts = timezone.now()
-    for item in items:
+    for i, item in enumerate(items):
+        if i == 0:
+            logger.info('refresh_positions: first item keys=%s values=%s', list(item.keys()), str(list(item.values()))[:500])
         # Try multiple field names for vehicle identifier
         vid_keys = ('registration', 'vehiclePlate', 'plateNumber', 'plate', 'name',
                     'vehicleId', 'vehicle_id', 'unitNumber', 'unit', 'label')
@@ -861,4 +871,5 @@ def refresh_positions_api(request):
             extra_data=item,
         )
         refreshed += 1
+    logger.info('refresh_positions: done refreshed=%d errors=%d', refreshed, len(errors))
     return JsonResponse({'refreshed': refreshed, 'errors': errors[:20]})

@@ -101,18 +101,21 @@ class CartrackAPIClient:
                 if resp.status_code == 422:
                     continue
                 resp.raise_for_status()
-                text = resp.text[:500]
+                raw = resp.text[:1000]
+                logger.info('get_positions: %s returned status=%d body=%s', ep, resp.status_code, raw)
                 data = resp.json()
                 items = data if isinstance(data, list) else data.get('data', [])
                 if items:
+                    logger.info('get_positions: %s returned %d items, first=%s', ep, len(items), str(items[0])[:400])
                     return {'data': items, 'error': None, 'endpoint': ep}
-                # Got 200 but empty — might be right endpoint with no data
                 if resp.status_code == 200:
-                    return {'data': [], 'error': None, 'endpoint': ep, 'empty': True, 'sample': text}
+                    return {'data': [], 'error': None, 'endpoint': ep, 'empty': True, 'sample': raw}
             except Exception as e:
+                logger.warning('get_positions: %s exception %s', ep, e)
                 attempts.append(f'{ep}=EXCEPTION:{type(e).__name__}')
                 continue
         err = f'No position endpoint found. Tried: {", ".join(attempts)}'
+        logger.warning('get_positions: %s', err)
         return {'data': [], 'error': err, 'endpoint': 'none'}
 
 
