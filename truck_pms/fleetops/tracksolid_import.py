@@ -71,7 +71,7 @@ class TracksolidClient:
             params.update(private_params)
         params['sign'] = self._sign(params)
         try:
-            resp = requests.post(self.api_url, json=params, timeout=(5, 15))
+            resp = requests.post(self.api_url, data=params, timeout=(5, 15))
             data = resp.json()
             if data.get('code') != 0:
                 return {'data': [], 'error': f"{method}: {data.get('message', '')}"}
