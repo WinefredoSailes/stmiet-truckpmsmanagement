@@ -71,17 +71,17 @@ class TracksolidClient:
         path = self._METHOD_PATHS.get(method, f'/v1/{method.replace(".", "/")}')
         url = self.rest_url + path
         params = {
-            'appKey': self.app_key,
+            'app_key': self.app_key,
             'format': 'json',
             'method': method,
-            'signMethod': 'md5',
+            'sign_method': 'md5',
             'timestamp': self._now(),
             'v': '1.0',
         }
         if use_token:
             if not self._token:
                 self._get_token()
-            params['accessToken'] = self._token
+            params['access_token'] = self._token
         if private_params:
             params.update(private_params)
         params['sign'] = self._sign(params)
@@ -102,9 +102,9 @@ class TracksolidClient:
 
     def _get_token(self):
         private = {
-            'userId': self.user_id,
-            'userPwdMd5': self.user_pwd_md5,
-            'expiresIn': '7200',
+            'user_id': self.user_id,
+            'user_pwd_md5': self.user_pwd_md5,
+            'expires_in': '7200',
         }
         result = self._call('jimi.oauth.token.get', private_params=private, use_token=False)
         if result['error']:
@@ -129,11 +129,11 @@ class TracksolidClient:
     def device_detail(self, imei):
         return self._call('jimi.track.device.detail', {'imei': imei})
 
-    def track_history(self, imei, beginTime, endTime):
+    def track_history(self, imei, begin_time, end_time):
         return self._call('jimi.device.track.list', {
             'imei': imei,
-            'beginTime': beginTime,
-            'endTime': endTime,
+            'begin_time': begin_time,
+            'end_time': end_time,
         })
 
 
