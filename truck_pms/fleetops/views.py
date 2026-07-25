@@ -563,9 +563,16 @@ def pull_cartrack(request):
 
     if result['success']:
         if result['processed'] > 0:
+            fuel_info = ''
+            fc = result.get('fuel_count', 0)
+            fe = result.get('fuel_endpoint', '')
+            if fc:
+                fuel_info = f" | Fuel: {fc} entries"
+                if fe:
+                    fuel_info += f" ({fe})"
             messages.success(
                 request,
-                f"Cartrack import complete: {result['processed']} log(s) for {result['import_date']}."
+                f"Cartrack import complete: {result['processed']} log(s) for {result['import_date']}.{fuel_info}"
             )
         else:
             msg = "No Cartrack data found for the selected date."
