@@ -9,6 +9,7 @@ from accounts.models import User
 from trucks.models import Truck
 from .models import Driver, DriverAssignment, DailyLog
 from .cartrack_import import import_cartrack_data
+from .tracksolid_import import import_tracksolid_data
 from datetime import date, timedelta
 
 
@@ -618,37 +619,74 @@ def pull_cartrack(request):
     if not data_types:
         data_types = ['trips']
 
-    if import_date:
-        result = import_cartrack_data(import_date=import_date, import_date_end=import_date_end, data_types=data_types)
-    else:
-        days_back = int(request.POST.get('days_back', 1))
-        result = import_cartrack_data(days_back=days_back, data_types=data_types)
+    do_tracksolid = request.POST.get('type_tracksolid')
+    any_success = False
+    date_label = ''
+    all_errors = []
 
-    if result['success']:
-        if result['processed'] > 0:
+    if data_types:
+        if import_date:
+            c_result = import_cartrack_data(import_date=import_date, import_date_end=import_date_end, data_types=data_types)
+        else:
+            days_back = int(request.POST.get('days_back', 1))
+            c_result = import_cartrack_data(days_back=days_back, data_types=data_types)
+
+        date_label = f"{c_result['import_date']}"
+        if c_result.get('import_date_end') and c_result['import_date'] != c_result['import_date_end']:
+            date_label += f" – {c_result['import_date_end']}"
+
+        if c_result['success'] and c_result['processed'] > 0:
+            any_success = True
             fuel_info = ''
-            fc = result.get('fuel_count', 0)
-            fe = result.get('fuel_endpoint', '')
+            fc = c_result.get('fuel_count', 0)
+            fe = c_result.get('fuel_endpoint', '')
             if fc:
                 fuel_info = f" | Fuel: {fc} entries"
                 if fe:
                     fuel_info += f" ({fe})"
-            date_label = f"{result['import_date']}"
-            if result['import_date'] != result.get('import_date_end', result['import_date']):
-                date_label += f" – {result['import_date_end']}"
             messages.success(
                 request,
-                f"Cartrack import complete: {result['processed']} log(s) for {date_label}.{fuel_info}"
+                f"Cartrack import complete: {c_result['processed']} log(s) for {date_label}.{fuel_info}"
             )
-        else:
+        elif c_result['success']:
             msg = "No Cartrack data found for the selected date."
-            if result['errors']:
-                msg += ' ' + ' '.join(result['errors'])
-            if result['trucks_found'] == 0:
+            if c_result['errors']:
+                msg += ' ' + ' '.join(c_result['errors'])
+            if c_result.get('trucks_found', 1) == 0:
                 msg += ' No active trucks found.'
-            messages.warning(request, msg)
-    else:
-        messages.error(request, f"Cartrack import failed: {result['error']}")
+            all_errors.append(msg)
+        else:
+            all_errors.append(f"Cartrack import failed: {c_result['error']}")
+
+    if do_tracksolid:
+        if import_date:
+            t_result = import_tracksolid_data(import_date=import_date, import_date_end=import_date_end)
+        else:
+            t_result = import_tracksolid_data(days_back=int(request.POST.get('days_back', 1)))
+
+        if date_label is None:
+            date_label = f"{t_result['import_date']}"
+            if t_result.get('import_date_end') and t_result['import_date'] != t_result['import_date_end']:
+                date_label += f" – {t_result['import_date_end']}"
+
+        if t_result['success'] and t_result['processed'] > 0:
+            any_success = True
+            messages.success(
+                request,
+                f"TrackSolid import complete: {t_result['processed']} log(s) for {date_label}."
+            )
+        elif t_result['success']:
+            msg = "No TrackSolid data found."
+            if t_result['errors']:
+                msg += ' ' + ' '.join(t_result['errors'])
+            all_errors.append(msg)
+        else:
+            all_errors.append(f"TrackSolid import failed: {t_result['error']}")
+
+    for err in all_errors:
+        messages.warning(request, err)
+    if not any_success and not all_errors:
+        messages.warning(request, 'Nothing was imported. Select at least one data type.')
     return redirect('fleetops:daily_log')
 
 

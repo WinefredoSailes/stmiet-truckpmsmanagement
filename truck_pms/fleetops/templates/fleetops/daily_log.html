@@ -27,6 +27,9 @@
             <label class="small mb-0 d-flex align-items-center gap-1" title="Import fuel consumption data">
                 <input type="checkbox" name="type_fuel" value="1"> Fuel
             </label>
+            <label class="small mb-0 d-flex align-items-center gap-1" title="Import GPS track data from TrackSolid Pro (GNN403, NKC4763)">
+                <input type="checkbox" name="type_tracksolid" value="1"> TrackSolid
+            </label>
             <button type="submit" class="btn btn-outline-success btn-sm"><i class="bi bi-cloud-download"></i> Pull</button>
         </form>
         {% if not is_range %}
