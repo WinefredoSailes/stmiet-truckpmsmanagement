@@ -573,38 +573,6 @@ def pull_cartrack(request):
     return redirect('fleetops:daily_log')
 
 
-@login_required
-def pull_cartrack_range(request):
-    if not _staff_or_above(request.user):
-        messages.error(request, 'Access denied.')
-        return redirect('accounts:dashboard')
-
-    start_str = request.POST.get('start', '')
-    end_str = request.POST.get('end', '')
-    try:
-        start = timezone.datetime.strptime(start_str, '%Y-%m-%d').date()
-        end = timezone.datetime.strptime(end_str, '%Y-%m-%d').date()
-    except (ValueError, TypeError):
-        messages.error(request, 'Invalid date range.')
-        return redirect('fleetops:daily_log')
-
-    data_types = ['trips', 'events', 'fuel']
-
-    result = import_cartrack_data(import_date=start, import_date_end=end, data_types=data_types)
-
-    if result['success'] and result['processed'] > 0:
-        msg = f"Cartrack range import complete: {result['processed']} log(s) from {start} to {end}."
-        if result.get('fuel_count') is not None:
-            msg += f' Fuel entries: {result["fuel_count"]}.'
-        messages.success(request, msg)
-    elif result['errors']:
-        msg = ' '.join(result['errors'])
-        messages.warning(request, msg)
-    else:
-        messages.warning(request, f"No Cartrack data found from {start} to {end}.")
-    return redirect(reverse('fleetops:daily_log') + f'?date={date.today().isoformat()}')
-
-
 # ── Compliance Dashboard ──
 
 @login_required
