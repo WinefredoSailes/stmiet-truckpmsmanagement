@@ -66,13 +66,16 @@ def import_cartrack_data(import_date=None, import_date_end=None, days_back=1, ap
         if fuel_entries and isinstance(fuel_entries[0], dict):
             result['errors'].append(f'Fuel sample keys: {list(fuel_entries[0].keys())[:12]}')
 
-    if not trips and not events:
+    if not trips and not events and 'trips' in data_types:
         result['errors'].append('No trip or event data returned from Cartrack API.')
 
-    # Group data by date for range imports
+    # Group data by date
     trips_by_date = _group_trips_by_date(trips, import_date)
     events_by_date = _group_events_by_date(events, import_date)
     fuel_by_date = _group_fuel_by_date(fuel_entries, import_date)
+
+    has_any_trips = bool(trips)
+    has_any_fuel = bool(fuel_entries)
 
     current = import_date
     while current <= import_date_end:
@@ -84,30 +87,35 @@ def import_cartrack_data(import_date=None, import_date_end=None, days_back=1, ap
             plate = truck.plate_number.upper()
             unit = truck.unit_number.upper()
 
-            matching_trips = _matching_trips(day_trips, plate, unit)
-            if not matching_trips:
-                continue
-
-            total_dist = sum(float(t.get('trip_distance', 0) or 0) for t in matching_trips) / 1000
-            max_spd = max((t.get('max_speed', 0) or 0 for t in matching_trips), default=None)
-            total_idle = sum(float(t.get('idle_time_seconds', 0) or 0) for t in matching_trips) / 3600
-            total_op = sum(float(t.get('trip_duration_seconds', 0) or 0) for t in matching_trips) / 3600
-            trips_brake = sum(int(t.get('harsh_braking_events', 0) or 0) for t in matching_trips)
-            trips_accel = sum(int(t.get('harsh_acceleration_events', 0) or 0) for t in matching_trips)
-            trips_turn = sum(int(t.get('harsh_cornering_events', 0) or 0) for t in matching_trips)
-            total_idle_count = sum(int(t.get('events_idle', 0) or 0) for t in matching_trips)
-            latest = max(matching_trips, key=lambda t: t.get('end_timestamp', ''))
-            mileage = int(float(latest.get('end_odometer', 0) or 0) / 1000)
-            eng_hrs = float(latest.get('clock_end', 0) or 0) / 3600
-
+            matching_trips = _matching_trips(day_trips, plate, unit) if has_any_trips else []
             ev = day_events_by_vehicle.get(plate, day_events_by_vehicle.get(unit, {}))
             # Match fuel by exact plate/unit, then substring fallback
-            fuel_l = day_fuel_by_vehicle.get(plate, day_fuel_by_vehicle.get(unit, None))
-            if fuel_l is None:
-                for fuel_key, fuel_val in day_fuel_by_vehicle.items():
-                    if (plate and plate in fuel_key) or (unit and unit in fuel_key):
-                        fuel_l = fuel_val
-                        break
+            fuel_l = None
+            for fuel_key, fuel_val in day_fuel_by_vehicle.items():
+                if fuel_key == plate or fuel_key == unit or (plate and plate in fuel_key) or (unit and unit in fuel_key):
+                    fuel_l = fuel_val
+                    break
+
+            if not matching_trips and fuel_l is None:
+                continue
+
+            if matching_trips:
+                total_dist = sum(float(t.get('trip_distance', 0) or 0) for t in matching_trips) / 1000
+                max_spd = max((t.get('max_speed', 0) or 0 for t in matching_trips), default=None)
+                total_idle = sum(float(t.get('idle_time_seconds', 0) or 0) for t in matching_trips) / 3600
+                total_op = sum(float(t.get('trip_duration_seconds', 0) or 0) for t in matching_trips) / 3600
+                trips_brake = sum(int(t.get('harsh_braking_events', 0) or 0) for t in matching_trips)
+                trips_accel = sum(int(t.get('harsh_acceleration_events', 0) or 0) for t in matching_trips)
+                trips_turn = sum(int(t.get('harsh_cornering_events', 0) or 0) for t in matching_trips)
+                total_idle_count = sum(int(t.get('events_idle', 0) or 0) for t in matching_trips)
+                latest = max(matching_trips, key=lambda t: t.get('end_timestamp', ''))
+                mileage = int(float(latest.get('end_odometer', 0) or 0) / 1000)
+                eng_hrs = float(latest.get('clock_end', 0) or 0) / 3600
+            else:
+                total_dist = total_idle = total_op = 0
+                max_spd = None
+                trips_brake = trips_accel = trips_turn = total_idle_count = 0
+                mileage = eng_hrs = 0
 
             defaults = {
                 'mileage_km': mileage,
