@@ -29,6 +29,7 @@
             </label>
             <button type="submit" class="btn btn-outline-success btn-sm"><i class="bi bi-cloud-download"></i> Pull</button>
         </form>
+        {% if not is_range %}
         <div class="dropdown d-inline-block">
             <button class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown">
                 <i class="bi bi-layout-three-columns"></i> Columns
@@ -53,6 +54,7 @@
                 <li><button class="dropdown-item small text-primary" id="resetColumns">Reset to defaults</button></li>
             </ul>
         </div>
+        {% endif %}
         <a href="{% url 'fleetops:fleet_performance' %}" class="btn btn-outline-info btn-sm"><i class="bi bi-graph-up"></i> Performance</a>
     </div>
 </div>
@@ -69,18 +71,18 @@
             <table class="table table-hover mb-0">
                 <thead class="table-light">
                     <tr>
-                        <th data-col="0">Unit #</th>
-                        <th data-col="1">Plate</th>
-                        <th data-col="3">Mileage</th>
-                        <th data-col="4">Eng Hrs</th>
-                        <th data-col="5">Fuel L</th>
-                        <th data-col="6">Idle Hrs</th>
-                        <th data-col="8">Op Hrs</th>
-                        <th data-col="9">Dist km</th>
-                        <th data-col="10">Max Spd</th>
-                        <th data-col="12">Brk</th>
-                        <th data-col="13">Acc</th>
-                        <th data-col="14">Trn</th>
+                        <th>Unit #</th>
+                        <th>Plate</th>
+                        <th>Mileage</th>
+                        <th>Eng Hrs</th>
+                        <th>Fuel L</th>
+                        <th>Idle Hrs</th>
+                        <th>Op Hrs</th>
+                        <th>Dist km</th>
+                        <th>Max Spd</th>
+                        <th>Brk</th>
+                        <th>Acc</th>
+                        <th>Trn</th>
                         <th>Days</th>
                     </tr>
                 </thead>
