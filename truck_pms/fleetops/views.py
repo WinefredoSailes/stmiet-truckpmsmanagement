@@ -593,10 +593,10 @@ def pull_cartrack_range(request):
     result = import_cartrack_data(import_date=start, import_date_end=end, data_types=data_types)
 
     if result['success'] and result['processed'] > 0:
-        messages.success(
-            request,
-            f"Cartrack range import complete: {result['processed']} log(s) from {start} to {end}."
-        )
+        msg = f"Cartrack range import complete: {result['processed']} log(s) from {start} to {end}."
+        if result.get('fuel_count') is not None:
+            msg += f' Fuel entries: {result["fuel_count"]}.'
+        messages.success(request, msg)
     elif result['errors']:
         msg = ' '.join(result['errors'])
         messages.warning(request, msg)
