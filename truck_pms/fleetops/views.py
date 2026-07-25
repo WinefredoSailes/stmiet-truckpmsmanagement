@@ -602,7 +602,7 @@ def pull_cartrack_range(request):
         messages.warning(request, msg)
     else:
         messages.warning(request, f"No Cartrack data found from {start} to {end}.")
-    return redirect(reverse('fleetops:daily_log') + f'?date={start}')
+    return redirect(reverse('fleetops:daily_log') + f'?date={date.today().isoformat()}')
 
 
 # ── Compliance Dashboard ──

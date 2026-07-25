@@ -103,8 +103,13 @@ def import_cartrack_data(import_date=None, import_date_end=None, days_back=1, ap
             eng_hrs = float(latest.get('clock_end', 0) or 0) / 3600
 
             ev = day_events_by_vehicle.get(plate, day_events_by_vehicle.get(unit, {}))
-            # Match fuel by plate, unit, or vehicle_id (in case registration format differs)
+            # Match fuel by exact plate/unit, then substring fallback
             fuel_l = day_fuel_by_vehicle.get(plate, day_fuel_by_vehicle.get(unit, None))
+            if fuel_l is None:
+                for fuel_key, fuel_val in day_fuel_by_vehicle.items():
+                    if (plate and plate in fuel_key) or (unit and unit in fuel_key):
+                        fuel_l = fuel_val
+                        break
 
             defaults = {
                 'mileage_km': mileage,
