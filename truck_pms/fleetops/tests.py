@@ -5,7 +5,7 @@ from django.urls import reverse
 from django.utils import timezone
 from accounts.models import User
 from trucks.models import Truck
-from .models import Driver, DriverAssignment, DailyLog
+from .models import Driver, DriverAssignment, DailyLog, VehiclePosition
 from . import tracksolid_import
 from .tracksolid_import import (
     _haversine_km, _parse_ts, _process_track,
@@ -425,3 +425,127 @@ class ImportTracksolidDataTests(TestCase):
 
         r = import_tracksolid_data(import_date=timezone.now().date())
         self.assertFalse(r['success'])
+
+
+class VehiclePositionModelTests(TestCase):
+    def setUp(self):
+        self.truck = Truck.objects.create(
+            unit_number='U-100', plate_number='ABC-100',
+            make='Hino', model='FM', year=2020,
+        )
+
+    def test_create_position(self):
+        vp = VehiclePosition.objects.create(
+            truck=self.truck, provider=VehiclePosition.Provider.CARTRACK,
+            latitude=14.5, longitude=121.0, speed_kmh=60.0,
+            heading=90, recorded_at=timezone.now(), ignition_on=True,
+        )
+        self.assertEqual(str(vp), f"U-100 @ {vp.recorded_at}")
+        self.assertEqual(vp.provider, 'CARTRACK')
+        self.assertEqual(float(vp.latitude), 14.5)
+
+    def test_create_tracksolid_position(self):
+        from datetime import datetime
+        vp = VehiclePosition.objects.create(
+            truck=self.truck, provider=VehiclePosition.Provider.TRACKSOLID,
+            latitude=14.6, longitude=121.1,
+            recorded_at=datetime(2026, 7, 25, 10, 0, 0),
+        )
+        self.assertEqual(vp.provider, 'TRACKSOLID')
+        self.assertIsNone(vp.speed_kmh)
+        self.assertIsNone(vp.heading)
+
+    def test_position_ordering(self):
+        from datetime import datetime
+        ts1 = datetime(2026, 7, 25, 9, 0, 0)
+        ts2 = datetime(2026, 7, 25, 10, 0, 0)
+        vp2 = VehiclePosition.objects.create(
+            truck=self.truck, provider='CARTRACK',
+            latitude=14.5, longitude=121.0, recorded_at=ts2,
+        )
+        vp1 = VehiclePosition.objects.create(
+            truck=self.truck, provider='CARTRACK',
+            latitude=14.6, longitude=121.1, recorded_at=ts1,
+        )
+        qs = VehiclePosition.objects.filter(truck=self.truck)
+        self.assertEqual(list(qs), [vp2, vp1])
+
+
+class GpsApiTests(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_user(
+            username='admin2', password='test123', role=User.Role.ADMIN
+        )
+        self.truck = Truck.objects.create(
+            unit_number='U-200', plate_number='ABC-200',
+            make='Isuzu', model='NPR', year=2021,
+            status='ACTIVE',
+        )
+        from datetime import datetime
+        VehiclePosition.objects.create(
+            truck=self.truck, provider='CARTRACK',
+            latitude=14.55, longitude=121.05,
+            speed_kmh=45.0, heading=180,
+            recorded_at=datetime(2026, 7, 25, 10, 0, 0),
+            ignition_on=True,
+        )
+
+    def test_latest_api_returns_json(self):
+        self.client.login(username='admin2', password='test123')
+        resp = self.client.get(reverse('fleetops:positions_latest'))
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertIn('positions', data)
+        self.assertEqual(len(data['positions']), 1)
+        pos = data['positions'][0]
+        self.assertEqual(pos['truck_id'], self.truck.id)
+        self.assertEqual(pos['unit_number'], 'U-200')
+        self.assertEqual(pos['latitude'], 14.55)
+        self.assertEqual(pos['provider'], 'CARTRACK')
+
+    def test_history_api_by_truck_id(self):
+        self.client.login(username='admin2', password='test123')
+        resp = self.client.get(
+            reverse('fleetops:positions_history', args=[self.truck.id]),
+            {'date': '2026-07-25'},
+        )
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertIn('points', data)
+        self.assertEqual(len(data['points']), 1)
+        self.assertEqual(data['points'][0]['latitude'], 14.55)
+
+    def test_history_api_no_date_returns_all(self):
+        self.client.login(username='admin2', password='test123')
+        resp = self.client.get(
+            reverse('fleetops:positions_history', args=[self.truck.id]),
+        )
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertEqual(len(data['points']), 1)
+
+
+class TrackingMapViewTests(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_user(
+            username='admin3', password='test123', role=User.Role.ADMIN
+        )
+        self.mechanic = User.objects.create_user(
+            username='mech2', password='test123', role=User.Role.MECHANIC
+        )
+
+    def test_tracking_map_staff(self):
+        self.client.login(username='admin3', password='test123')
+        resp = self.client.get(reverse('fleetops:tracking_map'))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'Live GPS Tracking')
+        self.assertContains(resp, 'leaflet')
+
+    def test_tracking_map_mechanic_denied(self):
+        self.client.login(username='mech2', password='test123')
+        resp = self.client.get(reverse('fleetops:tracking_map'))
+        self.assertEqual(resp.status_code, 302)
+
+    def test_tracking_map_unauthenticated(self):
+        resp = self.client.get(reverse('fleetops:tracking_map'))
+        self.assertEqual(resp.status_code, 302)

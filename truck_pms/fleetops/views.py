@@ -2,15 +2,16 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.http import JsonResponse
 from django.db.models import Q, Avg, Sum, Count, F, Case, Value, When, FloatField, Max
 from django.utils import timezone
 from accounts.decorators import role_required
 from accounts.models import User
 from trucks.models import Truck
-from .models import Driver, DriverAssignment, DailyLog
-from .cartrack_import import import_cartrack_data
+from .models import Driver, DriverAssignment, DailyLog, VehiclePosition
+from .cartrack_import import import_cartrack_data, CartrackAPIClient
 from .tracksolid_import import import_tracksolid_data
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 
 
 def _staff_or_above(user):
@@ -704,3 +705,137 @@ def compliance_dashboard(request):
         'drivers': drivers,
         'title': 'Compliance & Expiries',
     })
+
+
+# ── GPS Tracking ──
+
+@login_required
+def latest_positions_api(request):
+    trucks = Truck.objects.filter(status='ACTIVE')
+    positions = []
+    for truck in trucks:
+        vp = VehiclePosition.objects.filter(truck=truck).order_by('-recorded_at').first()
+        if vp is None:
+            positions.append({
+                'truck_id': truck.id,
+                'unit_number': truck.unit_number,
+                'plate_number': truck.plate_number,
+                'latitude': None,
+                'longitude': None,
+                'speed_kmh': None,
+                'heading': None,
+                'recorded_at': None,
+                'provider': None,
+                'ignition_on': None,
+            })
+            continue
+        positions.append({
+            'truck_id': truck.id,
+            'unit_number': truck.unit_number,
+            'plate_number': truck.plate_number,
+            'latitude': float(vp.latitude),
+            'longitude': float(vp.longitude),
+            'speed_kmh': float(vp.speed_kmh) if vp.speed_kmh is not None else None,
+            'heading': vp.heading,
+            'recorded_at': vp.recorded_at.isoformat(),
+            'provider': vp.provider,
+            'ignition_on': vp.ignition_on,
+        })
+    return JsonResponse({'positions': positions})
+
+
+@login_required
+def position_history_api(request, truck_id):
+    date_param = request.GET.get('date', '')
+    qs = VehiclePosition.objects.filter(truck_id=truck_id)
+    if date_param:
+        qs = qs.filter(recorded_at__date=date_param)
+    qs = qs.order_by('recorded_at')[:5000]
+    points = [{
+        'latitude': float(p.latitude),
+        'longitude': float(p.longitude),
+        'speed_kmh': float(p.speed_kmh) if p.speed_kmh is not None else None,
+        'heading': p.heading,
+        'recorded_at': p.recorded_at.isoformat(),
+        'ignition_on': p.ignition_on,
+        'provider': p.provider,
+    } for p in qs]
+    return JsonResponse({'points': points})
+
+
+@login_required
+def tracking_map(request):
+    if not _staff_or_above(request.user):
+        messages.error(request, 'Access denied.')
+        return redirect('accounts:dashboard')
+    return render(request, 'fleetops/tracking.html', {
+        'title': 'Live GPS Tracking',
+    })
+
+
+@login_required
+def refresh_positions_api(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+    try:
+        client = CartrackAPIClient()
+    except Exception as e:
+        return JsonResponse({'refreshed': 0, 'errors': [f'Client init failed: {e}']})
+    r = client.get_positions()
+    if r['error']:
+        return JsonResponse({'refreshed': 0, 'errors': [r['error']]})
+    items = r['data']
+    trucks = {t.plate_number.upper(): t for t in Truck.objects.filter(status='ACTIVE')}
+    trucks.update({t.unit_number.upper(): t for t in Truck.objects.filter(status='ACTIVE')})
+    refreshed = 0
+    errors = []
+    now_ts = timezone.now()
+    for item in items:
+        vid = (item.get('registration') or item.get('vehiclePlate') or '').upper()
+        if not vid:
+            continue
+        truck = trucks.get(vid)
+        if not truck:
+            errors.append(f'No match for vehicle {vid}')
+            continue
+        try:
+            lat = float(item.get('latitude') or item.get('lat') or 0)
+            lng = float(item.get('longitude') or item.get('lng') or 0)
+        except (ValueError, TypeError):
+            errors.append(f'Bad lat/lng for {vid}')
+            continue
+        if lat == 0 and lng == 0:
+            continue
+        spd = item.get('speed', item.get('gpsSpeed'))
+        if spd is not None:
+            try:
+                spd = float(spd)
+            except (ValueError, TypeError):
+                spd = None
+        hdg = item.get('heading', item.get('direction'))
+        if hdg is not None:
+            try:
+                hdg = int(float(hdg))
+            except (ValueError, TypeError):
+                hdg = None
+        ign = item.get('ignition', item.get('ignitionOn'))
+        if ign is not None:
+            if isinstance(ign, str):
+                ign = ign.upper() in ('ON', 'TRUE', '1', 'YES')
+            else:
+                ign = bool(ign)
+        evt_ts = item.get('eventTime') or item.get('gpsTime') or now_ts
+        if isinstance(evt_ts, str):
+            try:
+                evt_ts = datetime.strptime(evt_ts[:19], '%Y-%m-%d %H:%M:%S')
+            except ValueError:
+                evt_ts = now_ts
+        VehiclePosition.objects.create(
+            truck=truck, provider=VehiclePosition.Provider.CARTRACK,
+            latitude=lat, longitude=lng,
+            speed_kmh=spd, heading=hdg,
+            recorded_at=evt_ts, ignition_on=ign,
+            extra_data=item,
+        )
+        refreshed += 1
+    return JsonResponse({'refreshed': refreshed, 'errors': errors[:20]})

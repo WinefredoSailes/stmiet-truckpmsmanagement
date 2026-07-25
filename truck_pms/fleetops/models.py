@@ -1,6 +1,6 @@
 from django.db import models
 from django.utils import timezone
-from django.core.validators import MinValueValidator
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 
 class Driver(models.Model):
@@ -142,3 +142,32 @@ class DailyLog(models.Model):
                 changed = True
             if changed:
                 truck.save(update_fields=['current_mileage_km', 'current_engine_hours'])
+
+
+class VehiclePosition(models.Model):
+    class Provider(models.TextChoices):
+        CARTRACK = 'CARTRACK', 'Cartrack'
+        TRACKSOLID = 'TRACKSOLID', 'TrackSolid'
+
+    truck = models.ForeignKey(
+        'trucks.Truck', on_delete=models.CASCADE, related_name='positions'
+    )
+    provider = models.CharField(max_length=10, choices=Provider.choices)
+    latitude = models.DecimalField(max_digits=9, decimal_places=6)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6)
+    speed_kmh = models.DecimalField(max_digits=6, decimal_places=1, null=True, blank=True)
+    heading = models.IntegerField(null=True, blank=True,
+                                  validators=[MinValueValidator(0), MaxValueValidator(359)])
+    recorded_at = models.DateTimeField()
+    ignition_on = models.BooleanField(null=True, blank=True)
+    extra_data = models.JSONField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['truck', '-recorded_at']),
+        ]
+        ordering = ['-recorded_at']
+
+    def __str__(self):
+        return f"{self.truck.unit_number} @ {self.recorded_at}"

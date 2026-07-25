@@ -1,0 +1,168 @@
+{% extends 'core/base.html' %}
+{% load static %}
+{% block title %}Live GPS Tracking{% endblock %}
+{% block page_title %}
+<i class="bi bi-geo-alt-fill"></i>
+Live GPS Tracking
+{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<style>
+  #map { height: calc(100vh - 200px); width: 100%; border-radius: 8px; }
+  .legend-info { font-size: 0.85rem; }
+  .leaflet-popup-content { margin: 8px 12px; }
+  .leaflet-popup-content h6 { margin-bottom: 4px; }
+  .leaflet-popup-content small { color: #666; }
+</style>
+{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-2">
+  <div class="legend-info">
+    <span class="badge bg-primary me-1">&#9679;</span> Cartrack
+    <span class="badge bg-warning text-dark ms-3 me-1">&#9679;</span> TrackSolid
+    <span class="badge bg-secondary ms-3 me-1">&#9679;</span> No position
+    <span class="badge bg-light text-muted ms-3">
+      <i class="bi bi-arrow-clockwise"></i> Refreshes every 5 min
+    </span>
+    <span class="badge bg-light text-muted ms-2" id="refresh-errors" style="display:none"></span>
+    <span class="badge bg-light text-muted ms-2" id="last-update">—</span>
+  </div>
+  <button class="btn btn-sm btn-outline-primary" onclick="refreshPositions()">
+    <i class="bi bi-arrow-repeat"></i> Refresh Now
+  </button>
+</div>
+<div id="map"></div>
+{% endblock %}
+{% block extra_scripts %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+const POSITIONS_URL = '{% url "fleetops:positions_latest" %}';
+const REFRESH_URL = '{% url "fleetops:positions_refresh" %}';
+const CSRF_TOKEN = '{{ csrf_token }}';
+const map = L.map('map').setView([14.5, 121.0], 11);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    maxZoom: 19,
+}).addTo(map);
+
+let markers = {};
+let truckIcons = {};
+
+function makeIcon(color) {
+    return L.divIcon({
+        html: `<div style="
+            width: 16px; height: 16px;
+            background: ${color};
+            border: 2px solid white;
+            border-radius: 50%;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+        "></div>`,
+        iconSize: [16, 16],
+        iconAnchor: [8, 8],
+        popupAnchor: [0, -10],
+        className: '',
+    });
+}
+
+const ICONS = {
+    CARTRACK: makeIcon('#0d6efd'),
+    TRACKSOLID: makeIcon('#ffc107'),
+    NONE: makeIcon('#6c757d'),
+};
+
+function fetchLatest() {
+    return fetch(POSITIONS_URL).then(r => r.json());
+}
+
+function displayPositions(data) {
+    const seen = new Set();
+    data.positions.forEach(p => {
+        seen.add(p.truck_id);
+        const hasPos = p.latitude != null && p.longitude != null;
+        const provider = p.provider || 'NONE';
+        const icon = hasPos ? (ICONS[provider] || ICONS.NONE) : ICONS.NONE;
+        const label = `${p.unit_number} (${p.plate_number})`;
+        const ts = p.recorded_at ? new Date(p.recorded_at).toLocaleString() : '—';
+        const speed = p.speed_kmh != null ? `${p.speed_kmh} km/h` : '—';
+        const ign = p.ignition_on === true ? 'ON' : p.ignition_on === false ? 'OFF' : '—';
+
+        if (markers[p.truck_id]) {
+            if (hasPos) {
+                markers[p.truck_id].setLatLng([p.latitude, p.longitude]);
+            }
+            markers[p.truck_id].setIcon(icon);
+            markers[p.truck_id].bindPopup(`
+                <h6>${label}</h6>
+                <small>
+                    Provider: ${provider}<br>
+                    Speed: ${speed}<br>
+                    Ignition: ${ign}<br>
+                    Updated: ${ts}
+                </small>
+            `);
+        } else if (hasPos) {
+            const m = L.marker([p.latitude, p.longitude], {icon})
+                .addTo(map)
+                .bindPopup(`
+                    <h6>${label}</h6>
+                    <small>
+                        Provider: ${provider}<br>
+                        Speed: ${speed}<br>
+                        Ignition: ${ign}<br>
+                        Updated: ${ts}
+                    </small>
+                `);
+            markers[p.truck_id] = m;
+        }
+    });
+    Object.keys(markers).forEach(id => {
+        if (!seen.has(Number(id))) {
+            markers[id].setIcon(ICONS.NONE);
+        }
+    });
+}
+
+function refreshPositions() {
+    const statusEl = document.getElementById('last-update');
+    statusEl.textContent = 'Refreshing...';
+    // Step 1: POST to refresh (pull Cartrack positions into DB)
+    fetch(REFRESH_URL, {
+        method: 'POST',
+        headers: {'X-CSRFToken': CSRF_TOKEN},
+    })
+        .then(r => r.json())
+        .then(refreshResult => {
+            const errors = refreshResult.errors || [];
+            const errEl = document.getElementById('refresh-errors');
+            if (errors.length > 0) {
+                errEl.textContent = errors.length + ' error(s)';
+                errEl.title = errors.join('\n');
+                errEl.style.display = '';
+                errEl.className = 'badge bg-danger ms-2';
+            } else {
+                errEl.style.display = 'none';
+            }
+            const statusParts = ['Refreshed: ' + refreshResult.refreshed + ' trucks'];
+            // Step 2: fetch latest from DB and update map
+            return fetchLatest().then(posData => {
+                displayPositions(posData);
+                statusEl.textContent = statusParts.join(' | ') + ' — ' + new Date().toLocaleTimeString();
+            });
+        })
+        .catch(err => {
+            // If refresh fails, still try to show whatever we have in DB
+            fetchLatest().then(posData => {
+                displayPositions(posData);
+                statusEl.textContent = 'Refresh failed: ' + err.message + ' — ' + new Date().toLocaleTimeString();
+            }).catch(() => {
+                statusEl.textContent = 'Error: ' + err.message;
+            });
+        });
+}
+
+refreshPositions();
+setInterval(refreshPositions, 5 * 60 * 1000);
+</script>
+{% endblock %}

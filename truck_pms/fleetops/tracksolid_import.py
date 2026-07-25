@@ -38,10 +38,7 @@ def _parse_ts(ts):
 
 class TracksolidClient:
     def __init__(self, api_url=None, app_key='', app_secret='', user_id='', user_pwd_md5=''):
-        base = (api_url or DEFAULT_API_URL).rstrip('/')
-        self.api_url = base
-        # REST API is at same host without /route/rest prefix
-        self.rest_url = base.replace('/route/rest', '')
+        self.api_url = (api_url or DEFAULT_API_URL).rstrip('/')
         self.app_key = app_key or os.environ.get('TRACKSOLID_APP_KEY', '')
         self.app_secret = app_secret or os.environ.get('TRACKSOLID_APP_SECRET', '')
         self.user_id = user_id or os.environ.get('TRACKSOLID_USER_ID', '')
@@ -60,16 +57,8 @@ class TracksolidClient:
         raw += self.app_secret
         return hashlib.md5(raw.encode('utf-8')).hexdigest().upper()
 
-    _METHOD_PATHS = {
-        'jimi.oauth.token.get': '/v1/oauth/getAccessToken',
-        'jimi.user.device.list': '/v1/user/device/list',
-        'jimi.track.device.detail': '/v1/track/device/detail',
-        'jimi.device.track.list': '/v1/device/track/list',
-    }
-
     def _call(self, method, private_params=None, use_token=True):
-        path = self._METHOD_PATHS.get(method, f'/v1/{method.replace(".", "/")}')
-        url = self.rest_url + path
+        url = self.api_url
         params = {
             'app_key': self.app_key,
             'format': 'json',
@@ -92,6 +81,11 @@ class TracksolidClient:
             if not resp.text.strip():
                 return {'data': [], 'error': f'{method}: empty response (status {resp.status_code})'}
             data = resp.json()
+            if data.get('exception') == 'java.lang.NullPointerException':
+                err = (f'{method}: TrackSolid server returned NullPointerException. '
+                       f'The /v1/oauth/getAccessToken endpoint has a server-side bug. '
+                       f'Please contact TrackSolid support. | body: {body}')
+                return {'data': [], 'error': err}
             if data.get('code') != 0:
                 err = f"{method}: {data.get('message', '')} (code={data.get('code')})"
                 err += f" | body: {body}"
@@ -104,7 +98,7 @@ class TracksolidClient:
         private = {
             'user_id': self.user_id,
             'user_pwd_md5': self.user_pwd_md5,
-            'expires_in': '7200',
+            'expires_in': '3600',
         }
         result = self._call('jimi.oauth.token.get', private_params=private, use_token=False)
         if result['error']:

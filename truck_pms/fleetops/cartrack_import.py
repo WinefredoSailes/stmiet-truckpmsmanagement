@@ -83,6 +83,24 @@ class CartrackAPIClient:
         return {'data': [], 'error': 'No data', 'endpoint': 'none'}
 
 
+    def get_positions(self):
+        """Fetch real-time positions from Cartrack. Tries multiple endpoints."""
+        endpoints = ['position', 'positions', 'vehicles/position']
+        for ep in endpoints:
+            try:
+                resp = requests.get(f'{self.api_url}/{ep}', headers=self.headers, timeout=(3, 10))
+                if resp.status_code == 404:
+                    continue
+                resp.raise_for_status()
+                data = resp.json()
+                items = data if isinstance(data, list) else data.get('data', [])
+                if items:
+                    return {'data': items, 'error': None, 'endpoint': ep}
+            except Exception:
+                continue
+        return {'data': [], 'error': 'No position endpoint found', 'endpoint': 'none'}
+
+
 def _parse_date(ts, fallback):
     try:
         return datetime.strptime(ts[:10], '%Y-%m-%d').date()
