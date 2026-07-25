@@ -3,16 +3,21 @@
 {% block page_title %}Daily Log Entry{% endblock %}
 {% block content %}
 <div class="page-header">
-    <form method="get" class="d-flex align-items-center gap-2">
-        <label class="form-label mb-0 small fw-medium">Date:</label>
-        <input type="date" name="date" value="{{ log_date|date:'Y-m-d' }}" class="form-control form-control-sm" style="width:auto">
+    <form method="get" class="d-flex align-items-center gap-2 flex-wrap">
+        <label class="form-label mb-0 small fw-medium">From:</label>
+        <input type="date" name="start" value="{% if date_start %}{{ date_start|date:'Y-m-d' }}{% else %}{{ log_date|date:'Y-m-d' }}{% endif %}" class="form-control form-control-sm" style="width:auto">
+        <label class="form-label mb-0 small fw-medium">To:</label>
+        <input type="date" name="end" value="{% if date_end %}{{ date_end|date:'Y-m-d' }}{% else %}{{ log_date|date:'Y-m-d' }}{% endif %}" class="form-control form-control-sm" style="width:auto">
         <button type="submit" class="btn btn-sm btn-outline-primary"><i class="bi bi-search"></i> Load</button>
         <span class="text-muted small ms-2">{{ rows|length }} truck(s)</span>
     </form>
     <div class="d-flex gap-1 flex-wrap align-items-center">
         <form method="post" action="{% url 'fleetops:pull_cartrack' %}" class="d-inline-flex align-items-center gap-1" id="pullForm">
             {% csrf_token %}
-            <input type="date" name="date" id="pullDate" value="{{ log_date|date:'Y-m-d' }}" class="form-control form-control-sm" style="width:140px">
+            <input type="hidden" name="date" id="pullDate" value="{% if date_start %}{{ date_start|date:'Y-m-d' }}{% else %}{{ log_date|date:'Y-m-d' }}{% endif %}">
+            {% if date_end and date_end != date_start %}
+            <input type="hidden" name="date_end" value="{{ date_end|date:'Y-m-d' }}">
+            {% endif %}
             <label class="small mb-0 d-flex align-items-center gap-1" title="Import trip data (distance, speeds, hours, mileage)">
                 <input type="checkbox" name="type_trips" value="1" checked> Trips
             </label>
@@ -51,6 +56,62 @@
         <a href="{% url 'fleetops:fleet_performance' %}" class="btn btn-outline-info btn-sm"><i class="bi bi-graph-up"></i> Performance</a>
     </div>
 </div>
+
+{% if is_range %}
+{# ── Range summary view (read-only) ── #}
+<div class="card">
+    <div class="card-header fw-bold d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-journal-text me-1"></i> Log Summary — {{ date_start|date:'M d, Y' }} to {{ date_end|date:'M d, Y' }}</span>
+        <small class="text-muted">Aggregated totals over the selected period</small>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive" style="min-width:500px">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th data-col="0">Unit #</th>
+                        <th data-col="1">Plate</th>
+                        <th data-col="3">Mileage</th>
+                        <th data-col="4">Eng Hrs</th>
+                        <th data-col="5">Fuel L</th>
+                        <th data-col="6">Idle Hrs</th>
+                        <th data-col="8">Op Hrs</th>
+                        <th data-col="9">Dist km</th>
+                        <th data-col="10">Max Spd</th>
+                        <th data-col="12">Brk</th>
+                        <th data-col="13">Acc</th>
+                        <th data-col="14">Trn</th>
+                        <th>Days</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in rows %}
+                    <tr>
+                        <td class="ps-3 fw-medium">{{ row.truck.unit_number }}</td>
+                        <td>{{ row.truck.plate_number }}</td>
+                        <td>{{ row.mileage|default:'—' }}</td>
+                        <td>{{ row.eng_hrs|default:'—' }}</td>
+                        <td>{{ row.fuel|default:'—' }}</td>
+                        <td>{{ row.idle_hrs|default:'0.00' }}</td>
+                        <td>{{ row.op_hrs|default:'0.00' }}</td>
+                        <td>{{ row.dist|default:'0.0' }}</td>
+                        <td>{{ row.max_spd|default:'—' }}</td>
+                        <td>{{ row.brake|default:'0' }}</td>
+                        <td>{{ row.accel|default:'0' }}</td>
+                        <td>{{ row.turn|default:'0' }}</td>
+                        <td>{{ row.days|default:'0' }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="13" class="text-center text-muted py-4">No data for the selected period.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% else %}
+{# ── Single-day editable form ── #}
 <div class="card">
     <div class="card-header fw-bold d-flex justify-content-between align-items-center">
         <span><i class="bi bi-journal-text me-1"></i> Daily Log — {{ log_date|date:'l, M d, Y' }}</span>
@@ -101,9 +162,9 @@
                             <td><input type="number" name="idle_hrs_{{ t.pk }}" value="{% if log %}{{ log.idle_hours }}{% endif %}" step="0.01" min="0" class="form-control form-control-sm"></td>
                             <td><input type="number" name="idle_cnt_{{ t.pk }}" value="{% if log %}{{ log.idle_count }}{% endif %}" min="0" class="form-control form-control-sm"></td>
                             <td><input type="number" name="op_hrs_{{ t.pk }}" value="{% if log %}{{ log.operating_hours }}{% endif %}" step="0.01" min="0" class="form-control form-control-sm"></td>
-<td><input type="number" name="dist_{{ t.pk }}" value="{% if log %}{{ log.distance_traveled_km }}{% endif %}" step="0.1" min="0" class="form-control form-control-sm"></td>
-<td><input type="number" name="max_spd_{{ t.pk }}" value="{% if log %}{{ log.max_speed_kmh }}{% endif %}" step="0.1" min="0" class="form-control form-control-sm"></td>
-<td><input type="number" name="avg_spd_{{ t.pk }}" value="{% if log %}{{ log.avg_speed_kmh }}{% endif %}" step="0.1" min="0" class="form-control form-control-sm"></td>
+                            <td><input type="number" name="dist_{{ t.pk }}" value="{% if log %}{{ log.distance_traveled_km }}{% endif %}" step="0.1" min="0" class="form-control form-control-sm"></td>
+                            <td><input type="number" name="max_spd_{{ t.pk }}" value="{% if log %}{{ log.max_speed_kmh }}{% endif %}" step="0.1" min="0" class="form-control form-control-sm"></td>
+                            <td><input type="number" name="avg_spd_{{ t.pk }}" value="{% if log %}{{ log.avg_speed_kmh }}{% endif %}" step="0.1" min="0" class="form-control form-control-sm"></td>
                             <td><input type="number" name="brake_{{ t.pk }}" value="{% if log %}{{ log.harsh_braking_count }}{% endif %}" min="0" class="form-control form-control-sm"></td>
                             <td><input type="number" name="accel_{{ t.pk }}" value="{% if log %}{{ log.harsh_acceleration_count }}{% endif %}" min="0" class="form-control form-control-sm"></td>
                             <td><input type="number" name="turn_{{ t.pk }}" value="{% if log %}{{ log.harsh_turning_count }}{% endif %}" min="0" class="form-control form-control-sm"></td>
@@ -123,29 +184,22 @@
         </form>
     </div>
 </div>
+{% endif %}
 {% endblock %}
 {% block extra_scripts %}
 <script>
 (function() {
     var STORAGE_KEY = 'daily_log_columns';
 
-    // ── Pull form: copy date picker value ──
-    document.getElementById('pullForm').addEventListener('submit', function() {
-        var dateInput = document.querySelector('input[name="date"]');
-        if (dateInput) {
-            document.getElementById('pullDate').value = dateInput.value;
-        }
-    });
-
     // ── Column visibility toggler ──
     var table = document.querySelector('.table');
+    if (!table) return;
     var checkboxes = document.querySelectorAll('.column-toggler [data-col]');
 
     function applyColumnState() {
         checkboxes.forEach(function(cb) {
             var col = parseInt(cb.getAttribute('data-col'), 10);
             var visible = cb.checked;
-            // nth-child is 1-indexed
             var nth = col + 1;
             var cells = table.querySelectorAll('th:nth-child(' + nth + '), td:nth-child(' + nth + ')');
             cells.forEach(function(cell) {

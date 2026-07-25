@@ -36,23 +36,84 @@ def daily_log_list(request):
     if not _staff_or_above(request.user):
         messages.error(request, 'Access denied.')
         return redirect('accounts:dashboard')
-    log_date_str = request.GET.get('date', '')
+    date_start_str = request.GET.get('start', '')
+    date_end_str = request.GET.get('end', '')
     try:
-        log_date = timezone.datetime.strptime(log_date_str, '%Y-%m-%d').date() if log_date_str else date.today()
+        if date_start_str and date_end_str:
+            date_start = timezone.datetime.strptime(date_start_str, '%Y-%m-%d').date()
+            date_end = timezone.datetime.strptime(date_end_str, '%Y-%m-%d').date()
+        else:
+            date_str = request.GET.get('date', '')
+            date_start = timezone.datetime.strptime(date_str, '%Y-%m-%d').date() if date_str else date.today()
+            date_end = date_start
     except ValueError:
-        log_date = date.today()
-    logs = DailyLog.objects.filter(date=log_date).select_related('truck', 'driver', 'created_by')
+        date_start = date.today()
+        date_end = date_start
+
+    is_range = date_start != date_end
+
+    if is_range:
+        qs = DailyLog.objects.filter(
+            date__gte=date_start, date__lte=date_end
+        ).values('truck_id').annotate(
+            total_dist=Sum('distance_traveled_km'),
+            total_fuel=Sum('fuel_liters'),
+            total_op=Sum('operating_hours'),
+            total_idle=Sum('idle_hours'),
+            total_brake=Sum('harsh_braking_count'),
+            total_accel=Sum('harsh_acceleration_count'),
+            total_turn=Sum('harsh_turning_count'),
+            max_speed=Max('max_speed_kmh'),
+            latest_mileage=Max('mileage_km'),
+            latest_eng_hrs=Max('engine_hours'),
+            log_count=Count('id'),
+        )
+        agg = {r['truck_id']: r for r in qs}
+        trucks = Truck.objects.filter(status='ACTIVE').order_by('unit_number')
+        rows = []
+        for t in trucks:
+            r = agg.get(t.pk)
+            if not r:
+                rows.append({'truck': t, 'log': None, 'is_agg': True})
+                continue
+            rows.append({
+                'truck': t,
+                'is_agg': True,
+                'log': None,
+                'days': r['log_count'],
+                'mileage': r['latest_mileage'],
+                'eng_hrs': round(float(r['latest_eng_hrs'] or 0), 1),
+                'fuel': round(float(r['total_fuel'] or 0), 2) if r['total_fuel'] else None,
+                'idle_hrs': round(float(r['total_idle'] or 0), 2),
+                'idle_cnt': int(r['total_idle']) if False else 0,
+                'op_hrs': round(float(r['total_op'] or 0), 2),
+                'dist': round(float(r['total_dist'] or 0), 1),
+                'max_spd': round(float(r['max_speed'] or 0), 1) if r['max_speed'] else None,
+                'brake': int(r['total_brake'] or 0),
+                'accel': int(r['total_accel'] or 0),
+                'turn': int(r['total_turn'] or 0),
+            })
+        return render(request, 'fleetops/daily_log.html', {
+            'date_start': date_start,
+            'date_end': date_end,
+            'rows': rows,
+            'is_range': True,
+            'title': 'Daily Log Summary',
+        })
+
+    logs = DailyLog.objects.filter(date=date_start).select_related('truck', 'driver', 'created_by')
     log_map = {l.truck_id: l for l in logs}
     trucks = Truck.objects.filter(status='ACTIVE').order_by('unit_number')
     rows = []
     for t in trucks:
-        rows.append({'truck': t, 'log': log_map.get(t.pk)})
+        rows.append({'truck': t, 'log': log_map.get(t.pk), 'is_agg': False})
     drivers = Driver.objects.all().order_by('name')
     return render(request, 'fleetops/daily_log.html', {
-        'log_date': log_date,
+        'log_date': date_start,
         'rows': rows,
         'drivers': drivers,
-        'title': 'Daily Log Entry',
+        'is_range': False,
+        'title': 'Daily Log',
     })
 
 
@@ -539,8 +600,10 @@ def pull_cartrack(request):
         return redirect('accounts:dashboard')
 
     date_str = request.POST.get('date', '')
+    date_end_str = request.POST.get('date_end', '')
     try:
         import_date = timezone.datetime.strptime(date_str, '%Y-%m-%d').date() if date_str else None
+        import_date_end = timezone.datetime.strptime(date_end_str, '%Y-%m-%d').date() if date_end_str else import_date
     except ValueError:
         messages.error(request, 'Invalid date format.')
         return redirect('fleetops:daily_log')
@@ -556,7 +619,7 @@ def pull_cartrack(request):
         data_types = ['trips']
 
     if import_date:
-        result = import_cartrack_data(import_date=import_date, data_types=data_types)
+        result = import_cartrack_data(import_date=import_date, import_date_end=import_date_end, data_types=data_types)
     else:
         days_back = int(request.POST.get('days_back', 1))
         result = import_cartrack_data(days_back=days_back, data_types=data_types)
@@ -570,9 +633,12 @@ def pull_cartrack(request):
                 fuel_info = f" | Fuel: {fc} entries"
                 if fe:
                     fuel_info += f" ({fe})"
+            date_label = f"{result['import_date']}"
+            if result['import_date'] != result.get('import_date_end', result['import_date']):
+                date_label += f" – {result['import_date_end']}"
             messages.success(
                 request,
-                f"Cartrack import complete: {result['processed']} log(s) for {result['import_date']}.{fuel_info}"
+                f"Cartrack import complete: {result['processed']} log(s) for {date_label}.{fuel_info}"
             )
         else:
             msg = "No Cartrack data found for the selected date."
