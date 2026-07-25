@@ -62,29 +62,6 @@ def import_cartrack_data(import_date=None, import_date_end=None, days_back=1, ap
         if f['error']:
             result['errors'].append(f'Fuel API: {f["error"]}')
         fuel_entries = f['data']
-        # If date-range query returned empty, try fetching ALL fills (no date filter)
-        if not fuel_entries:
-            all_f = _fetch_fuel_all(headers, api_url)
-            if all_f['error']:
-                result['errors'].append(f'Fuel API (all): {all_f["error"]}')
-            elif all_f['data']:
-                fuel_entries = all_f['data']
-                # Filter by date range server-side
-                start_ts = import_date.strftime('%Y-%m-%d')
-                end_ts = import_date_end.strftime('%Y-%m-%d')
-                filtered = []
-                for fe in fuel_entries:
-                    if not isinstance(fe, dict):
-                        continue
-                    ts = fe.get('fill_timestamp', fe.get('timestamp', fe.get('date', '')))
-                    if ts and len(ts) >= 10:
-                        d = ts[:10]
-                        if start_ts <= d <= end_ts:
-                            filtered.append(fe)
-                fuel_entries = filtered
-                result['errors'].append(f'Fuel API (all) returned {len(all_f["data"])} total, {len(fuel_entries)} in range.')
-            else:
-                result['errors'].append('Fuel API returned empty (both range and all queries).')
         result['fuel_count'] = len(fuel_entries)
         if fuel_entries and isinstance(fuel_entries[0], dict):
             result['errors'].append(f'Fuel sample keys: {list(fuel_entries[0].keys())[:12]}')
@@ -212,38 +189,36 @@ def _fetch_events(headers, api_url, start_date, end_date=None):
         return {'data': [], 'error': f'{type(e).__name__}: {e} (HTTP {status})', 'response_text': text}
 
 
-def _fetch_fuel_all(headers, api_url):
-    """Fetch ALL fuel fill events (no date filter)."""
-    try:
-        params = {'limit': '5000'}
-        resp = requests.get(f'{api_url}/fuel/fills', headers=headers, params=params, timeout=(3, 30))
-        resp.raise_for_status()
-        data = resp.json()
-        items = data.get('data', data if isinstance(data, list) else [])
-        return {'data': items, 'error': None}
-    except Exception as e:
-        status = getattr(e.response, 'status_code', None) if hasattr(e, 'response') else None
-        text = (getattr(e.response, 'text', '') or '')[:300] if hasattr(e, 'response') else ''
-        return {'data': [], 'error': f'{type(e).__name__}: {e} (HTTP {status})', 'response_text': text}
-
-
 def _fetch_fuel(headers, api_url, start_date, end_date=None):
     end_date = end_date or start_date
-    try:
-        params = {
-            'limit': '1000',
-            'start_timestamp': f'{start_date.strftime("%Y-%m-%d")} 00:00:00',
-            'end_timestamp': f'{end_date.strftime("%Y-%m-%d")} 23:59:59',
-        }
-        resp = requests.get(f'{api_url}/fuel/fills', headers=headers, params=params, timeout=(3, 30))
-        resp.raise_for_status()
-        data = resp.json()
-        items = data.get('data', data if isinstance(data, list) else [])
-        return {'data': items, 'error': None}
-    except Exception as e:
-        status = getattr(e.response, 'status_code', None) if hasattr(e, 'response') else None
-        text = (getattr(e.response, 'text', '') or '')[:300] if hasattr(e, 'response') else ''
-        return {'data': [], 'error': f'{type(e).__name__}: {e} (HTTP {status})', 'response_text': text}
+    date_fmt = '%Y-%m-%d %H:%M:%S'
+    start_ts = f'{start_date.strftime("%Y-%m-%d")} 00:00:00'
+    end_ts = f'{end_date.strftime("%Y-%m-%d")} 23:59:59'
+    # Try multiple parameter name combinations
+    param_sets = [
+        {'start_timestamp': start_ts, 'end_timestamp': end_ts},
+        {'date_from': start_date.strftime('%Y-%m-%d'), 'date_to': end_date.strftime('%Y-%m-%d')},
+        {'from': start_ts, 'to': end_ts},
+        {'from_date': start_date.strftime('%Y-%m-%d'), 'to_date': end_date.strftime('%Y-%m-%d')},
+    ]
+    errors = []
+    for params in param_sets:
+        try:
+            params['limit'] = '1000'
+            resp = requests.get(f'{api_url}/fuel/fills', headers=headers, params=params, timeout=(3, 10))
+            if resp.status_code == 422:
+                errors.append(f'params={list(params.keys())} → 422')
+                continue
+            resp.raise_for_status()
+            data = resp.json()
+            items = data.get('data', data if isinstance(data, list) else [])
+            if len(errors) > 0:
+                errors.insert(0, f'Fuel API OK with params={list(params.keys())}')
+            return {'data': items, 'error': None}
+        except Exception as e:
+            errors.append(f'{list(params.keys())}: {type(e).__name__}')
+            continue
+    return {'data': [], 'error': '; '.join(errors)}
 
 
 def _parse_date(ts, fallback):
