@@ -785,18 +785,41 @@ def refresh_positions_api(request):
     if r['error']:
         return JsonResponse({'refreshed': 0, 'errors': [r['error']]})
     items = r['data']
-    trucks = {t.plate_number.upper(): t for t in Truck.objects.filter(status='ACTIVE')}
-    trucks.update({t.unit_number.upper(): t for t in Truck.objects.filter(status='ACTIVE')})
+    # Return a sample for debugging if no items
+    if not items:
+        sample = r.get('sample', '')[:500]
+        return JsonResponse({'refreshed': 0, 'errors': [f'Empty response from {r.get("endpoint", "?")}', 'sample: ' + sample]})
+    # Build truck lookup by both plate and unit (exact + substring)
+    active_trucks = list(Truck.objects.filter(status='ACTIVE'))
     refreshed = 0
     errors = []
     now_ts = timezone.now()
     for item in items:
-        vid = (item.get('registration') or item.get('vehiclePlate') or '').upper()
+        # Try multiple field names for vehicle identifier
+        vid_keys = ('registration', 'vehiclePlate', 'plateNumber', 'plate', 'name',
+                    'vehicleId', 'vehicle_id', 'unitNumber', 'unit', 'label')
+        vid = ''
+        for k in vid_keys:
+            v = item.get(k)
+            if v is not None:
+                vid = str(v).upper()
+                break
         if not vid:
+            errors.append(f'Skipped item with no ID keys {vid_keys}: keys={list(item.keys())[:5]}')
             continue
-        truck = trucks.get(vid)
+        # Match truck: exact first, then substring
+        truck = None
+        for t in active_trucks:
+            if vid == t.plate_number.upper() or vid == t.unit_number.upper():
+                truck = t
+                break
         if not truck:
-            errors.append(f'No match for vehicle {vid}')
+            for t in active_trucks:
+                if t.plate_number.upper() in vid or t.unit_number.upper() in vid or vid in t.plate_number.upper() or vid in t.unit_number.upper():
+                    truck = t
+                    break
+        if not truck:
+            errors.append(f'No match for vehicle "{vid}" (raw item keys: {list(item.keys())[:6]})')
             continue
         try:
             lat = float(item.get('latitude') or item.get('lat') or 0)
