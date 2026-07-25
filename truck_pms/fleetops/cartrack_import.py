@@ -85,20 +85,35 @@ class CartrackAPIClient:
 
     def get_positions(self):
         """Fetch real-time positions from Cartrack. Tries multiple endpoints."""
-        endpoints = ['position', 'positions', 'vehicles/position']
+        endpoints = [
+            'position', 'positions', 'vehicles/position',
+            'reports/position', 'reports/live-position',
+            'vehicles/location', 'tracking', 'live/tracking',
+            'status', 'vehicles/status',
+        ]
+        attempts = []
         for ep in endpoints:
             try:
                 resp = requests.get(f'{self.api_url}/{ep}', headers=self.headers, timeout=(3, 10))
+                attempts.append(f'{ep}={resp.status_code}')
                 if resp.status_code == 404:
                     continue
+                if resp.status_code == 422:
+                    continue
                 resp.raise_for_status()
+                text = resp.text[:500]
                 data = resp.json()
                 items = data if isinstance(data, list) else data.get('data', [])
                 if items:
                     return {'data': items, 'error': None, 'endpoint': ep}
-            except Exception:
+                # Got 200 but empty — might be right endpoint with no data
+                if resp.status_code == 200:
+                    return {'data': [], 'error': None, 'endpoint': ep, 'empty': True, 'sample': text}
+            except Exception as e:
+                attempts.append(f'{ep}=EXCEPTION:{type(e).__name__}')
                 continue
-        return {'data': [], 'error': 'No position endpoint found', 'endpoint': 'none'}
+        err = f'No position endpoint found. Tried: {", ".join(attempts)}'
+        return {'data': [], 'error': err, 'endpoint': 'none'}
 
 
 def _parse_date(ts, fallback):
