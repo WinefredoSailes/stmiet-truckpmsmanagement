@@ -1,6 +1,9 @@
 import os
 import base64
+import logging
 from datetime import date, timedelta, datetime
+
+logger = logging.getLogger(__name__)
 from django.db import models
 from django.utils import timezone
 from fleetops.models import DailyLog, DriverAssignment
@@ -84,39 +87,69 @@ class CartrackAPIClient:
 
 
     def get_positions(self):
-        """Fetch real-time positions from Cartrack. Tries multiple endpoints."""
-        endpoints = [
-            'position', 'positions', 'vehicles/position',
-            'reports/position', 'reports/live-position',
-            'vehicles/location', 'tracking', 'live/tracking',
-            'status', 'vehicles/status',
-        ]
-        attempts = []
-        for ep in endpoints:
+        """Fetch current positions. Tries dedicated endpoint, falls back to latest trip end position."""
+        # Try dedicated position endpoints first
+        for ep in ['position', 'positions', 'vehicles/position']:
             try:
                 resp = requests.get(f'{self.api_url}/{ep}', headers=self.headers, timeout=(3, 10))
-                attempts.append(f'{ep}={resp.status_code}')
+                logger.info('get_positions: %s status=%d body=%s', ep, resp.status_code, resp.text[:300])
                 if resp.status_code == 404:
                     continue
-                if resp.status_code == 422:
+                if resp.status_code in (422, 403):
                     continue
                 resp.raise_for_status()
-                raw = resp.text[:1000]
-                logger.info('get_positions: %s returned status=%d body=%s', ep, resp.status_code, raw)
                 data = resp.json()
                 items = data if isinstance(data, list) else data.get('data', [])
                 if items:
-                    logger.info('get_positions: %s returned %d items, first=%s', ep, len(items), str(items[0])[:400])
                     return {'data': items, 'error': None, 'endpoint': ep}
-                if resp.status_code == 200:
-                    return {'data': [], 'error': None, 'endpoint': ep, 'empty': True, 'sample': raw}
             except Exception as e:
                 logger.warning('get_positions: %s exception %s', ep, e)
-                attempts.append(f'{ep}=EXCEPTION:{type(e).__name__}')
                 continue
-        err = f'No position endpoint found. Tried: {", ".join(attempts)}'
-        logger.warning('get_positions: %s', err)
-        return {'data': [], 'error': err, 'endpoint': 'none'}
+        # Fallback: use latest trip end location as current position
+        logger.info('get_positions: falling back to latest trip positions')
+        try:
+            today = date.today()
+            params = {'limit': '200', 'start_timestamp': f'{today - timedelta(days=7)} 00:00:00',
+                      'end_timestamp': f'{today} 23:59:59'}
+            resp = requests.get(f'{self.api_url}/trips', headers=self.headers, params=params, timeout=(3, 15))
+            resp.raise_for_status()
+            data = resp.json()
+            trips = data.get('data', data if isinstance(data, list) else [])
+            if not trips:
+                return {'data': [], 'error': 'No trips found for position data', 'endpoint': 'trips_fallback'}
+            # Group by vehicle, take latest trip's end location
+            by_vehicle = {}
+            for t in trips:
+                vid = _vehicle_id(t)
+                ts = t.get('end_timestamp', '')
+                if vid and ts:
+                    if vid not in by_vehicle or ts > by_vehicle[vid]['end_timestamp']:
+                        by_vehicle[vid] = t
+            positions = []
+            for vid, trip in by_vehicle.items():
+                lat = trip.get('endLatitude') or trip.get('end_latitude') or trip.get('latitude')
+                lng = trip.get('endLongitude') or trip.get('end_longitude') or trip.get('longitude')
+                if lat is None or lng is None:
+                    continue
+                try:
+                    lat, lng = float(lat), float(lng)
+                except (ValueError, TypeError):
+                    continue
+                if lat == 0 and lng == 0:
+                    continue
+                positions.append({
+                    'registration': vid,
+                    'latitude': lat,
+                    'longitude': lng,
+                    'speed': trip.get('avgSpeed', trip.get('max_speed', 0)),
+                    'heading': trip.get('heading', trip.get('direction', 0)),
+                    'eventTime': trip.get('end_timestamp', ''),
+                })
+            logger.info('get_positions: trip fallback got %d positions', len(positions))
+            return {'data': positions, 'error': None, 'endpoint': 'trips_fallback'}
+        except Exception as e:
+            logger.error('get_positions: trip fallback failed %s', e)
+            return {'data': [], 'error': f'Trip fallback failed: {e}', 'endpoint': 'trips_fallback'}
 
 
 def _parse_date(ts, fallback):
