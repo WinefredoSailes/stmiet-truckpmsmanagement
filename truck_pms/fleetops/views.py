@@ -787,11 +787,11 @@ def refresh_positions_api(request):
         logger.info('REFRESH: get_positions returned error=%s endpoint=%s empty=%s items=%d',
                     r.get('error'), r.get('endpoint'), r.get('empty'), len(r.get('data', [])))
         if r['error']:
-            return JsonResponse({'refreshed': 0, 'errors': [r['error']]})
+            return JsonResponse({'refreshed': 0, 'errors': [r['error']], 'sample': r.get('sample', '')[:300]})
         items = r['data']
         if not items:
             sample = r.get('sample', '')[:500]
-            return JsonResponse({'refreshed': 0, 'errors': [f'Empty response from {r.get("endpoint", "?")}', 'sample: ' + sample]})
+            return JsonResponse({'refreshed': 0, 'errors': [f'Empty from {r.get("endpoint", "?")}', 'sample: ' + sample], 'sample': sample})
         active_trucks = list(Truck.objects.filter(status='ACTIVE'))
         refreshed = 0
         errors = []
@@ -864,7 +864,12 @@ def refresh_positions_api(request):
             )
             refreshed += 1
         logger.info('REFRESH: done refreshed=%d errors=%d', refreshed, len(errors))
-        return JsonResponse({'refreshed': refreshed, 'errors': errors[:20]})
+        resp = {'refreshed': refreshed, 'errors': errors[:20]}
+        if not refreshed and not errors:
+            resp['sample'] = str(items[:2])[:500]
+        elif not refreshed and errors:
+            resp['sample'] = str(items[:1])[:300]
+        return JsonResponse(resp)
     except Exception as e:
         tb = traceback.format_exc()
         logger.error('REFRESH: unhandled exception\n%s', tb)

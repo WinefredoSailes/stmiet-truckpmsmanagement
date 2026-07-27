@@ -26,6 +26,7 @@ Live GPS Tracking
       <i class="bi bi-arrow-clockwise"></i> Refreshes every 5 min
     </span>
     <span class="badge bg-light text-muted ms-2" id="refresh-errors" style="display:none"></span>
+    <div id="error-detail" class="text-danger small mt-1" style="display:none"></div>
     <span class="badge bg-light text-muted ms-2" id="last-update">—</span>
   </div>
   <button class="btn btn-sm btn-outline-primary" onclick="refreshPositions()">
@@ -136,13 +137,17 @@ function refreshPositions() {
         .then(refreshResult => {
             const errors = refreshResult.errors || [];
             const errEl = document.getElementById('refresh-errors');
+            const errDetail = document.getElementById('error-detail');
             if (errors.length > 0) {
                 errEl.textContent = errors.length + ' error(s)';
                 errEl.title = errors.join('\n');
                 errEl.style.display = '';
                 errEl.className = 'badge bg-danger ms-2';
+                errDetail.textContent = errors.slice(0, 5).join(' | ');
+                errDetail.style.display = 'block';
             } else {
                 errEl.style.display = 'none';
+                errDetail.style.display = 'none';
             }
             const statusParts = ['Refreshed: ' + refreshResult.refreshed + ' trucks'];
             // Step 2: fetch latest from DB and update map
