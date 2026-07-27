@@ -107,16 +107,19 @@ class CartrackAPIClient:
                 continue
         # Fallback: use latest trip end location as current position
         logger.info('get_positions: falling back to latest trip positions')
+        raw = ''
         try:
             today = date.today()
-            params = {'limit': '200', 'start_timestamp': f'{today - timedelta(days=7)} 00:00:00',
+            params = {'limit': '200', 'start_timestamp': f'{today - timedelta(days=14)} 00:00:00',
                       'end_timestamp': f'{today} 23:59:59'}
             resp = requests.get(f'{self.api_url}/trips', headers=self.headers, params=params, timeout=(3, 15))
+            raw = resp.text[:2000]
+            logger.info('get_positions: trips response status=%d body=%s', resp.status_code, raw[:500])
             resp.raise_for_status()
             data = resp.json()
             trips = data.get('data', data if isinstance(data, list) else [])
             if not trips:
-                return {'data': [], 'error': 'No trips found for position data', 'endpoint': 'trips_fallback'}
+                return {'data': [], 'error': f'No trips found', 'endpoint': 'trips_fallback', 'sample': raw[:500]}
             # Group by vehicle, take latest trip's end location
             by_vehicle = {}
             for t in trips:
@@ -146,10 +149,11 @@ class CartrackAPIClient:
                     'eventTime': trip.get('end_timestamp', ''),
                 })
             logger.info('get_positions: trip fallback got %d positions', len(positions))
-            return {'data': positions, 'error': None, 'endpoint': 'trips_fallback'}
+            return {'data': positions, 'error': None, 'endpoint': 'trips_fallback', 'sample': raw[:500]}
         except Exception as e:
             logger.error('get_positions: trip fallback failed %s', e)
-            return {'data': [], 'error': f'Trip fallback failed: {e}', 'endpoint': 'trips_fallback'}
+            sample = raw[:500] if raw else str(e)[:300]
+            return {'data': [], 'error': f'Trip fallback failed: {e}', 'endpoint': 'trips_fallback', 'sample': sample}
 
 
 def _parse_date(ts, fallback):
