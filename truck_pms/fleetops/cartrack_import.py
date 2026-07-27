@@ -152,10 +152,25 @@ class CartrackAPIClient:
                     'eventTime': trip.get('end_timestamp', ''),
                 })
             if not positions:
+                # Fallback: use end_location text address as position (no lat/lng available)
+                for vid, trip in by_vehicle.items():
+                    loc = trip.get('end_location', '') or trip.get('start_location', '')
+                    if not loc:
+                        continue
+                    positions.append({
+                        'registration': vid,
+                        'end_location': loc,
+                        'speed': trip.get('avgSpeed', trip.get('max_speed', 0)),
+                        'heading': 0,
+                        'eventTime': trip.get('end_timestamp', ''),
+                    })
+            if not positions:
                 first_keys = list(trips[0].keys()) if trips else ['no_trips']
-                err_detail = f'No lat/lng in trips data. Available keys: {first_keys}. First trip: {str(trips[0])[:800] if trips else "empty"}'
+                err_detail = f'No location data in trips. Keys: {first_keys[:20]}. Sample: {str(trips[0])[:600] if trips else "empty"}'
                 return {'data': [], 'error': err_detail, 'endpoint': 'trips_fallback', 'sample': raw[:2000]}
-            logger.info('get_positions: trip fallback got %d positions', len(positions))
+            latlng = sum(1 for px in positions if 'latitude' in px)
+            textloc = sum(1 for px in positions if 'end_location' in px)
+            logger.info('get_positions: trip fallback got %d positions (%d lat/lng, %d text)', len(positions), latlng, textloc)
             return {'data': positions, 'error': None, 'endpoint': 'trips_fallback', 'sample': raw[:2000]}
         except Exception as e:
             logger.error('get_positions: trip fallback failed %s', e)

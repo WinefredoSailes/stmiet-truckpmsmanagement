@@ -732,12 +732,22 @@ def latest_positions_api(request):
                 'ignition_on': None,
             })
             continue
+        lat = float(vp.latitude)
+        lng = float(vp.longitude)
+        addr = None
+        if lat == 0 and lng == 0:
+            ed = vp.extra_data or {}
+            addr = ed.get('end_location') or ed.get('endLocation') or ''
+            if addr:
+                lat = None
+                lng = None
         positions.append({
             'truck_id': truck.id,
             'unit_number': truck.unit_number,
             'plate_number': truck.plate_number,
-            'latitude': float(vp.latitude),
-            'longitude': float(vp.longitude),
+            'latitude': lat,
+            'longitude': lng,
+            'address': addr,
             'speed_kmh': float(vp.speed_kmh) if vp.speed_kmh is not None else None,
             'heading': vp.heading,
             'recorded_at': vp.recorded_at.isoformat(),
@@ -823,14 +833,19 @@ def refresh_positions_api(request):
             if not truck:
                 errors.append(f'No match for "{vid}"')
                 continue
-            try:
-                lat = float(item.get('latitude') or item.get('lat') or 0)
-                lng = float(item.get('longitude') or item.get('lng') or 0)
-            except (ValueError, TypeError):
-                errors.append(f'Bad lat/lng for {vid}')
-                continue
-            if lat == 0 and lng == 0:
-                continue
+            end_loc = item.get('end_location')
+            if end_loc:
+                lat = 0
+                lng = 0
+            else:
+                try:
+                    lat = float(item.get('latitude') or item.get('lat') or 0)
+                    lng = float(item.get('longitude') or item.get('lng') or 0)
+                except (ValueError, TypeError):
+                    errors.append(f'Bad lat/lng for {vid}')
+                    continue
+                if lat == 0 and lng == 0:
+                    continue
             spd = item.get('speed', item.get('gpsSpeed'))
             if spd is not None:
                 try:
@@ -858,6 +873,7 @@ def refresh_positions_api(request):
             VehiclePosition.objects.create(
                 truck=truck, provider=VehiclePosition.Provider.CARTRACK,
                 latitude=lat, longitude=lng,
+
                 speed_kmh=spd, heading=hdg,
                 recorded_at=evt_ts, ignition_on=ign,
                 extra_data=item,
