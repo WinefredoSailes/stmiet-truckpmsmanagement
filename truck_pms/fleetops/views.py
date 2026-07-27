@@ -867,9 +867,15 @@ def refresh_positions_api(request):
             evt_ts = item.get('eventTime') or item.get('gpsTime') or now_ts
             if isinstance(evt_ts, str):
                 try:
-                    evt_ts = datetime.strptime(evt_ts[:19], '%Y-%m-%d %H:%M:%S')
+                    evt_ts = datetime.fromisoformat(evt_ts)
+                    if timezone.is_naive(evt_ts):
+                        evt_ts = timezone.make_aware(evt_ts)
                 except ValueError:
-                    evt_ts = now_ts
+                    try:
+                        evt_ts = datetime.strptime(evt_ts[:19], '%Y-%m-%d %H:%M:%S')
+                        evt_ts = timezone.make_aware(evt_ts)
+                    except ValueError:
+                        evt_ts = now_ts
             VehiclePosition.objects.create(
                 truck=truck, provider=VehiclePosition.Provider.CARTRACK,
                 latitude=lat, longitude=lng,
