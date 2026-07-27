@@ -152,7 +152,9 @@ class CartrackAPIClient:
                     'eventTime': trip.get('end_timestamp', ''),
                 })
             if not positions:
-                return {'data': [], 'error': f'No lat/lng in trips data', 'endpoint': 'trips_fallback', 'sample': raw[:2000]}
+                first_keys = list(trips[0].keys()) if trips else ['no_trips']
+                err_detail = f'No lat/lng in trips data. Available keys: {first_keys}. First trip: {str(trips[0])[:800] if trips else "empty"}'
+                return {'data': [], 'error': err_detail, 'endpoint': 'trips_fallback', 'sample': raw[:2000]}
             logger.info('get_positions: trip fallback got %d positions', len(positions))
             return {'data': positions, 'error': None, 'endpoint': 'trips_fallback', 'sample': raw[:2000]}
         except Exception as e:
