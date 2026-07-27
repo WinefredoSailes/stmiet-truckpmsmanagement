@@ -108,21 +108,21 @@ class CartrackAPIClient:
         # Fallback: use latest trip end location as current position
         logger.info('get_positions: falling back to latest trip positions')
         raw = ''
+        resp = None
         try:
             today = date.today()
             params = {'limit': '200', 'start_timestamp': f'{today - timedelta(days=14)} 00:00:00',
                       'end_timestamp': f'{today} 23:59:59'}
             resp = requests.get(f'{self.api_url}/trips', headers=self.headers, params=params, timeout=(3, 15))
+            resp.raise_for_status()
             raw = resp.text[:2000]
             logger.info('get_positions: trips response status=%d body=%s', resp.status_code, raw[:500])
-            if 'data' in data and isinstance(data['data'], list) and len(data['data']) > 0:
-                first = data['data'][0]
-                logger.info('get_positions: first trip keys=%s', list(first.keys()))
-            resp.raise_for_status()
-            data = resp.json()
-            trips = data.get('data', data if isinstance(data, list) else [])
+            json_data = resp.json()
+            trips = json_data.get('data', json_data if isinstance(json_data, list) else [])
             if not trips:
                 return {'data': [], 'error': f'No trips found', 'endpoint': 'trips_fallback', 'sample': raw[:2000]}
+            if len(trips) > 0:
+                logger.info('get_positions: first trip keys=%s sample=%s', list(trips[0].keys()), str(trips[0])[:800])
             # Group by vehicle, take latest trip's end location
             by_vehicle = {}
             for t in trips:
