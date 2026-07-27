@@ -90,29 +90,39 @@ class CartrackAPIClient:
         """Geocode an address string to (lat, lng) using OpenStreetMap Nominatim."""
         if not address:
             return None, None
+        # Build fallback addresses: try full, then city-only, then province-only
+        parts = [p.strip() for p in address.split(',')]
+        queries = [address]
+        if len(parts) >= 3:
+            queries.append(', '.join(parts[-3:]))  # city/municipality, province, country
+        if len(parts) >= 2:
+            queries.append(', '.join(parts[-2:]))  # province, country
         try:
             import hashlib
-            cache_key = 'geo_' + hashlib.md5(address.encode()).hexdigest()
-            if hasattr(self, '_geo_cache') and cache_key in self._geo_cache:
-                return self._geo_cache[cache_key]
+            for q in queries:
+                cache_key = 'geo_' + hashlib.md5(q.encode()).hexdigest()
+                if hasattr(self, '_geo_cache') and cache_key in self._geo_cache:
+                    return self._geo_cache[cache_key]
             if not hasattr(self, '_geo_cache'):
                 self._geo_cache = {}
-            url = 'https://nominatim.openstreetmap.org/search'
-            params = {'q': address, 'format': 'json', 'limit': 1}
-            resp = requests.get(url, params=params,
-                                headers={'User-Agent': 'TruckPMS/1.0 (fleetmanagement@truckpms.com)'},
-                                timeout=10)
-            if resp.status_code != 200:
-                logger.error('geocode: Nominatim returned %d for %s', resp.status_code, address[:60])
-                return None, None
-            data = resp.json()
-            if data:
-                lat = float(data[0]['lat'])
-                lng = float(data[0]['lon'])
-                logger.info('geocode: OK %s -> %s,%s', address[:40], lat, lng)
-                self._geo_cache[cache_key] = (lat, lng)
-                return lat, lng
-            logger.warning('geocode: no results for %s', address[:60])
+            for q in queries:
+                url = 'https://nominatim.openstreetmap.org/search'
+                params = {'q': q, 'format': 'json', 'limit': 1}
+                resp = requests.get(url, params=params,
+                                    headers={'User-Agent': 'TruckPMS/1.0 (fleetmanagement@truckpms.com)'},
+                                    timeout=10)
+                if resp.status_code != 200:
+                    logger.error('geocode: Nominatim %d for %s', resp.status_code, q[:60])
+                    continue
+                data = resp.json()
+                if data:
+                    lat = float(data[0]['lat'])
+                    lng = float(data[0]['lon'])
+                    ck = 'geo_' + hashlib.md5(q.encode()).hexdigest()
+                    self._geo_cache[ck] = (lat, lng)
+                    logger.info('geocode: OK "%s" -> %s,%s', q[:40], lat, lng)
+                    return lat, lng
+            logger.warning('geocode: all queries failed for %s', address[:60])
         except Exception as e:
             logger.error('geocode: exception %s for %s', e, address[:60])
         return None, None

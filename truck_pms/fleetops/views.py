@@ -870,7 +870,14 @@ def refresh_positions_api(request):
                 extra_data=item,
             )
             refreshed += 1
-        logger.info('REFRESH: done refreshed=%d errors=%d', refreshed, len(errors))
+        # Clean up stale positions (lat=0,lng=0 from old address-only fallback)
+        stale = VehiclePosition.objects.filter(latitude=0, longitude=0).delete()
+        logger.info('REFRESH: done refreshed=%d errors=%d stale_deleted=%s', refreshed, len(errors), stale)
+        # Log current latest positions per truck for debugging
+        for truck in active_trucks:
+            vp = VehiclePosition.objects.filter(truck=truck).order_by('-recorded_at').first()
+            if vp:
+                logger.info('REFRESH: pos %s lat=%s lng=%s prov=%s', truck.unit_number, vp.latitude, vp.longitude, vp.provider)
         resp = {'refreshed': refreshed, 'errors': errors[:20]}
         if not refreshed and not errors:
             resp['sample'] = str(items[:2])[:500]
