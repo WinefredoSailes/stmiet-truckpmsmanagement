@@ -188,14 +188,9 @@ class CartrackAPIClient:
                         continue
                     lat, lng = self._geocode(loc)
                     if lat is None:
-                        positions.append({
-                            'registration': vid,
-                            'end_location': loc,
-                            'speed': trip.get('avgSpeed', trip.get('max_speed', 0)),
-                            'heading': 0,
-                            'eventTime': trip.get('end_timestamp', ''),
-                        })
+                        logger.warning('get_positions: geocode failed for %s address=%s', vid, loc[:80])
                     else:
+                        logger.info('get_positions: geocode ok %s -> %.4f,%.4f', vid, lat, lng)
                         positions.append({
                             'registration': vid,
                             'latitude': lat,
@@ -206,11 +201,9 @@ class CartrackAPIClient:
                         })
             if not positions:
                 first_keys = list(trips[0].keys()) if trips else ['no_trips']
-                err_detail = f'No location data in trips. Keys: {first_keys[:20]}. Sample: {str(trips[0])[:600] if trips else "empty"}'
-                return {'data': [], 'error': err_detail, 'endpoint': 'trips_fallback', 'sample': raw[:2000]}
-            latlng = sum(1 for px in positions if 'latitude' in px)
-            textloc = sum(1 for px in positions if 'end_location' in px)
-            logger.info('get_positions: trip fallback got %d positions (%d lat/lng, %d text)', len(positions), latlng, textloc)
+                sample_str = str(trips[0])[:600] if trips else 'empty'
+                return {'data': [], 'error': f'Geocode failed for all addresses. Sample trip: {sample_str}', 'endpoint': 'trips_fallback', 'sample': raw[:2000]}
+            logger.info('get_positions: trip fallback got %d geocoded positions', len(positions))
             return {'data': positions, 'error': None, 'endpoint': 'trips_fallback', 'sample': raw[:2000]}
         except Exception as e:
             logger.error('get_positions: trip fallback failed %s', e)

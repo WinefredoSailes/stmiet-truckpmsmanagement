@@ -82,24 +82,24 @@ function displayPositions(data) {
     const bounds = [];
     data.positions.forEach(p => {
         seen.add(p.truck_id);
-        const hasPos = p.latitude != null && p.longitude != null;
-        const hasAddr = p.address && !hasPos;
-        const provider = p.provider || 'NONE';
-        const icon = hasPos ? (ICONS[provider] || ICONS.NONE) : ICONS.NONE;
-        const label = `${p.unit_number} (${p.plate_number})`;
-        const ts = p.recorded_at ? new Date(p.recorded_at).toLocaleString() : '—';
-        const speed = p.speed_kmh != null ? `${p.speed_kmh} km/h` : '—';
-        const ign = p.ignition_on === true ? 'ON' : p.ignition_on === false ? 'OFF' : '—';
-        const popupHtml = `
-            <h6>${label}</h6>
-            <small>
-                Provider: ${provider}<br>
-                ${hasAddr ? 'Location: ' + p.address + '<br>' : ''}
-                ${hasPos ? 'Speed: ' + speed + '<br>' : ''}
-                Ignition: ${ign}<br>
-                Updated: ${ts}
-            </small>
-        `;
+    const hasPos = p.latitude != null && p.longitude != null;
+    const provider = p.provider || 'NONE';
+    const icon = hasPos ? (ICONS[provider] || ICONS.NONE) : ICONS.NONE;
+    const label = `${p.unit_number} (${p.plate_number})`;
+    const ts = p.recorded_at ? new Date(p.recorded_at).toLocaleString() : '—';
+    const speed = p.speed_kmh != null ? `${p.speed_kmh} km/h` : '—';
+    const ign = p.ignition_on === true ? 'ON' : p.ignition_on === false ? 'OFF' : '—';
+    const histUrl = '/fleetops/logs/?plate=' + encodeURIComponent(p.plate_number);
+    const popupHtml = `
+        <h6>${label}</h6>
+        <small>
+            Provider: ${provider}<br>
+            ${hasPos ? 'Speed: ' + speed + '<br>' : ''}
+            Ignition: ${ign}<br>
+            Updated: ${ts}<br>
+            <a href="${histUrl}" target="_blank"><i class="bi bi-map"></i> View History</a>
+        </small>
+    `;
 
         if (markers[p.truck_id]) {
             if (hasPos) {
