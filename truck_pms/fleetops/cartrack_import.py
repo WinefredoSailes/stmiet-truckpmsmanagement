@@ -86,6 +86,35 @@ class CartrackAPIClient:
         return {'data': [], 'error': 'No data', 'endpoint': 'none'}
 
 
+    def _geocode(self, address):
+        """Geocode an address string to (lat, lng) using OpenStreetMap Nominatim."""
+        if not address:
+            return None, None
+        try:
+            import hashlib
+            cache_key = 'geo_' + hashlib.md5(address.encode()).hexdigest()
+            # Check in-memory cache
+            if hasattr(self, '_geo_cache') and cache_key in self._geo_cache:
+                return self._geo_cache[cache_key]
+            if not hasattr(self, '_geo_cache'):
+                self._geo_cache = {}
+            url = 'https://nominatim.openstreetmap.org/search'
+            params = {'q': address, 'format': 'json', 'limit': 1}
+            resp = requests.get(url, params=params,
+                                headers={'User-Agent': 'TruckPMS/1.0 (fleet@truckpms.com)'},
+                                timeout=5)
+            if resp.status_code != 200:
+                return None, None
+            data = resp.json()
+            if data:
+                lat = float(data[0]['lat'])
+                lng = float(data[0]['lon'])
+                self._geo_cache[cache_key] = (lat, lng)
+                return lat, lng
+        except Exception:
+            pass
+        return None, None
+
     def get_positions(self):
         """Fetch current positions. Tries dedicated endpoint, falls back to latest trip end position."""
         # Try dedicated position endpoints first
@@ -152,18 +181,29 @@ class CartrackAPIClient:
                     'eventTime': trip.get('end_timestamp', ''),
                 })
             if not positions:
-                # Fallback: use end_location text address as position (no lat/lng available)
+                # Fallback: geocode end_location text address
                 for vid, trip in by_vehicle.items():
                     loc = trip.get('end_location', '') or trip.get('start_location', '')
                     if not loc:
                         continue
-                    positions.append({
-                        'registration': vid,
-                        'end_location': loc,
-                        'speed': trip.get('avgSpeed', trip.get('max_speed', 0)),
-                        'heading': 0,
-                        'eventTime': trip.get('end_timestamp', ''),
-                    })
+                    lat, lng = self._geocode(loc)
+                    if lat is None:
+                        positions.append({
+                            'registration': vid,
+                            'end_location': loc,
+                            'speed': trip.get('avgSpeed', trip.get('max_speed', 0)),
+                            'heading': 0,
+                            'eventTime': trip.get('end_timestamp', ''),
+                        })
+                    else:
+                        positions.append({
+                            'registration': vid,
+                            'latitude': lat,
+                            'longitude': lng,
+                            'speed': trip.get('avgSpeed', trip.get('max_speed', 0)),
+                            'heading': trip.get('heading', trip.get('direction', 0)),
+                            'eventTime': trip.get('end_timestamp', ''),
+                        })
             if not positions:
                 first_keys = list(trips[0].keys()) if trips else ['no_trips']
                 err_detail = f'No location data in trips. Keys: {first_keys[:20]}. Sample: {str(trips[0])[:600] if trips else "empty"}'
