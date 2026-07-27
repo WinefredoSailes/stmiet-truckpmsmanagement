@@ -93,7 +93,6 @@ class CartrackAPIClient:
         try:
             import hashlib
             cache_key = 'geo_' + hashlib.md5(address.encode()).hexdigest()
-            # Check in-memory cache
             if hasattr(self, '_geo_cache') and cache_key in self._geo_cache:
                 return self._geo_cache[cache_key]
             if not hasattr(self, '_geo_cache'):
@@ -101,18 +100,21 @@ class CartrackAPIClient:
             url = 'https://nominatim.openstreetmap.org/search'
             params = {'q': address, 'format': 'json', 'limit': 1}
             resp = requests.get(url, params=params,
-                                headers={'User-Agent': 'TruckPMS/1.0 (fleet@truckpms.com)'},
-                                timeout=5)
+                                headers={'User-Agent': 'TruckPMS/1.0 (fleetmanagement@truckpms.com)'},
+                                timeout=10)
             if resp.status_code != 200:
+                logger.error('geocode: Nominatim returned %d for %s', resp.status_code, address[:60])
                 return None, None
             data = resp.json()
             if data:
                 lat = float(data[0]['lat'])
                 lng = float(data[0]['lon'])
+                logger.info('geocode: OK %s -> %s,%s', address[:40], lat, lng)
                 self._geo_cache[cache_key] = (lat, lng)
                 return lat, lng
-        except Exception:
-            pass
+            logger.warning('geocode: no results for %s', address[:60])
+        except Exception as e:
+            logger.error('geocode: exception %s for %s', e, address[:60])
         return None, None
 
     def get_positions(self):
