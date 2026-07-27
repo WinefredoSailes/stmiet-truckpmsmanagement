@@ -79,6 +79,7 @@ function fetchLatest() {
 
 function displayPositions(data) {
     const seen = new Set();
+    const bounds = [];
     data.positions.forEach(p => {
         seen.add(p.truck_id);
         const hasPos = p.latitude != null && p.longitude != null;
@@ -112,12 +113,18 @@ function displayPositions(data) {
                 .bindPopup(popupHtml);
             markers[p.truck_id] = m;
         }
+        if (hasPos) {
+            bounds.push([p.latitude, p.longitude]);
+        }
     });
     Object.keys(markers).forEach(id => {
         if (!seen.has(Number(id))) {
             markers[id].setIcon(ICONS.NONE);
         }
     });
+    if (bounds.length > 0) {
+        map.fitBounds(bounds, {padding: [40, 40], maxZoom: 14});
+    }
 }
 
 function refreshPositions() {
