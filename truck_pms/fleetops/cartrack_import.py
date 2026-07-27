@@ -115,11 +115,14 @@ class CartrackAPIClient:
             resp = requests.get(f'{self.api_url}/trips', headers=self.headers, params=params, timeout=(3, 15))
             raw = resp.text[:2000]
             logger.info('get_positions: trips response status=%d body=%s', resp.status_code, raw[:500])
+            if 'data' in data and isinstance(data['data'], list) and len(data['data']) > 0:
+                first = data['data'][0]
+                logger.info('get_positions: first trip keys=%s', list(first.keys()))
             resp.raise_for_status()
             data = resp.json()
             trips = data.get('data', data if isinstance(data, list) else [])
             if not trips:
-                return {'data': [], 'error': f'No trips found', 'endpoint': 'trips_fallback', 'sample': raw[:500]}
+                return {'data': [], 'error': f'No trips found', 'endpoint': 'trips_fallback', 'sample': raw[:2000]}
             # Group by vehicle, take latest trip's end location
             by_vehicle = {}
             for t in trips:
@@ -148,8 +151,10 @@ class CartrackAPIClient:
                     'heading': trip.get('heading', trip.get('direction', 0)),
                     'eventTime': trip.get('end_timestamp', ''),
                 })
+            if not positions:
+                return {'data': [], 'error': f'No lat/lng in trips data', 'endpoint': 'trips_fallback', 'sample': raw[:2000]}
             logger.info('get_positions: trip fallback got %d positions', len(positions))
-            return {'data': positions, 'error': None, 'endpoint': 'trips_fallback', 'sample': raw[:500]}
+            return {'data': positions, 'error': None, 'endpoint': 'trips_fallback', 'sample': raw[:2000]}
         except Exception as e:
             logger.error('get_positions: trip fallback failed %s', e)
             sample = raw[:500] if raw else str(e)[:300]
