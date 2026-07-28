@@ -1,6 +1,8 @@
 import os
 import base64
 import logging
+import time
+import hashlib
 from datetime import date, timedelta, datetime
 
 logger = logging.getLogger(__name__)
@@ -14,6 +16,28 @@ try:
     REQUESTS_AVAILABLE = True
 except ImportError:
     REQUESTS_AVAILABLE = False
+
+# Hardcoded fallback coordinates for known geofences in Zamboanga del Norte
+# These are used when Cartrack Geofences API is unavailable and Nominatim is rate-limited
+KNOWN_GEOFENCES = {
+    'MOTORPOOL ILAYA': (8.5450, 123.4314),
+    'MOTORPOOL DAPITAN': (8.6542, 123.4250),
+    'MOTORPOOL DIPOLOG': (8.5667, 123.3500),
+    'MOTORPOOL MANILA': (14.5995, 120.9842),
+    'MOTORPOOL CEBU': (10.3157, 123.8854),
+    'ILAYA': (8.5450, 123.4314),
+    'DAPITAN': (8.6542, 123.4250),
+    'DAPITAN CITY': (8.6542, 123.4250),
+    'DIPOLOG': (8.5667, 123.3500),
+    'DIPOLOG CITY': (8.5667, 123.3500),
+    'LANGATIAN': (8.5167, 123.4500),
+    'LILOY': (8.1333, 122.6667),
+    'JOSE DALMAN': (8.0833, 122.9833),
+    'CALAMBA': (8.0833, 123.6500),
+    'MISAMIS OCCIDENTAL': (8.2500, 123.6000),
+    'ZAMBOANGA DEL NORTE': (8.1500, 123.0000),
+    'ZAMBOANGA PENINSULA': (8.0000, 122.5000),
+}
 
 DEFAULT_API_URL = os.environ.get('CARTRACK_API_URL', 'https://fleetapi-ph.cartrack.com/rest')
 
@@ -86,33 +110,109 @@ class CartrackAPIClient:
         return {'data': [], 'error': 'No data', 'endpoint': 'none'}
 
 
-    def _geocode(self, address):
-        """Geocode an address string to (lat, lng) using OpenStreetMap Nominatim."""
-        if not address:
-            return None, None
-        # Build fallback addresses: try full, then city-only, then province-only
+    def _fetch_geofences(self):
+        """Fetch geofences from Cartrack API and build a name->(lat,lng) lookup."""
+        try:
+            resp = requests.get(f'{self.api_url}/geofences', headers=self.headers, timeout=(3, 10))
+            if resp.status_code in (403, 404, 422):
+                logger.info('geofences: unavailable HTTP %d', resp.status_code)
+                return {}
+            resp.raise_for_status()
+            data = resp.json()
+            items = data if isinstance(data, list) else data.get('data', [])
+            geo = {}
+            for g in items:
+                name = (g.get('name') or g.get('geofence_name') or '').upper().strip()
+                lat = g.get('latitude') or g.get('lat') or g.get('center_lat') or g.get('centerLatitude')
+                lng = g.get('longitude') or g.get('lng') or g.get('center_lng') or g.get('centerLongitude')
+                if name and lat and lng:
+                    try:
+                        geo[name] = (float(lat), float(lng))
+                    except (ValueError, TypeError):
+                        continue
+            logger.info('geofences: fetched %d from Cartrack API', len(geo))
+            return geo
+        except Exception as e:
+            logger.warning('geofences: fetch failed %s', e)
+            return {}
+
+    def _resolve_location(self, trip):
+        """Get (lat, lng) from trip data using geofences, hardcoded keys, or Nominatim."""
+        # 1. Try direct lat/lng fields in trip data
+        for lat_key, lng_key in [
+            ('endLatitude', 'endLongitude'), ('end_latitude', 'end_longitude'),
+            ('latitude', 'longitude'), ('lat', 'lng'),
+            ('startLatitude', 'startLongitude'), ('start_latitude', 'start_longitude'),
+        ]:
+            lat = trip.get(lat_key)
+            lng = trip.get(lng_key)
+            if lat is not None and lng is not None:
+                try:
+                    fl = float(lat)
+                    fn = float(lng)
+                    if fl != 0 or fn != 0:
+                        return fl, fn
+                except (ValueError, TypeError):
+                    continue
+
+        # 2. Try Cartrack geofences API (lazy-fetched and cached)
+        if not hasattr(self, '_geofence_cache'):
+            self._geofence_cache = self._fetch_geofences()
+        for name_key in ('end_geofence_name', 'start_geofence_name', 'geofence_name'):
+            gname = trip.get(name_key, '').upper().strip()
+            if gname and gname in self._geofence_cache:
+                logger.info('resolve: geofence match %s -> %s', gname, self._geofence_cache[gname])
+                return self._geofence_cache[gname]
+
+        # 3. Try hardcoded KNOWN_GEOFENCES
+        addr = (trip.get('end_location') or trip.get('start_location') or '').upper()
+        for keyword, coord in KNOWN_GEOFENCES.items():
+            if keyword in addr:
+                logger.info('resolve: hardcoded match %s -> %s', keyword, coord)
+                return coord
+
+        # 4. Try address parts against hardcoded keys
+        parts = [p.strip().upper() for p in addr.split(',')]
+        for p in parts:
+            if p in KNOWN_GEOFENCES:
+                logger.info('resolve: hardcoded part %s -> %s', p, KNOWN_GEOFENCES[p])
+                return KNOWN_GEOFENCES[p]
+
+        # 5. Last resort: Nominatim with rate limiting
+        loc_text = trip.get('end_location') or trip.get('start_location') or ''
+        if loc_text:
+            time.sleep(1.1)  # Respect Nominatim's 1 req/sec rate limit
+            result = self._geocode_nominatim(loc_text)
+            if result != (None, None):
+                return result
+
+        return None, None
+
+    def _geocode_nominatim(self, address):
+        """Geocode via Nominatim with fallback queries."""
         parts = [p.strip() for p in address.split(',')]
         queries = [address]
         if len(parts) >= 3:
-            queries.append(', '.join(parts[-3:]))  # city/municipality, province, country
+            queries.append(', '.join(parts[-3:]))
         if len(parts) >= 2:
-            queries.append(', '.join(parts[-2:]))  # province, country
-        try:
-            import hashlib
-            for q in queries:
-                cache_key = 'geo_' + hashlib.md5(q.encode()).hexdigest()
-                if hasattr(self, '_geo_cache') and cache_key in self._geo_cache:
-                    return self._geo_cache[cache_key]
-            if not hasattr(self, '_geo_cache'):
-                self._geo_cache = {}
-            for q in queries:
-                url = 'https://nominatim.openstreetmap.org/search'
-                params = {'q': q, 'format': 'json', 'limit': 1}
-                resp = requests.get(url, params=params,
+            queries.append(', '.join(parts[-2:]))
+        for q in queries:
+            ck = 'geo_' + hashlib.md5(q.encode()).hexdigest()
+            if hasattr(self, '_geo_cache') and ck in self._geo_cache:
+                return self._geo_cache[ck]
+        if not hasattr(self, '_geo_cache'):
+            self._geo_cache = {}
+        for q in queries:
+            try:
+                resp = requests.get('https://nominatim.openstreetmap.org/search',
+                                    params={'q': q, 'format': 'json', 'limit': 1},
                                     headers={'User-Agent': 'TruckPMS/1.0 (fleetmanagement@truckpms.com)'},
                                     timeout=10)
+                if resp.status_code == 429:
+                    logger.warning('geocode: Nominatim 429, waiting 3s...')
+                    time.sleep(3)
+                    continue
                 if resp.status_code != 200:
-                    logger.error('geocode: Nominatim %d for %s', resp.status_code, q[:60])
                     continue
                 data = resp.json()
                 if data:
@@ -120,23 +220,18 @@ class CartrackAPIClient:
                     lng = float(data[0]['lon'])
                     ck = 'geo_' + hashlib.md5(q.encode()).hexdigest()
                     self._geo_cache[ck] = (lat, lng)
-                    logger.info('geocode: OK "%s" -> %s,%s', q[:40], lat, lng)
                     return lat, lng
-            logger.warning('geocode: all queries failed for %s', address[:60])
-        except Exception as e:
-            logger.error('geocode: exception %s for %s', e, address[:60])
+            except Exception as e:
+                logger.warning('geocode: exception %s', e)
         return None, None
 
     def get_positions(self):
-        """Fetch current positions. Tries dedicated endpoint, falls back to latest trip end position."""
-        # Try dedicated position endpoints first
+        """Fetch current positions. Tries dedicated endpoint, falls back to trips + _resolve_location."""
         for ep in ['position', 'positions', 'vehicles/position']:
             try:
                 resp = requests.get(f'{self.api_url}/{ep}', headers=self.headers, timeout=(3, 10))
-                logger.info('get_positions: %s status=%d body=%s', ep, resp.status_code, resp.text[:300])
-                if resp.status_code == 404:
-                    continue
-                if resp.status_code in (422, 403):
+                logger.info('get_positions: %s status=%d', ep, resp.status_code)
+                if resp.status_code in (404, 422, 403):
                     continue
                 resp.raise_for_status()
                 data = resp.json()
@@ -144,12 +239,11 @@ class CartrackAPIClient:
                 if items:
                     return {'data': items, 'error': None, 'endpoint': ep}
             except Exception as e:
-                logger.warning('get_positions: %s exception %s', ep, e)
+                logger.debug('get_positions: %s exception %s', ep, e)
                 continue
-        # Fallback: use latest trip end location as current position
-        logger.info('get_positions: falling back to latest trip positions')
+        # Fallback: trips + _resolve_location
+        logger.info('get_positions: falling back to trips resolve')
         raw = ''
-        resp = None
         try:
             today = date.today()
             params = {'limit': '200', 'start_timestamp': f'{today - timedelta(days=14)} 00:00:00',
@@ -157,14 +251,10 @@ class CartrackAPIClient:
             resp = requests.get(f'{self.api_url}/trips', headers=self.headers, params=params, timeout=(3, 15))
             resp.raise_for_status()
             raw = resp.text[:2000]
-            logger.info('get_positions: trips response status=%d body=%s', resp.status_code, raw[:500])
             json_data = resp.json()
             trips = json_data.get('data', json_data if isinstance(json_data, list) else [])
             if not trips:
-                return {'data': [], 'error': f'No trips found', 'endpoint': 'trips_fallback', 'sample': raw[:2000]}
-            if len(trips) > 0:
-                logger.info('get_positions: first trip keys=%s sample=%s', list(trips[0].keys()), str(trips[0])[:800])
-            # Group by vehicle, take latest trip's end location
+                return {'data': [], 'error': 'No trips found', 'endpoint': 'trips_fallback', 'sample': raw[:2000]}
             by_vehicle = {}
             for t in trips:
                 vid = _vehicle_id(t)
@@ -174,15 +264,9 @@ class CartrackAPIClient:
                         by_vehicle[vid] = t
             positions = []
             for vid, trip in by_vehicle.items():
-                lat = trip.get('endLatitude') or trip.get('end_latitude') or trip.get('latitude')
-                lng = trip.get('endLongitude') or trip.get('end_longitude') or trip.get('longitude')
-                if lat is None or lng is None:
-                    continue
-                try:
-                    lat, lng = float(lat), float(lng)
-                except (ValueError, TypeError):
-                    continue
-                if lat == 0 and lng == 0:
+                lat, lng = self._resolve_location(trip)
+                if lat is None:
+                    logger.warning('get_positions: no coords for %s', vid)
                     continue
                 positions.append({
                     'registration': vid,
@@ -193,32 +277,11 @@ class CartrackAPIClient:
                     'eventTime': trip.get('end_timestamp', ''),
                 })
             if not positions:
-                # Fallback: geocode end_location text address
-                for vid, trip in by_vehicle.items():
-                    loc = trip.get('end_location', '') or trip.get('start_location', '')
-                    if not loc:
-                        continue
-                    lat, lng = self._geocode(loc)
-                    if lat is None:
-                        logger.warning('get_positions: geocode failed for %s address=%s', vid, loc[:80])
-                    else:
-                        logger.info('get_positions: geocode ok %s -> %.4f,%.4f', vid, lat, lng)
-                        positions.append({
-                            'registration': vid,
-                            'latitude': lat,
-                            'longitude': lng,
-                            'speed': trip.get('avgSpeed', trip.get('max_speed', 0)),
-                            'heading': trip.get('heading', trip.get('direction', 0)),
-                            'eventTime': trip.get('end_timestamp', ''),
-                        })
-            if not positions:
-                first_keys = list(trips[0].keys()) if trips else ['no_trips']
-                sample_str = str(trips[0])[:600] if trips else 'empty'
-                return {'data': [], 'error': f'Geocode failed for all addresses. Sample trip: {sample_str}', 'endpoint': 'trips_fallback', 'sample': raw[:2000]}
-            logger.info('get_positions: trip fallback got %d geocoded positions', len(positions))
+                return {'data': [], 'error': 'No coords resolved for any trip', 'endpoint': 'trips_fallback', 'sample': raw[:2000]}
+            logger.info('get_positions: resolved %d positions', len(positions))
             return {'data': positions, 'error': None, 'endpoint': 'trips_fallback', 'sample': raw[:2000]}
         except Exception as e:
-            logger.error('get_positions: trip fallback failed %s', e)
+            logger.error('get_positions: fallback failed %s', e)
             sample = raw[:500] if raw else str(e)[:300]
             return {'data': [], 'error': f'Trip fallback failed: {e}', 'endpoint': 'trips_fallback', 'sample': sample}
 

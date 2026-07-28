@@ -29,9 +29,14 @@ Live GPS Tracking
     <div id="error-detail" class="text-danger small mt-1" style="display:none"></div>
     <span class="badge bg-light text-muted ms-2" id="last-update">—</span>
   </div>
-  <button class="btn btn-sm btn-outline-primary" onclick="refreshPositions()">
-    <i class="bi bi-arrow-repeat"></i> Refresh Now
-  </button>
+  <div>
+    <button class="btn btn-sm btn-outline-secondary me-1" onclick="clearRoute('all')">
+      <i class="bi bi-x-circle"></i> Clear Trails
+    </button>
+    <button class="btn btn-sm btn-outline-primary" onclick="refreshPositions()">
+      <i class="bi bi-arrow-repeat"></i> Refresh Now
+    </button>
+  </div>
 </div>
 <div id="map"></div>
 {% endblock %}
@@ -49,7 +54,8 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 }).addTo(map);
 
 let markers = {};
-let truckIcons = {};
+let historyLines = {};
+let historyMarkers = {};
 
 function makeIcon(color) {
     return L.divIcon({
@@ -89,7 +95,6 @@ function displayPositions(data) {
     const ts = p.recorded_at ? new Date(p.recorded_at).toLocaleString() : '—';
     const speed = p.speed_kmh != null ? `${p.speed_kmh} km/h` : '—';
     const ign = p.ignition_on === true ? 'ON' : p.ignition_on === false ? 'OFF' : '—';
-    const histUrl = '/fleetops/logs/?plate=' + encodeURIComponent(p.plate_number);
     const popupHtml = `
         <h6>${label}</h6>
         <small>
@@ -97,7 +102,9 @@ function displayPositions(data) {
             ${hasPos ? 'Speed: ' + speed + '<br>' : ''}
             Ignition: ${ign}<br>
             Updated: ${ts}<br>
-            <a href="${histUrl}" target="_blank"><i class="bi bi-map"></i> View History</a>
+            <button class="btn btn-sm btn-outline-primary mt-1" onclick="showRoute(${p.truck_id}, '${p.plate_number}')">
+                <i class="bi bi-map"></i> Show Route
+            </button>
         </small>
     `;
 
@@ -125,6 +132,52 @@ function displayPositions(data) {
     if (bounds.length > 0) {
         map.fitBounds(bounds, {padding: [40, 40], maxZoom: 14});
     }
+}
+
+function clearRoute(truckId) {
+    if (truckId === 'all') {
+        Object.keys(historyLines).forEach(id => { map.removeLayer(historyLines[id]); });
+        Object.keys(historyMarkers).forEach(id => {
+            historyMarkers[id].forEach(m => map.removeLayer(m));
+        });
+        historyLines = {}; historyMarkers = {};
+        return;
+    }
+    if (historyLines[truckId]) { map.removeLayer(historyLines[truckId]); delete historyLines[truckId]; }
+    if (historyMarkers[truckId]) {
+        historyMarkers[truckId].forEach(m => map.removeLayer(m));
+        delete historyMarkers[truckId];
+    }
+}
+
+function showRoute(truckId, plate) {
+    clearRoute(truckId);
+    const today = new Date().toISOString().slice(0, 10);
+    fetch('/fleetops/api/positions/history/' + truckId + '/?date=' + today)
+        .then(r => r.json())
+        .then(data => {
+            const pts = data.filter(p => p.latitude != null && p.longitude != null);
+            if (pts.length === 0) { alert('No route data for today'); return; }
+            const latlngs = pts.map(p => [p.latitude, p.longitude]);
+            historyLines[truckId] = L.polyline(latlngs, {
+                color: '#0d6efd', weight: 3, opacity: 0.7
+            }).addTo(map);
+            // Start/end markers
+            const s = L.circleMarker(latlngs[0], { color: 'green', radius: 6 }).addTo(map).bindPopup('<b>Start</b>');
+            const e = L.circleMarker(latlngs[latlngs.length-1], { color: 'red', radius: 6 }).addTo(map).bindPopup('<b>End</b>');
+            historyMarkers[truckId] = [s, e];
+            // Speed-colored dots
+            pts.forEach((p, i) => {
+                const spd = p.speed_kmh || 0;
+                const hue = Math.min(120 - spd * 2, 120);
+                L.circleMarker(latlngs[i], {
+                    color: 'hsl(' + Math.max(hue, 0) + ', 100%, 50%)',
+                    radius: 3, fillOpacity: 0.6
+                }).addTo(map);
+            });
+            map.fitBounds(latlngs, {padding: [40, 40]});
+        })
+        .catch(err => alert('Route error: ' + err.message));
 }
 
 function refreshPositions() {
