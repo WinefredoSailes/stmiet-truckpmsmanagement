@@ -159,7 +159,7 @@ class CartrackAPIClient:
         if not hasattr(self, '_geofence_cache'):
             self._geofence_cache = self._fetch_geofences()
         for name_key in ('end_geofence_name', 'start_geofence_name', 'geofence_name'):
-            gname = trip.get(name_key, '').upper().strip()
+            gname = (trip.get(name_key) or '').upper().strip()
             if gname and gname in self._geofence_cache:
                 logger.info('resolve: geofence match %s -> %s', gname, self._geofence_cache[gname])
                 return self._geofence_cache[gname]

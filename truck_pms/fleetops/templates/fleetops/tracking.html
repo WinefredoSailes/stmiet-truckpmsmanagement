@@ -107,6 +107,7 @@ function displayPositions(data) {
             </button>
         </small>
     `;
+    const tooltipHtml = `${p.unit_number} (${p.plate_number})`;
 
         if (markers[p.truck_id]) {
             if (hasPos) {
@@ -114,10 +115,12 @@ function displayPositions(data) {
             }
             markers[p.truck_id].setIcon(icon);
             markers[p.truck_id].bindPopup(popupHtml);
+            markers[p.truck_id].bindTooltip(tooltipHtml);
         } else if (hasPos) {
             const m = L.marker([p.latitude, p.longitude], {icon})
                 .addTo(map)
-                .bindPopup(popupHtml);
+                .bindPopup(popupHtml)
+                .bindTooltip(tooltipHtml);
             markers[p.truck_id] = m;
         }
         if (hasPos) {
