@@ -8,7 +8,8 @@ from datetime import date, timedelta, datetime
 logger = logging.getLogger(__name__)
 from django.db import models
 from django.utils import timezone
-from fleetops.models import DailyLog, DriverAssignment
+from decimal import Decimal
+from fleetops.models import DailyLog, DriverAssignment, VehiclePosition
 from trucks.models import Truck
 
 try:
@@ -462,7 +463,69 @@ def import_cartrack_data(import_date=None, import_date_end=None, days_back=1, ap
             plate = truck.plate_number.upper()
             unit = truck.unit_number.upper()
 
-            trip_data = _aggregate_trips(_match_vehicle(trips, plate, unit))
+            matched_trips = _match_vehicle(trips, plate, unit)
+            trip_data = _aggregate_trips(matched_trips)
+
+            # Save VehiclePosition records from individual trip endpoints
+            if not dry_run and matched_trips:
+                for trip in matched_trips:
+                    lat, lng = client._resolve_location(trip)
+                    if lat is not None and lng is not None:
+                        evt_ts = trip.get('end_timestamp') or trip.get('start_timestamp') or ''
+                        try:
+                            from datetime import datetime
+                            if evt_ts:
+                                evt_dt = datetime.strptime(evt_ts[:19], '%Y-%m-%d %H:%M:%S')
+                                if timezone.is_naive(evt_dt):
+                                    evt_dt = timezone.make_aware(evt_dt)
+                            else:
+                                evt_dt = timezone.now()
+                        except (ValueError, IndexError):
+                            evt_dt = timezone.now()
+                        VehiclePosition.objects.update_or_create(
+                            truck=truck,
+                            provider=VehiclePosition.Provider.CARTRACK,
+                            recorded_at=evt_dt,
+                            defaults={
+                                'latitude': Decimal(str(lat)),
+                                'longitude': Decimal(str(lng)),
+                                'speed_kmh': trip.get('avgSpeed', trip.get('max_speed', 0)),
+                                'heading': trip.get('heading', trip.get('direction')),
+                                'ignition_on': None,
+                                'extra_data': trip,
+                            }
+                        )
+                    # Also save start location if available
+                    for lat_key, lng_key in [('startLatitude', 'startLongitude'), ('start_latitude', 'start_longitude')]:
+                        slat = trip.get(lat_key)
+                        slng = trip.get(lng_key)
+                        if slat is not None and slng is not None:
+                            try:
+                                if float(slat) != 0 or float(slng) != 0:
+                                    sts = trip.get('start_timestamp', '')
+                                    s_dt = timezone.now()
+                                    if sts:
+                                        try:
+                                            s_dt = datetime.strptime(sts[:19], '%Y-%m-%d %H:%M:%S')
+                                            if timezone.is_naive(s_dt):
+                                                s_dt = timezone.make_aware(s_dt)
+                                        except (ValueError, IndexError):
+                                            pass
+                                    VehiclePosition.objects.update_or_create(
+                                        truck=truck,
+                                        provider=VehiclePosition.Provider.CARTRACK,
+                                        recorded_at=s_dt,
+                                        defaults={
+                                            'latitude': Decimal(str(float(slat))),
+                                            'longitude': Decimal(str(float(slng))),
+                                            'speed_kmh': 0,
+                                            'heading': None,
+                                            'ignition_on': None,
+                                            'extra_data': trip,
+                                        }
+                                    )
+                            except (ValueError, TypeError):
+                                continue
 
             # Match events
             ev_counts = next(
