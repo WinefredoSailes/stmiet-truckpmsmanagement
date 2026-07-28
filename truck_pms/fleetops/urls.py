@@ -16,9 +16,4 @@ urlpatterns = [
     path('pull-cartrack/', views.pull_cartrack, name='pull_cartrack'),
     path('compliance/', views.compliance_dashboard, name='compliance_dashboard'),
     path('weekly-report/', views.weekly_report, name='weekly_report'),
-    # GPS Tracking
-    path('api/positions/latest/', views.latest_positions_api, name='positions_latest'),
-    path('api/positions/history/<int:truck_id>/', views.position_history_api, name='positions_history'),
-    path('api/positions/refresh/', views.refresh_positions_api, name='positions_refresh'),
-    path('tracking/', views.tracking_map, name='tracking_map'),
 ]

@@ -1,15 +1,11 @@
 import os
 import base64
 import logging
-import time
-import hashlib
 from datetime import date, timedelta, datetime
 
 logger = logging.getLogger(__name__)
 from django.db import models
-from django.utils import timezone
-from decimal import Decimal
-from fleetops.models import DailyLog, DriverAssignment, VehiclePosition
+from fleetops.models import DailyLog, DriverAssignment
 from trucks.models import Truck
 
 try:
@@ -18,31 +14,7 @@ try:
 except ImportError:
     REQUESTS_AVAILABLE = False
 
-# Hardcoded fallback coordinates for known geofences in Zamboanga del Norte
-# These are used when Cartrack Geofences API is unavailable and Nominatim is rate-limited
-KNOWN_GEOFENCES = {
-    'MOTORPOOL ILAYA': (8.5450, 123.4314),
-    'MOTORPOOL DAPITAN': (8.6542, 123.4250),
-    'MOTORPOOL DIPOLOG': (8.5667, 123.3500),
-    'MOTORPOOL MANILA': (14.5995, 120.9842),
-    'MOTORPOOL CEBU': (10.3157, 123.8854),
-    'ILAYA': (8.5450, 123.4314),
-    'DAPITAN': (8.6542, 123.4250),
-    'DAPITAN CITY': (8.6542, 123.4250),
-    'DIPOLOG': (8.5667, 123.3500),
-    'DIPOLOG CITY': (8.5667, 123.3500),
-    'LANGATIAN': (8.5167, 123.4500),
-    'LILOY': (8.1333, 122.6667),
-    'JOSE DALMAN': (8.0833, 122.9833),
-    'CALAMBA': (8.0833, 123.6500),
-    'MISAMIS OCCIDENTAL': (8.2500, 123.6000),
-    'ZAMBOANGA DEL NORTE': (8.1500, 123.0000),
-    'ZAMBOANGA PENINSULA': (8.0000, 122.5000),
-}
-
 DEFAULT_API_URL = os.environ.get('CARTRACK_API_URL', 'https://fleetapi-ph.cartrack.com/rest')
-DEFAULT_MOTORPOOL_LAT = 8.5450
-DEFAULT_MOTORPOOL_LNG = 123.4314
 
 
 class CartrackAPIClient:
@@ -113,207 +85,7 @@ class CartrackAPIClient:
         return {'data': [], 'error': 'No data', 'endpoint': 'none'}
 
 
-    def _fetch_geofences(self):
-        """Fetch geofences from Cartrack API and build a name->(lat,lng) lookup."""
-        try:
-            resp = requests.get(f'{self.api_url}/geofences', headers=self.headers, timeout=(3, 10))
-            logger.info('geofences: GET /geofences status=%d', resp.status_code)
-            if resp.status_code in (403, 404, 422):
-                logger.info('geofences: unavailable HTTP %d', resp.status_code)
-                return {}
-            resp.raise_for_status()
-            data = resp.json()
-            items = data if isinstance(data, list) else data.get('data', [])
-            logger.info('geofences: API returned %d items', len(items))
-            geo = {}
-            for g in items:
-                name = (g.get('name') or g.get('geofence_name') or '').upper().strip()
-                lat = g.get('latitude') or g.get('lat') or g.get('center_lat') or g.get('centerLatitude')
-                lng = g.get('longitude') or g.get('lng') or g.get('center_lng') or g.get('centerLongitude')
-                if name and lat and lng:
-                    try:
-                        geo[name] = (float(lat), float(lng))
-                    except (ValueError, TypeError) as e:
-                        logger.warning('geofences: bad coords for %s: %s=%s %s=%s err=%s', name, lat, lng, e)
-                        continue
-                elif name:
-                    logger.debug('geofences: %s has no lat/lng fields in %s', name, list(g.keys())[:10])
-            logger.info('geofences: built lookup with %d entries', len(geo))
-            return geo
-        except Exception as e:
-            logger.warning('geofences: fetch failed %s', e)
-            return {}
 
-    def _resolve_location(self, trip):
-        """Get (lat, lng) from trip data using geofences, hardcoded keys, or Nominatim."""
-        vid = _vehicle_id(trip)
-        # 1. Try direct lat/lng fields in trip data
-        for lat_key, lng_key in [
-            ('endLatitude', 'endLongitude'), ('end_latitude', 'end_longitude'),
-            ('latitude', 'longitude'), ('lat', 'lng'),
-            ('startLatitude', 'startLongitude'), ('start_latitude', 'start_longitude'),
-        ]:
-            lat = trip.get(lat_key)
-            lng = trip.get(lng_key)
-            if lat is not None and lng is not None:
-                try:
-                    fl = float(lat)
-                    fn = float(lng)
-                    if fl != 0 or fn != 0:
-                        logger.debug('resolve %s: direct lat/lng from %s -> %s,%s', vid, lat_key, fl, fn)
-                        return fl, fn
-                except (ValueError, TypeError) as e:
-                    logger.warning('resolve %s: bad %s=%s %s', vid, lat_key, lat, e)
-                    continue
-
-        # 2. Try Cartrack geofences API (lazy-fetched and cached)
-        if not hasattr(self, '_geofence_cache'):
-            self._geofence_cache = self._fetch_geofences()
-            logger.debug('resolve %s: geofence cache has %d entries', vid, len(self._geofence_cache))
-        for name_key in ('end_geofence_name', 'start_geofence_name', 'geofence_name'):
-            gname = (trip.get(name_key) or '').upper().strip()
-            if gname and gname in self._geofence_cache:
-                coord = self._geofence_cache[gname]
-                logger.info('resolve %s: geofence match %s=%s -> %s,%s', vid, name_key, gname, *coord)
-                return coord
-            elif gname:
-                logger.debug('resolve %s: geofence %s not in cache (key=%s)', vid, gname, name_key)
-
-        # 3. Try hardcoded KNOWN_GEOFENCES
-        addr = (trip.get('end_location') or trip.get('start_location') or '').upper()
-        logger.debug('resolve %s: trying hardcoded for addr=%s', vid, addr[:80])
-        for keyword, coord in KNOWN_GEOFENCES.items():
-            if keyword in addr:
-                logger.info('resolve %s: hardcoded match "%s" -> %s,%s', vid, keyword, *coord)
-                return coord
-
-        # 4. Try address parts against hardcoded keys
-        parts = [p.strip().upper() for p in addr.split(',')]
-        for p in parts:
-            if p in KNOWN_GEOFENCES:
-                coord = KNOWN_GEOFENCES[p]
-                logger.info('resolve %s: hardcoded part match "%s" -> %s,%s', vid, p, *coord)
-                return coord
-            logger.debug('resolve %s: hardcoded no match for part "%s"', vid, p)
-
-        # 5. Last resort: Nominatim with rate limiting
-        loc_text = trip.get('end_location') or trip.get('start_location') or ''
-        if loc_text:
-            logger.info('resolve %s: trying Nominatim for "%s"', vid, loc_text[:60])
-            time.sleep(1.1)
-            result = self._geocode_nominatim(loc_text)
-            if result != (None, None):
-                logger.info('resolve %s: Nominatim OK -> %s,%s', vid, *result)
-                return result
-            logger.warning('resolve %s: Nominatim failed for "%s"', vid, loc_text[:60])
-        else:
-            logger.warning('resolve %s: no location text available in trip', vid)
-
-        return None, None
-
-    def _geocode_nominatim(self, address):
-        """Geocode via Nominatim with fallback queries."""
-        parts = [p.strip() for p in address.split(',')]
-        queries = [address]
-        if len(parts) >= 3:
-            queries.append(', '.join(parts[-3:]))
-        if len(parts) >= 2:
-            queries.append(', '.join(parts[-2:]))
-        for q in queries:
-            ck = 'geo_' + hashlib.md5(q.encode()).hexdigest()
-            if hasattr(self, '_geo_cache') and ck in self._geo_cache:
-                return self._geo_cache[ck]
-        if not hasattr(self, '_geo_cache'):
-            self._geo_cache = {}
-        for q in queries:
-            try:
-                logger.debug('geocode: trying Nominatim query="%s"', q[:60])
-                resp = requests.get('https://nominatim.openstreetmap.org/search',
-                                    params={'q': q, 'format': 'json', 'limit': 1},
-                                    headers={'User-Agent': 'TruckPMS/1.0 (fleetmanagement@truckpms.com)'},
-                                    timeout=10)
-                logger.debug('geocode: Nominatim status=%d for "%s"', resp.status_code, q[:40])
-                if resp.status_code == 429:
-                    logger.warning('geocode: Nominatim 429 on "%s", sleeping 3s', q[:40])
-                    time.sleep(3)
-                    continue
-                if resp.status_code != 200:
-                    continue
-                data = resp.json()
-                if data:
-                    lat = float(data[0]['lat'])
-                    lng = float(data[0]['lon'])
-                    ck = 'geo_' + hashlib.md5(q.encode()).hexdigest()
-                    self._geo_cache[ck] = (lat, lng)
-                    logger.info('geocode: Nominatim OK "%s" -> %.7f,%.7f', q[:40], lat, lng)
-                    return lat, lng
-                logger.debug('geocode: no results for "%s"', q[:40])
-            except Exception as e:
-                logger.warning('geocode: exception for "%s": %s', q[:40], e)
-        logger.warning('geocode: all %d queries exhausted for "%s"', len(queries), address[:60])
-        return None, None
-
-    def get_positions(self):
-        """Fetch current positions. Tries dedicated endpoint, falls back to trips + _resolve_location."""
-        for ep in ['position', 'positions', 'vehicles/position',
-                   'live/position', 'reports/vehicle-status', 'api/position',
-                   'v1/position', 'v1/positions', 'tracking']:
-            try:
-                resp = requests.get(f'{self.api_url}/{ep}', headers=self.headers, timeout=(3, 10))
-                logger.info('get_positions: %s status=%d', ep, resp.status_code)
-                if resp.status_code in (404, 422, 403):
-                    continue
-                resp.raise_for_status()
-                data = resp.json()
-                items = data if isinstance(data, list) else data.get('data', [])
-                if items:
-                    return {'data': items, 'error': None, 'endpoint': ep}
-            except Exception as e:
-                logger.debug('get_positions: %s exception %s', ep, e)
-                continue
-        # Fallback: trips + _resolve_location
-        logger.info('get_positions: falling back to trips resolve')
-        raw = ''
-        try:
-            today = date.today()
-            params = {'limit': '200', 'start_timestamp': f'{today - timedelta(days=14)} 00:00:00',
-                      'end_timestamp': f'{today} 23:59:59'}
-            resp = requests.get(f'{self.api_url}/trips', headers=self.headers, params=params, timeout=(3, 15))
-            resp.raise_for_status()
-            raw = resp.text[:2000]
-            json_data = resp.json()
-            trips = json_data.get('data', json_data if isinstance(json_data, list) else [])
-            if not trips:
-                return {'data': [], 'error': 'No trips found', 'endpoint': 'trips_fallback', 'sample': raw[:2000]}
-            by_vehicle = {}
-            for t in trips:
-                vid = _vehicle_id(t)
-                ts = t.get('end_timestamp', '')
-                if vid and ts:
-                    if vid not in by_vehicle or ts > by_vehicle[vid]['end_timestamp']:
-                        by_vehicle[vid] = t
-            positions = []
-            for vid, trip in by_vehicle.items():
-                lat, lng = self._resolve_location(trip)
-                if lat is None:
-                    logger.warning('get_positions: no coords for %s', vid)
-                    continue
-                positions.append({
-                    'registration': vid,
-                    'latitude': lat,
-                    'longitude': lng,
-                    'speed': trip.get('avgSpeed', trip.get('max_speed', 0)),
-                    'heading': trip.get('heading', trip.get('direction', 0)),
-                    'eventTime': trip.get('end_timestamp', ''),
-                })
-            if not positions:
-                return {'data': [], 'error': 'No coords resolved for any trip', 'endpoint': 'trips_fallback', 'sample': raw[:2000]}
-            logger.info('get_positions: resolved %d positions', len(positions))
-            return {'data': positions, 'error': None, 'endpoint': 'trips_fallback', 'sample': raw[:2000]}
-        except Exception as e:
-            logger.error('get_positions: fallback failed %s', e)
-            sample = raw[:500] if raw else str(e)[:300]
-            return {'data': [], 'error': f'Trip fallback failed: {e}', 'endpoint': 'trips_fallback', 'sample': sample}
 
 
 def _parse_date(ts, fallback):
@@ -465,87 +237,6 @@ def import_cartrack_data(import_date=None, import_date_end=None, days_back=1, ap
 
             matched_trips = _match_vehicle(trips, plate, unit)
             trip_data = _aggregate_trips(matched_trips)
-
-            # Save VehiclePosition records from individual trip endpoints
-            if not dry_run and matched_trips and isinstance(matched_trips, list):
-                for trip in matched_trips:
-                    if not isinstance(trip, dict):
-                        continue
-                    try:
-                        lat, lng = client._resolve_location(trip)
-                    except Exception:
-                        lat, lng = None, None
-                    if lat is not None and lng is not None:
-                        evt_ts = trip.get('end_timestamp') or trip.get('start_timestamp') or ''
-                        try:
-                            if evt_ts:
-                                evt_dt = datetime.strptime(evt_ts[:19], '%Y-%m-%d %H:%M:%S')
-                                if timezone.is_naive(evt_dt):
-                                    evt_dt = timezone.make_aware(evt_dt)
-                            else:
-                                evt_dt = timezone.now()
-                        except (ValueError, IndexError):
-                            evt_dt = timezone.now()
-                        spd_raw = trip.get('avgSpeed', trip.get('max_speed'))
-                        try:
-                            spd_val = round(float(spd_raw), 1) if spd_raw is not None else None
-                        except (ValueError, TypeError):
-                            spd_val = None
-                        hdg_raw = trip.get('heading', trip.get('direction'))
-                        try:
-                            hdg_val = int(round(float(hdg_raw))) if hdg_raw is not None else None
-                        except (ValueError, TypeError):
-                            hdg_val = None
-                        try:
-                            VehiclePosition.objects.update_or_create(
-                                truck=truck,
-                                provider=VehiclePosition.Provider.CARTRACK,
-                                recorded_at=evt_dt,
-                                defaults={
-                                    'latitude': Decimal(str(lat)),
-                                    'longitude': Decimal(str(lng)),
-                                    'speed_kmh': spd_val,
-                                    'heading': hdg_val,
-                                    'ignition_on': None,
-                                    'extra_data': trip,
-                                }
-                            )
-                        except Exception as e:
-                            logger.warning('VehiclePosition update_or_create failed: %s', e)
-                    # Also save start location if available
-                    for lat_key, lng_key in [('startLatitude', 'startLongitude'), ('start_latitude', 'start_longitude')]:
-                        slat = trip.get(lat_key)
-                        slng = trip.get(lng_key)
-                        if slat is not None and slng is not None:
-                            try:
-                                if float(slat) != 0 or float(slng) != 0:
-                                    sts = trip.get('start_timestamp', '')
-                                    s_dt = timezone.now()
-                                    if sts:
-                                        try:
-                                            s_dt = datetime.strptime(sts[:19], '%Y-%m-%d %H:%M:%S')
-                                            if timezone.is_naive(s_dt):
-                                                s_dt = timezone.make_aware(s_dt)
-                                        except (ValueError, IndexError):
-                                            pass
-                                    try:
-                                        VehiclePosition.objects.update_or_create(
-                                            truck=truck,
-                                            provider=VehiclePosition.Provider.CARTRACK,
-                                            recorded_at=s_dt,
-                                            defaults={
-                                                'latitude': Decimal(str(float(slat))),
-                                                'longitude': Decimal(str(float(slng))),
-                                                'speed_kmh': 0,
-                                                'heading': None,
-                                                'ignition_on': None,
-                                                'extra_data': trip,
-                                            }
-                                        )
-                                    except Exception as e:
-                                        logger.warning('VehiclePosition start loc update_or_create failed: %s', e)
-                            except (ValueError, TypeError):
-                                continue
 
             # Match events
             ev_counts = next(

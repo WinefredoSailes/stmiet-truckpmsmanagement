@@ -11,11 +11,9 @@ from django.utils import timezone
 from accounts.decorators import role_required
 from accounts.models import User
 from trucks.models import Truck
-from .models import Driver, DriverAssignment, DailyLog, VehiclePosition
-from .cartrack_import import import_cartrack_data, CartrackAPIClient
-from .tracksolid_import import import_tracksolid_data
+from .models import Driver, DriverAssignment, DailyLog
+from .cartrack_import import import_cartrack_data
 from datetime import date, timedelta, datetime
-from decimal import Decimal
 
 
 def _staff_or_above(user):
@@ -639,7 +637,6 @@ def pull_cartrack(request):
     if not data_types:
         data_types = ['trips']
 
-    do_tracksolid = request.POST.get('type_tracksolid')
     any_success = False
     date_label = ''
     all_errors = []
@@ -678,31 +675,6 @@ def pull_cartrack(request):
         else:
             all_errors.append(f"Cartrack import failed: {c_result['error']}")
 
-    if do_tracksolid:
-        if import_date:
-            t_result = import_tracksolid_data(import_date=import_date, import_date_end=import_date_end)
-        else:
-            t_result = import_tracksolid_data(days_back=int(request.POST.get('days_back', 1)))
-
-        if date_label is None:
-            date_label = f"{t_result['import_date']}"
-            if t_result.get('import_date_end') and t_result['import_date'] != t_result['import_date_end']:
-                date_label += f" – {t_result['import_date_end']}"
-
-        if t_result['success'] and t_result['processed'] > 0:
-            any_success = True
-            messages.success(
-                request,
-                f"TrackSolid import complete: {t_result['processed']} log(s) for {date_label}."
-            )
-        elif t_result['success']:
-            msg = "No TrackSolid data found."
-            if t_result['errors']:
-                msg += ' ' + ' '.join(t_result['errors'])
-            all_errors.append(msg)
-        else:
-            all_errors.append(f"TrackSolid import failed: {t_result['error']}")
-
     for err in all_errors:
         messages.warning(request, err)
     if not any_success and not all_errors:
@@ -725,216 +697,3 @@ def compliance_dashboard(request):
         'title': 'Compliance & Expiries',
     })
 
-
-# ── GPS Tracking ──
-
-@login_required
-def latest_positions_api(request):
-    trucks = Truck.objects.all()
-    positions = []
-    for truck in trucks:
-        is_active = truck.status == 'ACTIVE'
-        vp = VehiclePosition.objects.filter(truck=truck).order_by('-recorded_at').first()
-        if vp is None:
-            positions.append({
-                'truck_id': truck.id,
-                'unit_number': truck.unit_number,
-                'plate_number': truck.plate_number,
-                'is_active': is_active,
-                'latitude': None,
-                'longitude': None,
-                'speed_kmh': None,
-                'heading': None,
-                'recorded_at': None,
-                'provider': None,
-                'ignition_on': None,
-            })
-            continue
-        positions.append({
-            'truck_id': truck.id,
-            'unit_number': truck.unit_number,
-            'plate_number': truck.plate_number,
-            'is_active': is_active,
-            'latitude': float(vp.latitude),
-            'longitude': float(vp.longitude),
-            'speed_kmh': float(vp.speed_kmh) if vp.speed_kmh is not None else None,
-            'heading': vp.heading,
-            'recorded_at': vp.recorded_at.isoformat(),
-            'provider': vp.provider,
-            'ignition_on': vp.ignition_on,
-        })
-        logger.debug('latest_positions: truck=%s lat=%s lng=%s active=%s',
-                     truck.unit_number, vp.latitude, vp.longitude, is_active)
-    logger.info('latest_positions: returned %d trucks', len(positions))
-    return JsonResponse({'positions': positions})
-
-
-@login_required
-def position_history_api(request, truck_id):
-    date_param = request.GET.get('date', '')
-    qs = VehiclePosition.objects.filter(truck_id=truck_id)
-    if date_param:
-        qs = qs.filter(recorded_at__date=date_param)
-    qs = qs.order_by('recorded_at')[:5000]
-    points = [{
-        'latitude': float(p.latitude),
-        'longitude': float(p.longitude),
-        'speed_kmh': float(p.speed_kmh) if p.speed_kmh is not None else None,
-        'heading': p.heading,
-        'recorded_at': p.recorded_at.isoformat(),
-        'ignition_on': p.ignition_on,
-        'provider': p.provider,
-    } for p in qs]
-    return JsonResponse({'points': points})
-
-
-@login_required
-def tracking_map(request):
-    if not _staff_or_above(request.user):
-        messages.error(request, 'Access denied.')
-        return redirect('accounts:dashboard')
-    return render(request, 'fleetops/tracking.html', {
-        'title': 'Live GPS Tracking',
-    })
-
-
-@login_required
-def refresh_positions_api(request):
-    if request.method != 'POST':
-        return JsonResponse({'error': 'POST required'}, status=405)
-    try:
-        import traceback
-        from fleetops.cartrack_import import DEFAULT_MOTORPOOL_LAT, DEFAULT_MOTORPOOL_LNG
-        client = CartrackAPIClient()
-        r = client.get_positions()
-        logger.info('REFRESH: get_positions returned error=%s endpoint=%s empty=%s items=%d',
-                    r.get('error'), r.get('endpoint'), r.get('empty'), len(r.get('data', [])))
-        if r.get('data'):
-            logger.info('REFRESH: first item keys=%s', list(r['data'][0].keys())[:20])
-            if 'latitude' in r['data'][0] or 'lat' in r['data'][0]:
-                logger.info('REFRESH: first item lat=%s lng=%s',
-                            r['data'][0].get('latitude') or r['data'][0].get('lat'),
-                            r['data'][0].get('longitude') or r['data'][0].get('lng'))
-        if r['error']:
-            logger.warning('REFRESH: get_positions error=%s', r['error'])
-            return JsonResponse({'refreshed': 0, 'errors': [r['error']], 'sample': r.get('sample', '')[:300]})
-        items = r['data']
-        if not items:
-            sample = r.get('sample', '')[:500]
-            logger.warning('REFRESH: empty data from endpoint=%s', r.get('endpoint'))
-            return JsonResponse({'refreshed': 0, 'errors': [f'Empty from {r.get("endpoint", "?")}', 'sample: ' + sample], 'sample': sample})
-        all_trucks = list(Truck.objects.all())
-        logger.info('REFRESH: %d total trucks in DB', len(all_trucks))
-        refreshed = 0
-        matched_ids = set()
-        errors = []
-        now_ts = timezone.now()
-        for i, item in enumerate(items):
-            if i == 0:
-                logger.info('REFRESH: first item=%s', str(item)[:600])
-            vid_keys = ('registration', 'vehiclePlate', 'plateNumber', 'plate', 'name',
-                        'vehicleId', 'vehicle_id', 'unitNumber', 'unit', 'label')
-            vid = ''
-            for k in vid_keys:
-                v = item.get(k)
-                if v is not None:
-                    vid = str(v).upper()
-                    break
-            if not vid:
-                errors.append(f'Skipped item no ID key, item keys={list(item.keys())[:6]}')
-                continue
-            truck = None
-            for t in all_trucks:
-                if vid == t.plate_number.upper() or vid == t.unit_number.upper():
-                    truck = t
-                    break
-            if not truck:
-                for t in all_trucks:
-                    if t.plate_number.upper() in vid or t.unit_number.upper() in vid or vid in t.plate_number.upper() or vid in t.unit_number.upper():
-                        truck = t
-                        break
-            if not truck:
-                errors.append(f'No match for "{vid}"')
-                continue
-            try:
-                lat = float(item.get('latitude') or item.get('lat') or 0)
-                lng = float(item.get('longitude') or item.get('lng') or 0)
-            except (ValueError, TypeError):
-                errors.append(f'Bad lat/lng for {vid}')
-                continue
-            if lat == 0 and lng == 0:
-                continue
-            spd = item.get('speed', item.get('gpsSpeed'))
-            if spd is not None:
-                try:
-                    spd = float(spd)
-                except (ValueError, TypeError):
-                    spd = None
-            hdg = item.get('heading', item.get('direction'))
-            if hdg is not None:
-                try:
-                    hdg = int(float(hdg))
-                except (ValueError, TypeError):
-                    hdg = None
-            ign = item.get('ignition', item.get('ignitionOn'))
-            if ign is not None:
-                if isinstance(ign, str):
-                    ign = ign.upper() in ('ON', 'TRUE', '1', 'YES')
-                else:
-                    ign = bool(ign)
-            evt_ts = item.get('eventTime') or item.get('gpsTime') or now_ts
-            if isinstance(evt_ts, str):
-                try:
-                    evt_ts = datetime.fromisoformat(evt_ts)
-                    if timezone.is_naive(evt_ts):
-                        evt_ts = timezone.make_aware(evt_ts)
-                except ValueError:
-                    try:
-                        evt_ts = datetime.strptime(evt_ts[:19], '%Y-%m-%d %H:%M:%S')
-                        evt_ts = timezone.make_aware(evt_ts)
-                    except ValueError:
-                        evt_ts = now_ts
-            VehiclePosition.objects.create(
-                truck=truck, provider=VehiclePosition.Provider.CARTRACK,
-                latitude=Decimal(str(lat)), longitude=Decimal(str(lng)),
-                speed_kmh=spd, heading=hdg,
-                recorded_at=evt_ts, ignition_on=ign,
-                extra_data=item,
-            )
-            refreshed += 1
-            matched_ids.add(truck.id)
-            logger.debug('REFRESH: stored pos for truck=%s plate=%s lat=%s lng=%s',
-                         truck.unit_number, truck.plate_number, lat, lng)
-        logger.info('REFRESH: done refreshed=%d errors=%d matched=%d total_trucks=%d',
-                     refreshed, len(errors), len(matched_ids), len(all_trucks))
-        # Clean up stale (0,0) positions
-        stale_count = VehiclePosition.objects.filter(latitude=0, longitude=0).count()
-        if stale_count:
-            VehiclePosition.objects.filter(latitude=0, longitude=0).delete()
-            logger.info('REFRESH: cleaned %d stale (0,0) positions', stale_count)
-        # Ensure every truck has at least one VehiclePosition (default to motorpool)
-        for truck in all_trucks:
-            if truck.id not in matched_ids:
-                has_any = VehiclePosition.objects.filter(truck=truck).exists()
-                if not has_any:
-                    VehiclePosition.objects.create(
-                        truck=truck,
-                        provider=VehiclePosition.Provider.CARTRACK,
-                        latitude=Decimal(str(DEFAULT_MOTORPOOL_LAT)),
-                        longitude=Decimal(str(DEFAULT_MOTORPOOL_LNG)),
-                        speed_kmh=None, heading=None,
-                        recorded_at=timezone.now(), ignition_on=None,
-                        extra_data={'fallback': True, 'note': 'Default position — no GPS data'}
-                    )
-                    logger.warning('REFRESH: created fallback position for %s at motorpool',
-                                   truck.unit_number)
-        resp = {'refreshed': refreshed, 'errors': errors[:20]}
-        if not refreshed and not errors:
-            resp['sample'] = str(items[:2])[:500]
-        elif not refreshed and errors:
-            resp['sample'] = str(items[:1])[:300]
-        return JsonResponse(resp)
-    except Exception as e:
-        tb = traceback.format_exc()
-        logger.error('REFRESH: unhandled exception\n%s', tb)
-        return JsonResponse({'refreshed': 0, 'errors': [f'{type(e).__name__}: {e}', tb[:500]]})

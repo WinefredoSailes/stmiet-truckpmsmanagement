@@ -30,7 +30,6 @@ def sidebar_menu(request):
         fleet.append(_link('Weekly Report', 'fleetops:weekly_report', 'bi-calendar-week'))
         fleet.append(_link('Driver Assignments', 'fleetops:assignment_list', 'bi-people'))
         fleet.append(_link('Compliance & Expiry', 'fleetops:compliance_dashboard', 'bi-shield-check'))
-        fleet.append(_link('Live GPS Tracking', 'fleetops:tracking_map', 'bi-geo-alt'))
     if is_admin:
         fleet.append(_link('Drivers', 'fleetops:driver_list', 'bi-person-badge'))
     sections.append({'heading': 'Fleet', 'items': fleet})
