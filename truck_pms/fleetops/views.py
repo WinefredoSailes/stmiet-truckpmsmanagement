@@ -804,6 +804,7 @@ def refresh_positions_api(request):
         return JsonResponse({'error': 'POST required'}, status=405)
     try:
         import traceback
+        from fleetops.cartrack_import import DEFAULT_MOTORPOOL_LAT, DEFAULT_MOTORPOOL_LNG
         client = CartrackAPIClient()
         r = client.get_positions()
         logger.info('REFRESH: get_positions returned error=%s endpoint=%s empty=%s items=%d',
@@ -911,6 +912,22 @@ def refresh_positions_api(request):
         if stale_count:
             VehiclePosition.objects.filter(latitude=0, longitude=0).delete()
             logger.info('REFRESH: cleaned %d stale (0,0) positions', stale_count)
+        # Ensure every truck has at least one VehiclePosition (default to motorpool)
+        for truck in all_trucks:
+            if truck.id not in matched_ids:
+                has_any = VehiclePosition.objects.filter(truck=truck).exists()
+                if not has_any:
+                    VehiclePosition.objects.create(
+                        truck=truck,
+                        provider=VehiclePosition.Provider.CARTRACK,
+                        latitude=Decimal(str(DEFAULT_MOTORPOOL_LAT)),
+                        longitude=Decimal(str(DEFAULT_MOTORPOOL_LNG)),
+                        speed_kmh=None, heading=None,
+                        recorded_at=timezone.now(), ignition_on=None,
+                        extra_data={'fallback': True, 'note': 'Default position — no GPS data'}
+                    )
+                    logger.warning('REFRESH: created fallback position for %s at motorpool',
+                                   truck.unit_number)
         resp = {'refreshed': refreshed, 'errors': errors[:20]}
         if not refreshed and not errors:
             resp['sample'] = str(items[:2])[:500]

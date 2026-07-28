@@ -40,6 +40,8 @@ KNOWN_GEOFENCES = {
 }
 
 DEFAULT_API_URL = os.environ.get('CARTRACK_API_URL', 'https://fleetapi-ph.cartrack.com/rest')
+DEFAULT_MOTORPOOL_LAT = 8.5450
+DEFAULT_MOTORPOOL_LNG = 123.4314
 
 
 class CartrackAPIClient:
