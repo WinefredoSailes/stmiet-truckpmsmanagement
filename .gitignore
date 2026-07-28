@@ -23,3 +23,6 @@ truck_pms/media/
 # OS
 Thumbs.db
 .DS_Store
+
+# Internal documents
+compensation_review.md
