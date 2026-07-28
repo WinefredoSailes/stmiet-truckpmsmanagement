@@ -114,12 +114,14 @@ class CartrackAPIClient:
         """Fetch geofences from Cartrack API and build a name->(lat,lng) lookup."""
         try:
             resp = requests.get(f'{self.api_url}/geofences', headers=self.headers, timeout=(3, 10))
+            logger.info('geofences: GET /geofences status=%d', resp.status_code)
             if resp.status_code in (403, 404, 422):
                 logger.info('geofences: unavailable HTTP %d', resp.status_code)
                 return {}
             resp.raise_for_status()
             data = resp.json()
             items = data if isinstance(data, list) else data.get('data', [])
+            logger.info('geofences: API returned %d items', len(items))
             geo = {}
             for g in items:
                 name = (g.get('name') or g.get('geofence_name') or '').upper().strip()
@@ -128,9 +130,12 @@ class CartrackAPIClient:
                 if name and lat and lng:
                     try:
                         geo[name] = (float(lat), float(lng))
-                    except (ValueError, TypeError):
+                    except (ValueError, TypeError) as e:
+                        logger.warning('geofences: bad coords for %s: %s=%s %s=%s err=%s', name, lat, lng, e)
                         continue
-            logger.info('geofences: fetched %d from Cartrack API', len(geo))
+                elif name:
+                    logger.debug('geofences: %s has no lat/lng fields in %s', name, list(g.keys())[:10])
+            logger.info('geofences: built lookup with %d entries', len(geo))
             return geo
         except Exception as e:
             logger.warning('geofences: fetch failed %s', e)
@@ -138,6 +143,7 @@ class CartrackAPIClient:
 
     def _resolve_location(self, trip):
         """Get (lat, lng) from trip data using geofences, hardcoded keys, or Nominatim."""
+        vid = _vehicle_id(trip)
         # 1. Try direct lat/lng fields in trip data
         for lat_key, lng_key in [
             ('endLatitude', 'endLongitude'), ('end_latitude', 'end_longitude'),
@@ -151,40 +157,54 @@ class CartrackAPIClient:
                     fl = float(lat)
                     fn = float(lng)
                     if fl != 0 or fn != 0:
+                        logger.debug('resolve %s: direct lat/lng from %s -> %s,%s', vid, lat_key, fl, fn)
                         return fl, fn
-                except (ValueError, TypeError):
+                except (ValueError, TypeError) as e:
+                    logger.warning('resolve %s: bad %s=%s %s', vid, lat_key, lat, e)
                     continue
 
         # 2. Try Cartrack geofences API (lazy-fetched and cached)
         if not hasattr(self, '_geofence_cache'):
             self._geofence_cache = self._fetch_geofences()
+            logger.debug('resolve %s: geofence cache has %d entries', vid, len(self._geofence_cache))
         for name_key in ('end_geofence_name', 'start_geofence_name', 'geofence_name'):
             gname = (trip.get(name_key) or '').upper().strip()
             if gname and gname in self._geofence_cache:
-                logger.info('resolve: geofence match %s -> %s', gname, self._geofence_cache[gname])
-                return self._geofence_cache[gname]
+                coord = self._geofence_cache[gname]
+                logger.info('resolve %s: geofence match %s=%s -> %s,%s', vid, name_key, gname, *coord)
+                return coord
+            elif gname:
+                logger.debug('resolve %s: geofence %s not in cache (key=%s)', vid, gname, name_key)
 
         # 3. Try hardcoded KNOWN_GEOFENCES
         addr = (trip.get('end_location') or trip.get('start_location') or '').upper()
+        logger.debug('resolve %s: trying hardcoded for addr=%s', vid, addr[:80])
         for keyword, coord in KNOWN_GEOFENCES.items():
             if keyword in addr:
-                logger.info('resolve: hardcoded match %s -> %s', keyword, coord)
+                logger.info('resolve %s: hardcoded match "%s" -> %s,%s', vid, keyword, *coord)
                 return coord
 
         # 4. Try address parts against hardcoded keys
         parts = [p.strip().upper() for p in addr.split(',')]
         for p in parts:
             if p in KNOWN_GEOFENCES:
-                logger.info('resolve: hardcoded part %s -> %s', p, KNOWN_GEOFENCES[p])
-                return KNOWN_GEOFENCES[p]
+                coord = KNOWN_GEOFENCES[p]
+                logger.info('resolve %s: hardcoded part match "%s" -> %s,%s', vid, p, *coord)
+                return coord
+            logger.debug('resolve %s: hardcoded no match for part "%s"', vid, p)
 
         # 5. Last resort: Nominatim with rate limiting
         loc_text = trip.get('end_location') or trip.get('start_location') or ''
         if loc_text:
-            time.sleep(1.1)  # Respect Nominatim's 1 req/sec rate limit
+            logger.info('resolve %s: trying Nominatim for "%s"', vid, loc_text[:60])
+            time.sleep(1.1)
             result = self._geocode_nominatim(loc_text)
             if result != (None, None):
+                logger.info('resolve %s: Nominatim OK -> %s,%s', vid, *result)
                 return result
+            logger.warning('resolve %s: Nominatim failed for "%s"', vid, loc_text[:60])
+        else:
+            logger.warning('resolve %s: no location text available in trip', vid)
 
         return None, None
 
@@ -204,12 +224,14 @@ class CartrackAPIClient:
             self._geo_cache = {}
         for q in queries:
             try:
+                logger.debug('geocode: trying Nominatim query="%s"', q[:60])
                 resp = requests.get('https://nominatim.openstreetmap.org/search',
                                     params={'q': q, 'format': 'json', 'limit': 1},
                                     headers={'User-Agent': 'TruckPMS/1.0 (fleetmanagement@truckpms.com)'},
                                     timeout=10)
+                logger.debug('geocode: Nominatim status=%d for "%s"', resp.status_code, q[:40])
                 if resp.status_code == 429:
-                    logger.warning('geocode: Nominatim 429, waiting 3s...')
+                    logger.warning('geocode: Nominatim 429 on "%s", sleeping 3s', q[:40])
                     time.sleep(3)
                     continue
                 if resp.status_code != 200:
@@ -220,9 +242,12 @@ class CartrackAPIClient:
                     lng = float(data[0]['lon'])
                     ck = 'geo_' + hashlib.md5(q.encode()).hexdigest()
                     self._geo_cache[ck] = (lat, lng)
+                    logger.info('geocode: Nominatim OK "%s" -> %.7f,%.7f', q[:40], lat, lng)
                     return lat, lng
+                logger.debug('geocode: no results for "%s"', q[:40])
             except Exception as e:
-                logger.warning('geocode: exception %s', e)
+                logger.warning('geocode: exception for "%s": %s', q[:40], e)
+        logger.warning('geocode: all %d queries exhausted for "%s"', len(queries), address[:60])
         return None, None
 
     def get_positions(self):

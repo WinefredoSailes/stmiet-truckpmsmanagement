@@ -153,8 +153,8 @@ class VehiclePosition(models.Model):
         'trucks.Truck', on_delete=models.CASCADE, related_name='positions'
     )
     provider = models.CharField(max_length=10, choices=Provider.choices)
-    latitude = models.DecimalField(max_digits=9, decimal_places=6)
-    longitude = models.DecimalField(max_digits=9, decimal_places=6)
+    latitude = models.DecimalField(max_digits=13, decimal_places=10)
+    longitude = models.DecimalField(max_digits=13, decimal_places=10)
     speed_kmh = models.DecimalField(max_digits=6, decimal_places=1, null=True, blank=True)
     heading = models.IntegerField(null=True, blank=True,
                                   validators=[MinValueValidator(0), MaxValueValidator(359)])

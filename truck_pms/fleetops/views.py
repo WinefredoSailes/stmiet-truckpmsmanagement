@@ -15,6 +15,7 @@ from .models import Driver, DriverAssignment, DailyLog, VehiclePosition
 from .cartrack_import import import_cartrack_data, CartrackAPIClient
 from .tracksolid_import import import_tracksolid_data
 from datetime import date, timedelta, datetime
+from decimal import Decimal
 
 
 def _staff_or_above(user):
@@ -714,15 +715,17 @@ def compliance_dashboard(request):
 
 @login_required
 def latest_positions_api(request):
-    trucks = Truck.objects.filter(status='ACTIVE')
+    trucks = Truck.objects.all()
     positions = []
     for truck in trucks:
+        is_active = truck.status == 'ACTIVE'
         vp = VehiclePosition.objects.filter(truck=truck).order_by('-recorded_at').first()
         if vp is None:
             positions.append({
                 'truck_id': truck.id,
                 'unit_number': truck.unit_number,
                 'plate_number': truck.plate_number,
+                'is_active': is_active,
                 'latitude': None,
                 'longitude': None,
                 'speed_kmh': None,
@@ -736,6 +739,7 @@ def latest_positions_api(request):
             'truck_id': truck.id,
             'unit_number': truck.unit_number,
             'plate_number': truck.plate_number,
+            'is_active': is_active,
             'latitude': float(vp.latitude),
             'longitude': float(vp.longitude),
             'speed_kmh': float(vp.speed_kmh) if vp.speed_kmh is not None else None,
@@ -744,6 +748,9 @@ def latest_positions_api(request):
             'provider': vp.provider,
             'ignition_on': vp.ignition_on,
         })
+        logger.debug('latest_positions: truck=%s lat=%s lng=%s active=%s',
+                     truck.unit_number, vp.latitude, vp.longitude, is_active)
+    logger.info('latest_positions: returned %d trucks', len(positions))
     return JsonResponse({'positions': positions})
 
 
@@ -787,13 +794,17 @@ def refresh_positions_api(request):
         logger.info('REFRESH: get_positions returned error=%s endpoint=%s empty=%s items=%d',
                     r.get('error'), r.get('endpoint'), r.get('empty'), len(r.get('data', [])))
         if r['error']:
+            logger.warning('REFRESH: get_positions error=%s', r['error'])
             return JsonResponse({'refreshed': 0, 'errors': [r['error']], 'sample': r.get('sample', '')[:300]})
         items = r['data']
         if not items:
             sample = r.get('sample', '')[:500]
+            logger.warning('REFRESH: empty data from endpoint=%s', r.get('endpoint'))
             return JsonResponse({'refreshed': 0, 'errors': [f'Empty from {r.get("endpoint", "?")}', 'sample: ' + sample], 'sample': sample})
-        active_trucks = list(Truck.objects.filter(status='ACTIVE'))
+        all_trucks = list(Truck.objects.all())
+        logger.info('REFRESH: %d total trucks in DB', len(all_trucks))
         refreshed = 0
+        matched_ids = set()
         errors = []
         now_ts = timezone.now()
         for i, item in enumerate(items):
@@ -811,12 +822,12 @@ def refresh_positions_api(request):
                 errors.append(f'Skipped item no ID key, item keys={list(item.keys())[:6]}')
                 continue
             truck = None
-            for t in active_trucks:
+            for t in all_trucks:
                 if vid == t.plate_number.upper() or vid == t.unit_number.upper():
                     truck = t
                     break
             if not truck:
-                for t in active_trucks:
+                for t in all_trucks:
                     if t.plate_number.upper() in vid or t.unit_number.upper() in vid or vid in t.plate_number.upper() or vid in t.unit_number.upper():
                         truck = t
                         break
@@ -863,21 +874,22 @@ def refresh_positions_api(request):
                         evt_ts = now_ts
             VehiclePosition.objects.create(
                 truck=truck, provider=VehiclePosition.Provider.CARTRACK,
-                latitude=lat, longitude=lng,
-
+                latitude=Decimal(str(lat)), longitude=Decimal(str(lng)),
                 speed_kmh=spd, heading=hdg,
                 recorded_at=evt_ts, ignition_on=ign,
                 extra_data=item,
             )
             refreshed += 1
-        # Clean up stale positions (lat=0,lng=0 from old address-only fallback)
-        stale = VehiclePosition.objects.filter(latitude=0, longitude=0).delete()
-        logger.info('REFRESH: done refreshed=%d errors=%d stale_deleted=%s', refreshed, len(errors), stale)
-        # Log current latest positions per truck for debugging
-        for truck in active_trucks:
-            vp = VehiclePosition.objects.filter(truck=truck).order_by('-recorded_at').first()
-            if vp:
-                logger.info('REFRESH: pos %s lat=%s lng=%s prov=%s', truck.unit_number, vp.latitude, vp.longitude, vp.provider)
+            matched_ids.add(truck.id)
+            logger.debug('REFRESH: stored pos for truck=%s plate=%s lat=%s lng=%s',
+                         truck.unit_number, truck.plate_number, lat, lng)
+        logger.info('REFRESH: done refreshed=%d errors=%d matched=%d total_trucks=%d',
+                     refreshed, len(errors), len(matched_ids), len(all_trucks))
+        # Clean up stale (0,0) positions
+        stale_count = VehiclePosition.objects.filter(latitude=0, longitude=0).count()
+        if stale_count:
+            VehiclePosition.objects.filter(latitude=0, longitude=0).delete()
+            logger.info('REFRESH: cleaned %d stale (0,0) positions', stale_count)
         resp = {'refreshed': refreshed, 'errors': errors[:20]}
         if not refreshed and not errors:
             resp['sample'] = str(items[:2])[:500]

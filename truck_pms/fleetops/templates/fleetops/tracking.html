@@ -89,14 +89,16 @@ function displayPositions(data) {
     data.positions.forEach(p => {
         seen.add(p.truck_id);
     const hasPos = p.latitude != null && p.longitude != null;
+    const isActive = p.is_active !== false;
     const provider = p.provider || 'NONE';
-    const icon = hasPos ? (ICONS[provider] || ICONS.NONE) : ICONS.NONE;
+    const icon = hasPos ? (isActive ? (ICONS[provider] || ICONS.NONE) : ICONS.NONE) : ICONS.NONE;
     const label = `${p.unit_number} (${p.plate_number})`;
     const ts = p.recorded_at ? new Date(p.recorded_at).toLocaleString() : '—';
     const speed = p.speed_kmh != null ? `${p.speed_kmh} km/h` : '—';
     const ign = p.ignition_on === true ? 'ON' : p.ignition_on === false ? 'OFF' : '—';
+    const activeBadge = isActive ? '' : '<span class="badge bg-secondary">Inactive</span>';
     const popupHtml = `
-        <h6>${label}</h6>
+        <h6>${label} ${activeBadge}</h6>
         <small>
             Provider: ${provider}<br>
             ${hasPos ? 'Speed: ' + speed + '<br>' : ''}
@@ -107,7 +109,7 @@ function displayPositions(data) {
             </button>
         </small>
     `;
-    const tooltipHtml = `${p.unit_number} (${p.plate_number})`;
+    const tooltipHtml = (isActive ? '' : '⚠ ') + `${p.unit_number} (${p.plate_number})`;
 
         if (markers[p.truck_id]) {
             if (hasPos) {
