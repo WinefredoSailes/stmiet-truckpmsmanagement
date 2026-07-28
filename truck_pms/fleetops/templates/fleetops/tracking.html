@@ -37,8 +37,16 @@ Live GPS Tracking
     <div id="error-detail" class="text-danger small mt-1" style="display:none"></div>
     <span class="badge bg-light text-muted ms-2" id="last-update">—</span>
   </div>
-  <div>
-    <button class="btn btn-sm btn-outline-secondary me-1" onclick="clearRoute('all')">
+  <div class="d-flex flex-wrap align-items-center gap-2">
+    <input type="date" id="trailDate" class="form-control form-control-sm" style="width:140px">
+    <button class="btn btn-sm btn-outline-info" onclick="loadAllTrails()">
+      <i class="bi bi-map"></i> Load Trails
+    </button>
+    <select id="trailTruckFilter" class="form-select form-select-sm" style="width:auto;max-width:160px">
+      <option value="all">All trucks</option>
+    </select>
+    <span class="text-muted small" id="trailStatus"></span>
+    <button class="btn btn-sm btn-outline-secondary" onclick="clearRoute('all')">
       <i class="bi bi-x-circle"></i> Clear Trails
     </button>
     <button class="btn btn-sm btn-outline-primary" onclick="refreshPositions()">
@@ -74,16 +82,32 @@ let markers = {};
 let historyLines = {};
 let historyMarkers = {};
 
+function makeIconSvg(color) {
+    return `<svg viewBox="0 0 24 36" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 1C5.4 1 0 6.4 0 13c0 9 12 22 12 22s12-13 12-22C24 6.4 18.6 1 12 1z" fill="${color}" stroke="#fff" stroke-width="2"/>
+        <circle cx="12" cy="13" r="3.5" fill="#fff"/>
+    </svg>`;
+}
+
 function makeIcon(color) {
-    return L.divIcon({
-        html: `<svg viewBox="0 0 24 36" width="24" height="36" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 1C5.4 1 0 6.4 0 13c0 9 12 22 12 22s12-13 12-22C24 6.4 18.6 1 12 1z" fill="${color}" stroke="white" stroke-width="2"/>
-            <circle cx="12" cy="13" r="3.5" fill="white"/>
-        </svg>`,
+    return L.icon({
+        iconUrl: 'data:image/svg+xml,' + encodeURIComponent(makeIconSvg(color)),
         iconSize: [24, 36],
         iconAnchor: [12, 35],
         popupAnchor: [0, -36],
-        className: '',
+    });
+}
+
+function makeNoPosIcon() {
+    const svg = `<svg viewBox="0 0 24 36" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 1C5.4 1 0 6.4 0 13c0 9 12 22 12 22s12-13 12-22C24 6.4 18.6 1 12 1z" fill="#adb5bd" stroke="#fff" stroke-width="2" opacity="0.5"/>
+        <text x="12" y="17" text-anchor="middle" fill="#fff" font-size="14" font-weight="bold">?</text>
+    </svg>`;
+    return L.icon({
+        iconUrl: 'data:image/svg+xml,' + encodeURIComponent(svg),
+        iconSize: [24, 36],
+        iconAnchor: [12, 35],
+        popupAnchor: [0, -36],
     });
 }
 
@@ -93,28 +117,97 @@ const ICONS = {
     NONE: makeIcon('#6c757d'),
 };
 
+const ICON_NO_POS = makeNoPosIcon();
+
+function populateTruckFilter(positions) {
+    const sel = document.getElementById('trailTruckFilter');
+    const current = sel.value;
+    // Keep "All trucks" first, then add unique trucks
+    const existing = new Set();
+    sel.querySelectorAll('option[data-id]').forEach(o => existing.add(o.value));
+    positions.forEach(p => {
+        if (!existing.has(String(p.truck_id))) {
+            const opt = document.createElement('option');
+            opt.value = p.truck_id;
+            opt.setAttribute('data-id', '1');
+            opt.textContent = p.unit_number + ' (' + p.plate_number + ')';
+            sel.appendChild(opt);
+            existing.add(String(p.truck_id));
+        }
+    });
+    sel.value = current;
+}
+
+const TRAIL_COLORS = ['#0d6efd','#dc3545','#198754','#ffc107','#6f42c1','#fd7e14','#20c997','#0dcaf0','#e83e8c'];
+
+function loadAllTrails() {
+    const dateInput = document.getElementById('trailDate');
+    const dateStr = dateInput.value || new Date().toISOString().slice(0, 10);
+    dateInput.value = dateStr;
+    const statusEl = document.getElementById('trailStatus');
+    statusEl.textContent = 'Loading...';
+    // Clear existing trails
+    clearRoute('all');
+    const truckIds = Object.keys(markers);
+    if (truckIds.length === 0) { statusEl.textContent = 'No trucks loaded.'; return; }
+    const fetchAll = truckIds.map((id, idx) => {
+        const color = TRAIL_COLORS[idx % TRAIL_COLORS.length];
+        return fetch('/fleetops/api/positions/history/' + id + '/?date=' + dateStr)
+            .then(r => r.json())
+            .then(data => {
+                const pts = (data.points || data).filter(p => p.latitude != null && p.longitude != null);
+                if (pts.length === 0) return null;
+                const latlngs = pts.map(p => [p.latitude, p.longitude]);
+                historyLines[id] = L.polyline(latlngs, {color, weight: 3, opacity: 0.7}).addTo(map);
+                const sm = L.circleMarker(latlngs[0], {color, radius: 6, fillColor: color, fillOpacity: 1, weight: 2})
+                    .addTo(map).bindPopup('<b>Truck ' + id + '</b><br>Start');
+                const em = L.circleMarker(latlngs[latlngs.length-1], {color, radius: 6, fillColor: '#fff', fillOpacity: 1, weight: 2})
+                    .addTo(map).bindPopup('<b>Truck ' + id + '</b><br>End');
+                historyMarkers[id] = [sm, em];
+                return latlngs;
+            });
+    });
+    Promise.all(fetchAll).then(results => {
+        const allBounds = [];
+        results.forEach(r => { if (r) allBounds.push(...r); });
+        if (allBounds.length > 0) {
+            map.fitBounds(allBounds, {padding: [40, 40]});
+            statusEl.textContent = '';
+        } else {
+            statusEl.textContent = 'No route data for ' + dateStr;
+        }
+    }).catch(err => {
+        statusEl.textContent = 'Trail error';
+        console.error(err);
+    });
+}
+
+document.getElementById('trailDate').value = new Date().toISOString().slice(0, 10);
+document.getElementById('trailTruckFilter').addEventListener('change', function() {
+    const val = this.value;
+    Object.keys(historyLines).forEach(id => {
+        const visible = val === 'all' || id === val;
+        if (historyLines[id]) {
+            if (visible) map.addLayer(historyLines[id]);
+            else map.removeLayer(historyLines[id]);
+        }
+        if (historyMarkers[id]) {
+            historyMarkers[id].forEach(m => {
+                if (visible) map.addLayer(m);
+                else map.removeLayer(m);
+            });
+        }
+    });
+});
+
 function fetchLatest() {
     return fetch(POSITIONS_URL).then(r => r.json());
 }
 
-function makeNoPosIcon() {
-    return L.divIcon({
-        html: `<svg viewBox="0 0 24 36" width="20" height="30" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 1C5.4 1 0 6.4 0 13c0 9 12 22 12 22s12-13 12-22C24 6.4 18.6 1 12 1z" fill="#adb5bd" stroke="white" stroke-width="2" opacity="0.5"/>
-            <text x="12" y="16" text-anchor="middle" fill="white" font-size="12" font-weight="bold">?</text>
-        </svg>`,
-        iconSize: [20, 30],
-        iconAnchor: [10, 29],
-        popupAnchor: [0, -30],
-        className: '',
-    });
-}
-
-const ICON_NO_POS = makeNoPosIcon();
-
 function displayPositions(data) {
     const seen = new Set();
     const bounds = [];
+    populateTruckFilter(data.positions);
     data.positions.forEach(p => {
         seen.add(p.truck_id);
     const hasPos = p.latitude != null && p.longitude != null;
