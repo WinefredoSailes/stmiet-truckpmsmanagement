@@ -808,6 +808,12 @@ def refresh_positions_api(request):
         r = client.get_positions()
         logger.info('REFRESH: get_positions returned error=%s endpoint=%s empty=%s items=%d',
                     r.get('error'), r.get('endpoint'), r.get('empty'), len(r.get('data', [])))
+        if r.get('data'):
+            logger.info('REFRESH: first item keys=%s', list(r['data'][0].keys())[:20])
+            if 'latitude' in r['data'][0] or 'lat' in r['data'][0]:
+                logger.info('REFRESH: first item lat=%s lng=%s',
+                            r['data'][0].get('latitude') or r['data'][0].get('lat'),
+                            r['data'][0].get('longitude') or r['data'][0].get('lng'))
         if r['error']:
             logger.warning('REFRESH: get_positions error=%s', r['error'])
             return JsonResponse({'refreshed': 0, 'errors': [r['error']], 'sample': r.get('sample', '')[:300]})

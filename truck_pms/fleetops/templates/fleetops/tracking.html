@@ -97,6 +97,21 @@ function fetchLatest() {
     return fetch(POSITIONS_URL).then(r => r.json());
 }
 
+function makeNoPosIcon() {
+    return L.divIcon({
+        html: `<svg viewBox="0 0 24 36" width="20" height="30" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 1C5.4 1 0 6.4 0 13c0 9 12 22 12 22s12-13 12-22C24 6.4 18.6 1 12 1z" fill="#adb5bd" stroke="white" stroke-width="2" opacity="0.5"/>
+            <text x="12" y="16" text-anchor="middle" fill="white" font-size="12" font-weight="bold">?</text>
+        </svg>`,
+        iconSize: [20, 30],
+        iconAnchor: [10, 29],
+        popupAnchor: [0, -30],
+        className: '',
+    });
+}
+
+const ICON_NO_POS = makeNoPosIcon();
+
 function displayPositions(data) {
     const seen = new Set();
     const bounds = [];
@@ -105,35 +120,40 @@ function displayPositions(data) {
     const hasPos = p.latitude != null && p.longitude != null;
     const isActive = p.is_active !== false;
     const provider = p.provider || 'NONE';
-    const icon = hasPos ? (isActive ? (ICONS[provider] || ICONS.NONE) : ICONS.NONE) : ICONS.NONE;
+    const noPosText = hasPos ? '' : ' <span class="badge bg-secondary">No position</span>';
+    const activeBadge = isActive ? '' : '<span class="badge bg-secondary">Inactive</span>';
     const label = `${p.unit_number} (${p.plate_number})`;
     const ts = p.recorded_at ? new Date(p.recorded_at).toLocaleString() : '—';
     const speed = p.speed_kmh != null ? `${p.speed_kmh} km/h` : '—';
     const ign = p.ignition_on === true ? 'ON' : p.ignition_on === false ? 'OFF' : '—';
-    const activeBadge = isActive ? '' : '<span class="badge bg-secondary">Inactive</span>';
     const popupHtml = `
-        <h6>${label} ${activeBadge}</h6>
+        <h6>${label} ${activeBadge}${noPosText}</h6>
         <small>
             Provider: ${provider}<br>
+            Status: ${isActive ? 'Active' : 'Inactive'}<br>
             ${hasPos ? 'Speed: ' + speed + '<br>' : ''}
-            Ignition: ${ign}<br>
-            Updated: ${ts}<br>
+            ${hasPos ? 'Ignition: ' + ign + '<br>' : ''}
+            ${hasPos ? 'Updated: ' + ts + '<br>' : ''}
             <button class="btn btn-sm btn-outline-primary mt-1" onclick="showRoute(${p.truck_id}, '${p.plate_number}')">
                 <i class="bi bi-map"></i> Show Route
             </button>
         </small>
     `;
-    const tooltipHtml = (isActive ? '' : '⚠ ') + `${p.unit_number} (${p.plate_number})`;
+    const tooltipHtml = (isActive ? '' : '⚠ ') + `${p.unit_number} (${p.plate_number})` + (hasPos ? '' : ' (no pos)');
 
         if (markers[p.truck_id]) {
             if (hasPos) {
                 markers[p.truck_id].setLatLng([p.latitude, p.longitude]);
+                markers[p.truck_id].setIcon(isActive ? (ICONS[provider] || ICONS.NONE) : ICONS.NONE);
+            } else {
+                markers[p.truck_id].setIcon(ICON_NO_POS);
             }
-            markers[p.truck_id].setIcon(icon);
             markers[p.truck_id].bindPopup(popupHtml);
             markers[p.truck_id].bindTooltip(tooltipHtml);
-        } else if (hasPos) {
-            const m = L.marker([p.latitude, p.longitude], {icon})
+        } else {
+            const latlng = hasPos ? [p.latitude, p.longitude] : map.getCenter();
+            const icon = hasPos ? (isActive ? (ICONS[provider] || ICONS.NONE) : ICONS.NONE) : ICON_NO_POS;
+            const m = L.marker(latlng, {icon})
                 .bindPopup(popupHtml)
                 .bindTooltip(tooltipHtml);
             markerCluster.addLayer(m);
@@ -145,7 +165,7 @@ function displayPositions(data) {
     });
     Object.keys(markers).forEach(id => {
         if (!seen.has(Number(id))) {
-            markers[id].setIcon(ICONS.NONE);
+            markers[id].setIcon(ICON_NO_POS);
         }
     });
     if (bounds.length > 0) {

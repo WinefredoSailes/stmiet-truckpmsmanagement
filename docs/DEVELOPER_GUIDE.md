@@ -126,20 +126,40 @@ TRUCK-PMS-SERVICING-SYSTEM/
     ├── core/                    # Shared infrastructure
     │   ├── context_processors.py # Sidebar menu builder (role-aware)
     │   ├── middleware.py         # Request timing middleware
-    │   ├── static/
-    │   │   ├── css/style.css    # Custom stylesheet (14KB)
-    │   │   └── js/app.js        # Sidebar toggle, page loader, mobile menu
     │   └── templates/core/
     │       ├── base.html        # Base template (Bootstrap 5.3, sidebar, topbar)
     │       └── pagination.html
     │
-    └── static/                  # Project-level static assets
-        ├── favicon-truck-pms.png
-        ├── stmiet-trans-logo.png
-        ├── stpc-trans-logo.png
-        └── sop/
-            ├── en.html          # Generated SOP (English)
-            └── tl.html          # Generated SOP (Tagalog)
+    ├── fleetops/                # Fleet operations — Cartrack/TrackSolid imports, GPS
+    │   ├── models.py            # DailyLog, VehiclePosition, Driver, DriverAssignment
+    │   ├── views.py             # Daily log, fleet perf, weekly report, tracking, compliance
+    │   ├── cartrack_import.py   # Cartrack API client + import pipeline
+    │   ├── tracksolid_import.py # TrackSolid API client (blocked by server NPE)
+    │   ├── management/commands/
+    │   │   ├── import_cartrack.py
+    │   │   └── import_tracksolid.py
+    │   ├── tests.py             # 52 tests (models, GPS API, tracking, imports)
+    │   └── templates/fleetops/
+    │       ├── daily_log.html, fleet_performance.html, weekly_report.html
+    │       ├── compliance_dashboard.html, tracking.html
+    │       └── driver_*.html, assignment_*.html
+    │
+    ├── static/                  # Unified project-level static assets (single source)
+    │   ├── css/
+    │   │   └── style.css       # Custom stylesheet (CSS variables, ~14KB)
+    │   ├── js/
+    │   │   └── app.js          # Sidebar toggle, page loader, mobile menu
+    │   ├── img/
+    │   │   ├── favicon-truck-pms.png
+    │   │   ├── stmiet-trans-logo.png
+    │   │   └── stpc-trans-logo.png
+    │   └── sop/
+    │       ├── en.html         # Generated SOP (English)
+    │       └── tl.html         # Generated SOP (Tagalog)
+    │
+    ├── media/                   # User-uploaded files (gitignored)
+    ├── staticfiles/             # collectstatic output — auto-generated, DO NOT EDIT
+    └── venv/                    # Local virtual environment (gitignored)
 ```
 
 ---
@@ -153,8 +173,11 @@ TRUCK-PMS-SERVICING-SYSTEM/
 | **Frontend** | Django Templates + Bootstrap 5.3 + Bootstrap Icons |
 | **Font** | Inter (Google Fonts) |
 | **CSS** | Custom single stylesheet (`style.css`, ~14KB) + Bootstrap utilities |
-| **JS** | Custom `app.js` (~40 lines) + Bootstrap JS bundle (CDN) |
-| **Static** | WhiteNoise (production) |
+| **JS** | Custom `app.js` + Bootstrap JS bundle (CDN) |
+| **Mapping** | Leaflet 1.9 + Leaflet.markercluster 1.5 (CDN) |
+| **GPS APIs** | Cartrack Fleet API (Basic Auth), TrackSolid Pro (MD5 signing) |
+| **Geocoding** | Nominatim (OpenStreetMap) — rate-limited 1 req/s |
+| **Static** | WhiteNoise (production), single source dir `static/` |
 | **Server** | Gunicorn |
 | **PDF** | WeasyPrint (optional — HTML print fallback) |
 
@@ -233,32 +256,63 @@ accounts ───> (provides User model to all apps)
     ├──> trucks ──> pms
     │                   │
     │                   ▼
-    └──> joborders ──> service_log
+    ├──> joborders ──> service_log
     │       │
     │       ▼
+    ├──> fleetops     (GPS, Cartrack/TrackSolid imports, daily logs, performance)
     ├──> contractors
     ├──> kpi
     ├──> training
     ├──> sop
-    └──> core (base template, context, middleware)
+    └──> core          (base template, context processor, middleware)
 ```
 
 ### Key Model Relationships
 
 ```
+          ┌──────────────┐
+          │   Truck      │  (trucks app)
+          │  current_    │
+          │  mileage_km  │
+          │  current_    │
+          │  engine_hours│
+          └──────┬───────┘
+                 │
+     ┌───────────┴───────────┐
+     ▼                       ▼
+┌────────────┐        ┌──────────────┐
+│ PMSchedule │        │  DailyLog    │ (fleetops)
+│ (pms app)  │        │  mileage_km  │
+│ .status()  │        │  engine_hours│
+│ reads live │        │  fuel, dist, │
+│ mileage/   │        │  idle, op,   │
+│ hours from │        │  harsh events│
+│ Truck      │        └──────┬───────┘
+└────────────┘               │
+                             │ Cartrack/TrackSolid API
+                             ▼
+                      ┌──────────────┐
+                      │ VehiclePosi- │ (fleetops)
+                      │ tion         │
+                      │ lat/lng,     │
+                      │ speed,       │
+                      │ heading,     │
+                      │ recorded_at  │
+                      └──────────────┘
+
 TaskCategory (23 categories)
     └── TaskTemplate (154 templates)
-            └── PMSchedule (per-truck schedules, ~154 per truck)
+            └── PMSchedule (per-truck, ~154 per truck)
                     │
-                    ├── Truck (fleet asset model)
+                    ├── Truck
                     │
-                    └── JobOrder (optional — PM schedules can be completed directly)
+                    └── JobOrder (PM completed directly or via JO)
                             │
-                            ├── JobOrderLineItem (scope-of-work items)
-                            │       └── LineItemPart (parts used)
+                            ├── JobOrderLineItem
+                            │       └── LineItemPart
                             │
-                            └── ServiceLogEntry (audit record)
-                                    └── ServiceLogPart (parts breakdown)
+                            └── ServiceLogEntry
+                                    └── ServiceLogPart
 ```
 
 ---
@@ -503,26 +557,45 @@ Attendance is holiday-aware — holidays don't count as missed days.
 ### Organization
 
 ```
-core/static/
+static/                          # Single source directory (STATICFILES_DIRS)
 ├── css/
-│   └── style.css          # All custom CSS (~14KB, CSS variables)
-└── js/
-    └── app.js             # Sidebar, loader, mobile menu (~40 lines)
-
-static/                     # Project-level static assets
-├── favicon-truck-pms.png   # Browser tab icon
-├── stmiet-trans-logo.png   # Company logo
-├── stpc-trans-logo.png     # Partner logo
+│   └── style.css               # All custom CSS (~14KB, CSS variables)
+├── js/
+│   └── app.js                  # Sidebar toggle, page loader, mobile menu
+├── img/
+│   ├── favicon-truck-pms.png   # Browser tab icon
+│   ├── stmiet-trans-logo.png   # Company logo
+│   └── stpc-trans-logo.png     # Partner logo
 └── sop/
-    ├── en.html             # Generated SOP English
-    └── tl.html             # Generated SOP Tagalog
+    ├── en.html                 # Generated SOP English
+    └── tl.html                 # Generated SOP Tagalog
+
+staticfiles/                     # collectstatic output — auto-generated, NOT source
+media/                           # User-uploaded files (dev only; gitignored)
 ```
 
-### CDN Dependencies
+### Per-App Static Files
 
-- Bootstrap 5.3 CSS + JS
-- Bootstrap Icons 1.11.3
-- Google Fonts (Inter)
+Individual apps (like `fleetops/templates/fleetops/`) may reference page-specific CSS/JS via `{% block extra_head %}` / `{% block extra_scripts %}`. Example — `tracking.html` loads Leaflet + markercluster via CDN in `extra_head` and `extra_scripts`.
+
+### Settings
+
+```python
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [BASE_DIR / 'static']          # single source
+STATIC_ROOT = BASE_DIR / 'staticfiles'            # collectstatic output
+```
+
+### CDN Dependencies (loaded in `core/templates/core/base.html`)
+
+- Bootstrap 5.3 CSS + JS (jsDelivr)
+- Bootstrap Icons 1.11.3 (jsDelivr)
+- Google Fonts (Inter 400,500,600,700)
+
+### CDN Dependencies (page-specific)
+
+- **Leaflet 1.9.4** + **Leaflet.markercluster 1.5.3** — Live GPS Tracking (`tracking.html`)
+- All loaded via `{% block extra_head %}` / `{% block extra_scripts %}`
 
 ### Conventions
 
@@ -530,6 +603,17 @@ static/                     # Project-level static assets
 - All JavaScript is intentionally kept minimal — no framework beyond Bootstrap
 - Templates use BEM-like class naming with Bootstrap utility classes
 - Sidebar is fully responsive (collapsible on desktop, drawer on mobile)
+- Page-specific JS/CSS always goes in `{% block extra_head %}` / `{% block extra_scripts %}`, never in the base template
+- App-level static directories (`app/static/app/`) are NOT used; all shared assets are in `static/`
+
+### Collecting Static Files for Production
+
+```bash
+cd truck_pms
+python manage.py collectstatic --noinput
+```
+
+This copies everything from `static/` (plus Django admin assets) into `staticfiles/` for WhiteNoise to serve.
 
 ---
 
@@ -537,7 +621,8 @@ static/                     # Project-level static assets
 
 ### Test Suite
 
-- **88 tests total** in two files:
+- **140+ tests total** across three files:
+  - `fleetops/tests.py` — 52 tests (model, GPS API, tracking views, Cartrack/TrackSolid imports)
   - `joborders/tests.py` — model tests + view tests + E2E tests
   - `training/tests.py` — model tests
 
@@ -546,7 +631,7 @@ static/                     # Project-level static assets
 ```bash
 cd truck_pms
 $env:DJANGO_SECRET_KEY='test-key'
-python manage.py test joborders.tests training.tests
+python manage.py test fleetops.tests joborders.tests training.tests
 ```
 
 ### Test Coverage Areas

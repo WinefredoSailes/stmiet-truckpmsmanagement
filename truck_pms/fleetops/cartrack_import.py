@@ -252,7 +252,9 @@ class CartrackAPIClient:
 
     def get_positions(self):
         """Fetch current positions. Tries dedicated endpoint, falls back to trips + _resolve_location."""
-        for ep in ['position', 'positions', 'vehicles/position']:
+        for ep in ['position', 'positions', 'vehicles/position',
+                   'live/position', 'reports/vehicle-status', 'api/position',
+                   'v1/position', 'v1/positions', 'tracking']:
             try:
                 resp = requests.get(f'{self.api_url}/{ep}', headers=self.headers, timeout=(3, 10))
                 logger.info('get_positions: %s status=%d', ep, resp.status_code)
