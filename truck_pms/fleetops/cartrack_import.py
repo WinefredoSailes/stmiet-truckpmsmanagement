@@ -467,13 +467,17 @@ def import_cartrack_data(import_date=None, import_date_end=None, days_back=1, ap
             trip_data = _aggregate_trips(matched_trips)
 
             # Save VehiclePosition records from individual trip endpoints
-            if not dry_run and matched_trips:
+            if not dry_run and matched_trips and isinstance(matched_trips, list):
                 for trip in matched_trips:
-                    lat, lng = client._resolve_location(trip)
+                    if not isinstance(trip, dict):
+                        continue
+                    try:
+                        lat, lng = client._resolve_location(trip)
+                    except Exception:
+                        lat, lng = None, None
                     if lat is not None and lng is not None:
                         evt_ts = trip.get('end_timestamp') or trip.get('start_timestamp') or ''
                         try:
-                            from datetime import datetime
                             if evt_ts:
                                 evt_dt = datetime.strptime(evt_ts[:19], '%Y-%m-%d %H:%M:%S')
                                 if timezone.is_naive(evt_dt):
@@ -482,19 +486,32 @@ def import_cartrack_data(import_date=None, import_date_end=None, days_back=1, ap
                                 evt_dt = timezone.now()
                         except (ValueError, IndexError):
                             evt_dt = timezone.now()
-                        VehiclePosition.objects.update_or_create(
-                            truck=truck,
-                            provider=VehiclePosition.Provider.CARTRACK,
-                            recorded_at=evt_dt,
-                            defaults={
-                                'latitude': Decimal(str(lat)),
-                                'longitude': Decimal(str(lng)),
-                                'speed_kmh': trip.get('avgSpeed', trip.get('max_speed', 0)),
-                                'heading': trip.get('heading', trip.get('direction')),
-                                'ignition_on': None,
-                                'extra_data': trip,
-                            }
-                        )
+                        spd_raw = trip.get('avgSpeed', trip.get('max_speed'))
+                        try:
+                            spd_val = round(float(spd_raw), 1) if spd_raw is not None else None
+                        except (ValueError, TypeError):
+                            spd_val = None
+                        hdg_raw = trip.get('heading', trip.get('direction'))
+                        try:
+                            hdg_val = int(round(float(hdg_raw))) if hdg_raw is not None else None
+                        except (ValueError, TypeError):
+                            hdg_val = None
+                        try:
+                            VehiclePosition.objects.update_or_create(
+                                truck=truck,
+                                provider=VehiclePosition.Provider.CARTRACK,
+                                recorded_at=evt_dt,
+                                defaults={
+                                    'latitude': Decimal(str(lat)),
+                                    'longitude': Decimal(str(lng)),
+                                    'speed_kmh': spd_val,
+                                    'heading': hdg_val,
+                                    'ignition_on': None,
+                                    'extra_data': trip,
+                                }
+                            )
+                        except Exception as e:
+                            logger.warning('VehiclePosition update_or_create failed: %s', e)
                     # Also save start location if available
                     for lat_key, lng_key in [('startLatitude', 'startLongitude'), ('start_latitude', 'start_longitude')]:
                         slat = trip.get(lat_key)
@@ -511,19 +528,22 @@ def import_cartrack_data(import_date=None, import_date_end=None, days_back=1, ap
                                                 s_dt = timezone.make_aware(s_dt)
                                         except (ValueError, IndexError):
                                             pass
-                                    VehiclePosition.objects.update_or_create(
-                                        truck=truck,
-                                        provider=VehiclePosition.Provider.CARTRACK,
-                                        recorded_at=s_dt,
-                                        defaults={
-                                            'latitude': Decimal(str(float(slat))),
-                                            'longitude': Decimal(str(float(slng))),
-                                            'speed_kmh': 0,
-                                            'heading': None,
-                                            'ignition_on': None,
-                                            'extra_data': trip,
-                                        }
-                                    )
+                                    try:
+                                        VehiclePosition.objects.update_or_create(
+                                            truck=truck,
+                                            provider=VehiclePosition.Provider.CARTRACK,
+                                            recorded_at=s_dt,
+                                            defaults={
+                                                'latitude': Decimal(str(float(slat))),
+                                                'longitude': Decimal(str(float(slng))),
+                                                'speed_kmh': 0,
+                                                'heading': None,
+                                                'ignition_on': None,
+                                                'extra_data': trip,
+                                            }
+                                        )
+                                    except Exception as e:
+                                        logger.warning('VehiclePosition start loc update_or_create failed: %s', e)
                             except (ValueError, TypeError):
                                 continue
 
