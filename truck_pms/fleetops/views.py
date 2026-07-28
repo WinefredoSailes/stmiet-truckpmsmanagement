@@ -264,11 +264,26 @@ def fleet_performance(request):
             'avg_speed': round(float(r['avg_speed'] or 0), 1) if r['avg_speed'] else None,
             'harsh_events': int(r['total_brake'] or 0) + int(r['total_accel'] or 0) + int(r['total_turn'] or 0),
             'log_count': r['log_count'],
+            'operating_hours': round(op, 2),
+            'idle_hours': round(idl, 2),
         })
+    total_distance = sum(p['distance'] for p in perf)
+    total_fuel = sum((p['fuel'] or 0) for p in perf)
+    total_op = sum(p['operating_hours'] for p in perf)
+    total_idl = sum(p['idle_hours'] for p in perf)
+    total_harsh = sum(p['harsh_events'] for p in perf)
+    total_efficiency = round(total_distance / total_fuel, 2) if total_fuel > 0 else None
+    total_utilization = round(total_op / (total_op + total_idl) * 100, 1) if (total_op + total_idl) > 0 else None
     return render(request, 'fleetops/fleet_performance.html', {
         'date_start': date_start,
         'date_end': date_end,
         'performance': perf,
+        'total_distance': total_distance,
+        'total_fuel': total_fuel,
+        'total_efficiency': total_efficiency,
+        'total_utilization': total_utilization,
+        'total_harsh': total_harsh,
+        'truck_count': len(perf),
         'title': 'Fleet Performance',
     })
 

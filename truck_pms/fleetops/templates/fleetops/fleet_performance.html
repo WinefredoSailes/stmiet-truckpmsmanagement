@@ -15,6 +15,46 @@
         <a href="{% url 'fleetops:daily_log' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-journal-text"></i> Daily Log</a>
     </div>
 </div>
+{% if performance %}
+<div class="row g-2 mb-4">
+  <div class="col-md-2 col-6">
+    <div class="card text-center p-2 h-100">
+      <div class="small text-muted">Total Distance</div>
+      <div class="h5 mb-0">{{ total_distance }} km</div>
+    </div>
+  </div>
+  <div class="col-md-2 col-6">
+    <div class="card text-center p-2 h-100">
+      <div class="small text-muted">Total Fuel</div>
+      <div class="h5 mb-0">{{ total_fuel }} L</div>
+    </div>
+  </div>
+  <div class="col-md-2 col-6">
+    <div class="card text-center p-2 h-100">
+      <div class="small text-muted">Avg Efficiency</div>
+      <div class="h5 mb-0">{{ total_efficiency|default:'—' }} km/L</div>
+    </div>
+  </div>
+  <div class="col-md-2 col-6">
+    <div class="card text-center p-2 h-100">
+      <div class="small text-muted">Utilization</div>
+      <div class="h5 mb-0">{{ total_utilization|default:'—' }}%</div>
+    </div>
+  </div>
+  <div class="col-md-2 col-6">
+    <div class="card text-center p-2 h-100">
+      <div class="small text-muted">Harsh Events</div>
+      <div class="h5 mb-0">{{ total_harsh }}</div>
+    </div>
+  </div>
+  <div class="col-md-2 col-6">
+    <div class="card text-center p-2 h-100">
+      <div class="small text-muted">Trucks</div>
+      <div class="h5 mb-0">{{ truck_count }}</div>
+    </div>
+  </div>
+</div>
+{% endif %}
 <div class="row g-3">
     {% for p in performance %}
     <div class="col-md-6 col-xl-4">

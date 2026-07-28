@@ -8,12 +8,20 @@ Live GPS Tracking
 {% block extra_head %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
       integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
 <style>
   #map { height: calc(100vh - 200px); width: 100%; border-radius: 8px; }
   .legend-info { font-size: 0.85rem; }
   .leaflet-popup-content { margin: 8px 12px; }
   .leaflet-popup-content h6 { margin-bottom: 4px; }
   .leaflet-popup-content small { color: #666; }
+  .marker-cluster-small { background-color: rgba(0, 123, 255, 0.3); }
+  .marker-cluster-small div { background-color: rgba(0, 123, 255, 0.6); }
+  .marker-cluster-medium { background-color: rgba(0, 123, 255, 0.3); }
+  .marker-cluster-medium div { background-color: rgba(0, 123, 255, 0.6); }
+  .marker-cluster-large { background-color: rgba(0, 123, 255, 0.3); }
+  .marker-cluster-large div { background-color: rgba(0, 123, 255, 0.6); }
 </style>
 {% endblock %}
 {% block content %}
@@ -43,6 +51,7 @@ Live GPS Tracking
 {% block extra_scripts %}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script>
 const POSITIONS_URL = '{% url "fleetops:positions_latest" %}';
 const REFRESH_URL = '{% url "fleetops:positions_refresh" %}';
@@ -53,22 +62,27 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
 }).addTo(map);
 
+const markerCluster = L.markerClusterGroup({
+    spiderfyOnMaxZoom: true,
+    showCoverageOnHover: false,
+    zoomToBoundsOnClick: true,
+    maxClusterRadius: 50,
+});
+map.addLayer(markerCluster);
+
 let markers = {};
 let historyLines = {};
 let historyMarkers = {};
 
 function makeIcon(color) {
     return L.divIcon({
-        html: `<div style="
-            width: 16px; height: 16px;
-            background: ${color};
-            border: 2px solid white;
-            border-radius: 50%;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.4);
-        "></div>`,
-        iconSize: [16, 16],
-        iconAnchor: [8, 8],
-        popupAnchor: [0, -10],
+        html: `<svg viewBox="0 0 24 36" width="24" height="36" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 1C5.4 1 0 6.4 0 13c0 9 12 22 12 22s12-13 12-22C24 6.4 18.6 1 12 1z" fill="${color}" stroke="white" stroke-width="2"/>
+            <circle cx="12" cy="13" r="3.5" fill="white"/>
+        </svg>`,
+        iconSize: [24, 36],
+        iconAnchor: [12, 35],
+        popupAnchor: [0, -36],
         className: '',
     });
 }
@@ -120,9 +134,9 @@ function displayPositions(data) {
             markers[p.truck_id].bindTooltip(tooltipHtml);
         } else if (hasPos) {
             const m = L.marker([p.latitude, p.longitude], {icon})
-                .addTo(map)
                 .bindPopup(popupHtml)
                 .bindTooltip(tooltipHtml);
+            markerCluster.addLayer(m);
             markers[p.truck_id] = m;
         }
         if (hasPos) {
