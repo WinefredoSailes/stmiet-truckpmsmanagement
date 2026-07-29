@@ -251,6 +251,26 @@
         applyColumnState();
     });
 
+    // ── Sync Pull form date from visible From/To inputs ──
+    var pullForm = document.getElementById('pullForm');
+    if (pullForm) {
+        pullForm.addEventListener('submit', function() {
+            var fromInput = document.querySelector('input[name="start"]');
+            var toInput = document.querySelector('input[name="end"]');
+            var pullDate = document.getElementById('pullDate');
+            if (fromInput && pullDate) pullDate.value = fromInput.value;
+            if (toInput && fromInput && toInput.value !== fromInput.value) {
+                var endHidden = pullForm.querySelector('input[name="date_end"]');
+                if (!endHidden) {
+                    endHidden = document.createElement('input');
+                    endHidden.type = 'hidden'; endHidden.name = 'date_end';
+                    pullForm.appendChild(endHidden);
+                }
+                endHidden.value = toInput.value;
+            }
+        });
+    }
+
 })();
 </script>
 {% endblock %}
