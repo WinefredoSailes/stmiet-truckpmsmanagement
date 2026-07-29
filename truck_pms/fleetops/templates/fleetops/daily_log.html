@@ -9,7 +9,7 @@
         <input type="date" name="start" value="{% if date_start %}{{ date_start|date:'Y-m-d' }}{% else %}{{ log_date|date:'Y-m-d' }}{% endif %}" class="form-control form-control-sm" style="width:auto">
         <label class="form-label mb-0 small fw-medium">To:</label>
         <input type="date" name="end" value="{% if date_end %}{{ date_end|date:'Y-m-d' }}{% else %}{{ log_date|date:'Y-m-d' }}{% endif %}" class="form-control form-control-sm" style="width:auto">
-        <button type="submit" class="btn btn-sm btn-outline-primary"><i class="bi bi-search"></i> Load</button>
+        <button type="submit" class="btn btn-sm btn-outline-primary"><i class="bi bi-search"></i> Go</button>
         <span class="text-muted small ms-2">{{ rows|length }} truck(s)</span>
     </form>
     <div class="d-flex gap-1 flex-wrap align-items-center">
@@ -39,15 +39,15 @@
                 <li><label class="dropdown-item d-flex align-items-center gap-2"><input type="checkbox" checked data-col="0"> Unit #</label></li>
                 <li><label class="dropdown-item d-flex align-items-center gap-2"><input type="checkbox" checked data-col="1"> Plate</label></li>
                 <li><label class="dropdown-item d-flex align-items-center gap-2"><input type="checkbox" checked data-col="2"> Driver</label></li>
-                <li><label class="dropdown-item d-flex align-items-center gap-2"><input type="checkbox" checked data-col="3"> Mileage</label></li>
+                <li><label class="dropdown-item d-flex align-items-center gap-2"><input type="checkbox" checked data-col="3"> Mileage (km)</label></li>
                 <li><label class="dropdown-item d-flex align-items-center gap-2"><input type="checkbox" checked data-col="4"> Eng Hrs</label></li>
-                <li><label class="dropdown-item d-flex align-items-center gap-2"><input type="checkbox" checked data-col="5"> Fuel L</label></li>
-                <li><label class="dropdown-item d-flex align-items-center gap-2"><input type="checkbox" checked data-col="6"> Idle Hrs</label></li>
+                <li><label class="dropdown-item d-flex align-items-center gap-2"><input type="checkbox" checked data-col="5"> Fuel (L)</label></li>
+                <li><label class="dropdown-item d-flex align-items-center gap-2"><input type="checkbox" checked data-col="6"> Idle (hrs)</label></li>
                 <li><label class="dropdown-item d-flex align-items-center gap-2"><input type="checkbox" data-col="7"> Idle #</label></li>
-                <li><label class="dropdown-item d-flex align-items-center gap-2"><input type="checkbox" checked data-col="8"> Op Hrs</label></li>
-                <li><label class="dropdown-item d-flex align-items-center gap-2"><input type="checkbox" checked data-col="9"> Dist km</label></li>
-                <li><label class="dropdown-item d-flex align-items-center gap-2"><input type="checkbox" data-col="10"> Max Spd</label></li>
-                <li><label class="dropdown-item d-flex align-items-center gap-2"><input type="checkbox" data-col="11"> Avg Spd</label></li>
+                <li><label class="dropdown-item d-flex align-items-center gap-2"><input type="checkbox" checked data-col="8"> Op (hrs)</label></li>
+                <li><label class="dropdown-item d-flex align-items-center gap-2"><input type="checkbox" checked data-col="9"> Dist (km)</label></li>
+                <li><label class="dropdown-item d-flex align-items-center gap-2"><input type="checkbox" data-col="10"> Max (km/h)</label></li>
+                <li><label class="dropdown-item d-flex align-items-center gap-2"><input type="checkbox" data-col="11"> Avg (km/h)</label></li>
                 <li><label class="dropdown-item d-flex align-items-center gap-2"><input type="checkbox" data-col="12"> Brk</label></li>
                 <li><label class="dropdown-item d-flex align-items-center gap-2"><input type="checkbox" data-col="13"> Acc</label></li>
                 <li><label class="dropdown-item d-flex align-items-center gap-2"><input type="checkbox" data-col="14"> Trn</label></li>
@@ -74,13 +74,13 @@
                     <tr>
                         <th>Unit #</th>
                         <th>Plate</th>
-                        <th>Mileage</th>
+                        <th>Mileage (km)</th>
                         <th>Eng Hrs</th>
-                        <th>Fuel L</th>
-                        <th>Idle Hrs</th>
-                        <th>Op Hrs</th>
-                        <th>Dist km</th>
-                        <th>Max Spd</th>
+                        <th>Fuel (L)</th>
+                        <th>Idle (hrs)</th>
+                        <th>Op (hrs)</th>
+                        <th>Dist (km)</th>
+                        <th>Max (km/h)</th>
                         <th>Brk</th>
                         <th>Acc</th>
                         <th>Trn</th>
@@ -131,15 +131,15 @@
                             <th data-col="0">Unit #</th>
                             <th data-col="1">Plate</th>
                             <th data-col="2" style="min-width:120px">Driver</th>
-                            <th data-col="3" style="min-width:80px">Mileage</th>
-                            <th data-col="4" style="min-width:70px">Eng Hrs</th>
-                            <th data-col="5" style="min-width:65px">Fuel L</th>
-                            <th data-col="6" style="min-width:65px">Idle Hrs</th>
-                            <th data-col="7" style="min-width:55px">Idle #</th>
-                            <th data-col="8" style="min-width:65px">Op Hrs</th>
-                            <th data-col="9" style="min-width:65px">Dist km</th>
-                            <th data-col="10" style="min-width:60px">Max Spd</th>
-                            <th data-col="11" style="min-width:60px">Avg Spd</th>
+                        <th data-col="3" style="min-width:80px">Mileage (km)</th>
+                        <th data-col="4" style="min-width:70px">Eng Hrs</th>
+                        <th data-col="5" style="min-width:65px">Fuel (L)</th>
+                        <th data-col="6" style="min-width:65px">Idle (hrs)</th>
+                        <th data-col="7" style="min-width:55px">Idle #</th>
+                        <th data-col="8" style="min-width:65px">Op (hrs)</th>
+                        <th data-col="9" style="min-width:65px">Dist (km)</th>
+                        <th data-col="10" style="min-width:60px">Max (km/h)</th>
+                        <th data-col="11" style="min-width:60px">Avg (km/h)</th>
                             <th data-col="12" style="min-width:45px" title="Harsh Braking">Brk</th>
                             <th data-col="13" style="min-width:45px" title="Harsh Acceleration">Acc</th>
                             <th data-col="14" style="min-width:45px" title="Harsh Turning">Trn</th>

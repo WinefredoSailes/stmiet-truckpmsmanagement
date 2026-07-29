@@ -86,12 +86,12 @@ def daily_log_list(request):
                 'log': None,
                 'days': r['log_count'],
                 'mileage': r['latest_mileage'],
-                'eng_hrs': round(float(r['latest_eng_hrs'] or 0), 1),
+                'eng_hrs': round(float(r['latest_eng_hrs'] or 0), 2),
                 'fuel': round(float(r['total_fuel'] or 0), 2) if r['total_fuel'] else None,
                 'idle_hrs': round(float(r['total_idle'] or 0), 2),
                 'idle_cnt': int(r['total_idle']) if False else 0,
                 'op_hrs': round(float(r['total_op'] or 0), 2),
-                'dist': round(float(r['total_dist'] or 0), 1),
+                'dist': round(float(r['total_dist'] or 0), 2),
                 'max_spd': round(float(r['max_speed'] or 0), 1) if r['max_speed'] else None,
                 'brake': int(r['total_brake'] or 0),
                 'accel': int(r['total_accel'] or 0),
@@ -157,14 +157,14 @@ def daily_log_load(request):
                 date=log_date,
                 defaults={
                     'mileage_km': int(request.POST.get(mileage_key, 0)),
-                    'engine_hours': round(float(request.POST.get(hours_key, 0)), 1),
+                    'engine_hours': round(float(request.POST.get(hours_key, 0)), 2),
                     'data_source': DailyLog.DataSource.MANUAL,
                     'created_by': request.user,
                 }
             )
             if not created:
                 log.mileage_km = int(request.POST.get(mileage_key, log.mileage_km))
-                log.engine_hours = round(float(request.POST.get(hours_key, float(log.engine_hours))), 1)
+                log.engine_hours = round(float(request.POST.get(hours_key, float(log.engine_hours))), 2)
             if driver_key in request.POST and request.POST[driver_key]:
                 try:
                     log.driver_id = int(request.POST[driver_key])
@@ -183,7 +183,7 @@ def daily_log_load(request):
             if op_hrs_key in request.POST and request.POST[op_hrs_key]:
                 log.operating_hours = round(float(request.POST[op_hrs_key]), 2)
             if dist_key in request.POST and request.POST[dist_key]:
-                log.distance_traveled_km = round(float(request.POST[dist_key]), 1)
+                log.distance_traveled_km = round(float(request.POST[dist_key]), 2)
             if max_spd_key in request.POST and request.POST[max_spd_key]:
                 log.max_speed_kmh = round(float(request.POST[max_spd_key]), 1)
             if avg_spd_key in request.POST and request.POST[avg_spd_key]:
@@ -198,6 +198,7 @@ def daily_log_load(request):
                 log.data_source = DailyLog.DataSource.MANUAL
             log.save()
             saved += 1
+        logger.info('daily_log_load: saved %d entries for %s by %s', saved, log_date, request.user.username)
         messages.success(request, f'Saved {saved} log entries for {log_date}.')
         return redirect(reverse('fleetops:daily_log') + f'?date={log_date}')
     return redirect('fleetops:daily_log')
@@ -255,7 +256,7 @@ def fleet_performance(request):
         idl = float(r['total_idle'] or 0)
         perf.append({
             'truck': t,
-            'distance': round(d, 1),
+            'distance': round(d, 2),
             'fuel': round(f, 1) if r['has_fuel'] > 0 else None,
             'efficiency': round(d / f, 2) if f > 0 else None,
             'utilization': round(op / (op + idl) * 100, 1) if (op + idl) > 0 else None,
@@ -391,7 +392,7 @@ def driver_scorecard(request, pk):
         'driver': driver,
         'assignments': assignments,
         'logs': logs,
-        'total_dist': round(total_dist, 1),
+        'total_dist': round(total_dist, 2),
         'efficiency': efficiency,
         'utilization': utilization,
         'harsh_per_100km': harsh_per_100km,
@@ -474,7 +475,7 @@ def weekly_report(request):
         truck_rows.append({
             'truck': t,
             'driver_name': driver_name,
-            'distance': round(d, 1),
+            'distance': round(d, 2),
             'fuel': round(f, 1),
             'operating_hours': round(op, 2),
             'idle_hours': round(idl, 2),
@@ -519,7 +520,7 @@ def weekly_report(request):
         avg_s = round((brake_s + accel_s + turn_s + idle_s) / 4, 2)
         driver_scores.append({
             'driver': {'name': rd['driver__name']},
-            'distance': round(d, 1),
+            'distance': round(d, 2),
             'brake_score': brake_s,
             'accel_score': accel_s,
             'turn_score': turn_s,
@@ -533,7 +534,7 @@ def weekly_report(request):
         'truck_rows': truck_rows,
         'driver_scores': driver_scores,
         'idle_report': idle_report,
-        'total_distance': round(totals['dist'], 1),
+        'total_distance': round(totals['dist'], 2),
         'total_fuel': round(totals['fuel'], 1),
         'total_operating': round(totals['op'], 2),
         'total_idle': round(totals['idl'], 2),
@@ -628,6 +629,8 @@ def pull_cartrack(request):
         return redirect('fleetops:daily_log')
 
     data_types = []
+    logger.info('pull_cartrack: date=%s date_end=%s user=%s',
+                date_str, date_end_str, request.user.username)
     if request.POST.get('type_trips'):
         data_types.append('trips')
     if request.POST.get('type_events'):
@@ -679,7 +682,9 @@ def pull_cartrack(request):
         messages.warning(request, err)
     if not any_success and not all_errors:
         messages.warning(request, 'Nothing was imported. Select at least one data type.')
-    return redirect('fleetops:daily_log')
+    if import_date == import_date_end:
+        return redirect(reverse('fleetops:daily_log') + f'?date={import_date}')
+    return redirect(reverse('fleetops:daily_log') + f'?start={import_date}&end={import_date_end}')
 
 
 # ── Compliance Dashboard ──

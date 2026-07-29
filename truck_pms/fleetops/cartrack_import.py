@@ -45,14 +45,32 @@ class CartrackAPIClient:
         params = {'limit': '1000',
                   'start_timestamp': f'{start_date} 00:00:00',
                   'end_timestamp': f'{end} 23:59:59'}
-        return self._safe_fetch('trips', params)
+        r = self._safe_fetch('trips', params)
+        if r['data']:
+            logger.info('fetch_trips: %s – %s returned %d items', start_date, end, len(r['data']))
+            logger.info('fetch_trips: first item keys=%s', list(r['data'][0].keys()))
+            for field in ('trip_distance', 'end_odometer', 'clock_end', 'idle_time_seconds',
+                          'trip_duration_seconds', 'max_speed', 'avgSpeed',
+                          'harsh_braking_events', 'harsh_acceleration_events', 'harsh_cornering_events'):
+                val = r['data'][0].get(field, '⚠️ MISSING')
+                logger.info('fetch_trips: field "%-30s" = %s', field, val)
+        else:
+            logger.warning('fetch_trips: %s – %s returned 0 items (error=%s)', start_date, end, r.get('error'))
+            if r.get('response_text'):
+                logger.warning('fetch_trips: API response=%s', r['response_text'][:500])
+        return r
 
     def fetch_events(self, start_date, end_date=None):
         end = end_date or start_date
         params = {'limit': '1000',
                   'start_timestamp': f'{start_date} 00:00:00',
                   'end_timestamp': f'{end} 23:59:59'}
-        return self._safe_fetch('vehicles/events', params)
+        r = self._safe_fetch('vehicles/events', params)
+        if r['data']:
+            logger.info('fetch_events: %s – %s returned %d items', start_date, end, len(r['data']))
+        else:
+            logger.warning('fetch_events: %s – %s returned 0 items (error=%s)', start_date, end, r.get('error'))
+        return r
 
     def fetch_fuel(self, start_date, end_date=None):
         """Try fuel efficiency report endpoint (preferred) then fall back to /fuel/fills."""
@@ -61,27 +79,33 @@ class CartrackAPIClient:
         for ep in ('reports/fuel-efficiency', 'reports/fuelefficiency'):
             try:
                 resp = requests.get(f'{self.api_url}/{ep}', headers=self.headers, params=params, timeout=(3, 8))
+                logger.info('fetch_fuel: %s status=%d', ep, resp.status_code)
                 if resp.status_code == 422:
                     continue
                 resp.raise_for_status()
                 data = resp.json()
                 items = data.get('data', data if isinstance(data, list) else [])
                 if items:
+                    logger.info('fetch_fuel: %s returned %d items', ep, len(items))
                     return {'data': items, 'error': None, 'endpoint': ep}
-            except Exception:
+            except Exception as e:
+                logger.warning('fetch_fuel: %s exception %s', ep, e)
                 continue
-        # Fallback: /fuel/fills
+        logger.info('fetch_fuel: trying /fuel/fills fallback')
         try:
             p = {'start_timestamp': f'{start_date} 00:00:00', 'end_timestamp': f'{end} 23:59:59', 'limit': '1000'}
             resp = requests.get(f'{self.api_url}/fuel/fills', headers=self.headers, params=p, timeout=(3, 8))
+            logger.info('fetch_fuel: /fuel/fills status=%d', resp.status_code)
             if resp.status_code != 422:
                 resp.raise_for_status()
                 data = resp.json()
                 items = data.get('data', data if isinstance(data, list) else [])
                 if items:
+                    logger.info('fetch_fuel: /fuel/fills returned %d items', len(items))
+                    logger.info('fetch_fuel: first item keys=%s', list(items[0].keys()))
                     return {'data': items, 'error': None, 'endpoint': 'fuel/fills'}
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning('fetch_fuel: /fuel/fills exception %s', e)
         return {'data': [], 'error': 'No data', 'endpoint': 'none'}
 
 
@@ -206,6 +230,7 @@ def import_cartrack_data(import_date=None, import_date_end=None, days_back=1, ap
             fuel_endpoint = r['endpoint']
         for fe in r['data']:
             ltrs = None
+            found_key = None
             for key in ('fuel_consumed_litres', 'fuelConsumedLitres', 'fuel_consumed_l',
                         'fuel_consumed', 'total_fuel_consumed', 'fill_amount_litres',
                         'liters', 'quantity', 'amount', 'volume'):
@@ -213,6 +238,7 @@ def import_cartrack_data(import_date=None, import_date_end=None, days_back=1, ap
                 if val is not None:
                     try:
                         ltrs = float(val)
+                        found_key = key
                         break
                     except (ValueError, TypeError):
                         continue
@@ -222,6 +248,10 @@ def import_cartrack_data(import_date=None, import_date_end=None, days_back=1, ap
                 fuel_by_vehicle[vid] = ltrs
                 if vid2:
                     fuel_by_vehicle[vid2] = ltrs
+                logger.info('import: fuel match key="%s" value=%s vehicle=%s', found_key, ltrs, vid)
+            else:
+                logger.warning('import: fuel item has no recognized field. keys=%s', list(fe.keys()))
+        logger.info('import: fuel_by_vehicle has %d entries from %d raw items', len(fuel_by_vehicle), len(r['data']))
 
     days_in_range = (import_date_end - import_date).days + 1 if import_date_end else 1
     result['fuel_count'] = len(fuel_by_vehicle)
@@ -236,6 +266,27 @@ def import_cartrack_data(import_date=None, import_date_end=None, days_back=1, ap
             unit = truck.unit_number.upper()
 
             matched_trips = _match_vehicle(trips, plate, unit)
+
+            if matched_trips:
+                raw_dist = sum(float(t.get('trip_distance', 0) or 0) for t in matched_trips)
+                raw_op = sum(float(t.get('trip_duration_seconds', 0) or 0) for t in matched_trips)
+                raw_idle = sum(float(t.get('idle_time_seconds', 0) or 0) for t in matched_trips)
+                raw_odo = max((float(t.get('end_odometer', 0) or 0) for t in matched_trips), default=0)
+                raw_clock = max((float(t.get('clock_end', 0) or 0) for t in matched_trips), default=0)
+                logger.info(
+                    'import: %s (%s) date=%s trips=%d raw_dist_m=%.1f→km=%.2f '
+                    'raw_op_s=%.0f→hr=%.2f raw_idle_s=%.0f→hr=%.2f '
+                    'raw_odo_m=%.0f→km=%d raw_clock_s=%.0f→hr=%.2f',
+                    truck.unit_number, plate, current, len(matched_trips),
+                    raw_dist, raw_dist / 1000,
+                    raw_op, raw_op / 3600,
+                    raw_idle, raw_idle / 3600,
+                    raw_odo, raw_odo / 1000,
+                    raw_clock, raw_clock / 3600,
+                )
+            else:
+                logger.info('import: %s (%s) date=%s no trips matched', truck.unit_number, plate, current)
+
             trip_data = _aggregate_trips(matched_trips)
 
             # Match events
@@ -258,12 +309,12 @@ def import_cartrack_data(import_date=None, import_date_end=None, days_back=1, ap
             if trip_data:
                 defaults = {
                     'mileage_km': trip_data['mileage'],
-                    'engine_hours': round(trip_data['eng_hrs'], 1),
+                    'engine_hours': round(trip_data['eng_hrs'], 2),
                     'fuel_liters': round(fuel_l, 2) if fuel_l else None,
                     'idle_hours': round(trip_data['idle'], 2),
                     'idle_count': trip_data['idle_count'],
                     'operating_hours': round(trip_data['op'], 2),
-                    'distance_traveled_km': round(trip_data['distance'], 1),
+                    'distance_traveled_km': round(trip_data['distance'], 2),
                     'max_speed_kmh': round(trip_data['max_speed'], 1) if trip_data['max_speed'] else None,
                     'avg_speed_kmh': round(trip_data['distance'] / trip_data['op'], 1) if trip_data['op'] > 0 else None,
                     'harsh_braking_count': trip_data['brake'] + ev_counts['brake'],
@@ -289,11 +340,19 @@ def import_cartrack_data(import_date=None, import_date_end=None, days_back=1, ap
                 result['processed'] += 1
                 continue
 
-            DailyLog.objects.update_or_create(truck=truck, date=current, defaults=defaults)
+            dl, created = DailyLog.objects.update_or_create(truck=truck, date=current, defaults=defaults)
+            logger.info('import: saved %s %s id=%d data_source=%s dist=%.2f eng_hrs=%.2f fuel=%s '
+                        'idle=%.2f op=%.2f mileage=%d',
+                        truck.unit_number, current, dl.pk, defaults.get('data_source', '?'),
+                        defaults.get('distance_traveled_km', 0), defaults.get('engine_hours', 0),
+                        defaults.get('fuel_liters', '—'), defaults.get('idle_hours', 0),
+                        defaults.get('operating_hours', 0), defaults.get('mileage_km', 0))
             result['processed'] += 1
 
         current += timedelta(days=1)
 
+    logger.info('import: done date=%s – %s processed=%d errors=%d',
+                import_date, import_date_end, result['processed'], len(result['errors']))
     if fuel_endpoint:
         result['fuel_endpoint'] = fuel_endpoint
     return result

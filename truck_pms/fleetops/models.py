@@ -71,7 +71,7 @@ class DailyLog(models.Model):
         default=0, help_text="End-of-day odometer reading"
     )
     engine_hours = models.DecimalField(
-        max_digits=10, decimal_places=1, default=0,
+        max_digits=10, decimal_places=2, default=0,
         help_text="End-of-day engine hours"
     )
     fuel_liters = models.DecimalField(
@@ -86,7 +86,7 @@ class DailyLog(models.Model):
         max_digits=8, decimal_places=2, default=0
     )
     distance_traveled_km = models.DecimalField(
-        max_digits=10, decimal_places=1, default=0
+        max_digits=10, decimal_places=2, default=0
     )
     max_speed_kmh = models.DecimalField(
         max_digits=6, decimal_places=1, null=True, blank=True
