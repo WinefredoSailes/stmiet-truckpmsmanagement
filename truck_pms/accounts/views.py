@@ -1,11 +1,13 @@
 from datetime import date, timedelta
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login
+from django.contrib.auth import login
 from django.contrib.auth.views import LoginView, LogoutView
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Count, Q
+from fleetops.models import Driver
 from joborders.models import JobOrder
 from trucks.models import Truck
 from pms.models import PMSchedule
@@ -62,6 +64,19 @@ def dashboard(request):
                 })
     expiring_items.sort(key=lambda x: x['expiry'] or date.max)
 
+    drivers_expiring = []
+    for driver in Driver.objects.all().order_by('name'):
+        st = driver.license_status()
+        if st in ('overdue', 'due_soon'):
+            drivers_expiring.append({
+                'driver': driver,
+                'label': 'Driver License',
+                'expiry': driver.license_expiry,
+                'license_number': driver.license_number,
+                'status': st,
+            })
+    drivers_expiring.sort(key=lambda x: x['expiry'] or date.max)
+
     context = {
         'open_jo_count': open_jo_count,
         'active_truck_count': active_truck_count,
@@ -70,6 +85,7 @@ def dashboard(request):
         'due_pm_list': due_now[:10],
         'recent_jobs': recent_jobs,
         'expiring_items': expiring_items,
+        'drivers_expiring': drivers_expiring,
     }
     return render(request, 'accounts/dashboard.html', context)
 

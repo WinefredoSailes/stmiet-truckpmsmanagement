@@ -134,6 +134,38 @@
         </div>
         <div class="card">
             <div class="card-header">
+                <span class="fw-bold"><i class="bi bi-person-badge me-2"></i>Expiring Driver Licenses</span>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    {% for dl in drivers_expiring %}
+                    <li class="list-group-item py-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ dl.driver.name }}</strong>
+                                <br>
+                                <small class="text-muted">{{ dl.license_number }}</small>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge bg-{% if dl.status == 'overdue' %}danger{% else %}warning{% endif %} badge-status">
+                                    {{ dl.status|upper }}
+                                </span>
+                                <br>
+                                <small class="text-muted">{{ dl.expiry|date:"M d, Y" }}</small>
+                            </div>
+                        </div>
+                    </li>
+                    {% empty %}
+                    <li class="list-group-item text-center py-4 text-muted">All driver licenses are valid.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div class="card-footer text-center p-2">
+                <a href="{% url 'fleetops:driver_list' %}" class="small">View All Drivers</a>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header">
                 <span class="fw-bold"><i class="bi bi-shield-exclamation me-2"></i>Expiring Certificates</span>
             </div>
             <div class="card-body p-0">
