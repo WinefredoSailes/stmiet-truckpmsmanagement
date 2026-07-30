@@ -7,6 +7,14 @@
     <div class="card-body py-2">
         <form method="get" class="row g-2 align-items-end">
             <div class="col-auto">
+                <label class="small text-muted me-1">From</label>
+                <input type="date" name="date_from" class="form-control form-control-sm d-inline-block w-auto" value="{{ date_from }}">
+            </div>
+            <div class="col-auto">
+                <label class="small text-muted me-1">To</label>
+                <input type="date" name="date_to" class="form-control form-control-sm d-inline-block w-auto" value="{{ date_to }}">
+            </div>
+            <div class="col-auto">
                 <select name="truck" class="form-select form-select-sm">
                     <option value="">All Trucks</option>
                     {% for t in trucks %}
@@ -15,7 +23,15 @@
                 </select>
             </div>
             <div class="col-auto">
-                <input type="text" name="action" class="form-control form-control-sm" placeholder="Action filter" value="{{ selected_action|default:'' }}">
+                <select name="performed_by" class="form-select form-select-sm">
+                    <option value="">All Performers</option>
+                    {% for p in performers %}
+                    <option value="{{ p.pk }}" {% if selected_performed_by|stringformat:'s' == p.pk|stringformat:'s' %}selected{% endif %}>{{ p.get_full_name|default:p.username }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-auto">
+                <input type="text" name="action" class="form-control form-control-sm" placeholder="Action filter" value="{{ selected_action }}">
             </div>
             <div class="col-auto">
                 <button type="submit" class="btn btn-sm btn-outline-primary py-1"><i class="bi bi-funnel"></i> Filter</button>
