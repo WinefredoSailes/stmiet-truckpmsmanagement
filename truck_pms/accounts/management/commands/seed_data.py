@@ -12,7 +12,7 @@ DEV_PASSWORD = os.environ.get('SEED_DEV_PASSWORD', 'dev-change-me-in-production'
 
 
 class Command(BaseCommand):
-    help = 'Seed initial data for the Truck PMS system'
+    help = 'Seed initial data for FleetPulse'
 
     def handle(self, *args, **options):
         self.stdout.write('Seeding data...')
