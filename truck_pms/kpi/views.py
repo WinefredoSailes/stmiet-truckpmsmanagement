@@ -158,7 +158,7 @@ def predictive_analytics(request):
 
         # ── Top Replaced Parts ──────────────────────────
         top_parts = LineItemPart.objects.filter(
-            service_log__truck=truck
+            line_item__job_order__truck=truck
         ).values('part_name').annotate(
             count=Count('id')
         ).order_by('-count')[:10]
