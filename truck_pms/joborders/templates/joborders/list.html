@@ -13,6 +13,30 @@
     <div class="card-body py-2">
         <form method="get" class="row g-2 align-items-end">
             <div class="col-auto">
+                <label class="small text-muted me-1">From</label>
+                <input type="date" name="date_from" class="form-control form-control-sm d-inline-block w-auto" value="{{ date_from }}">
+            </div>
+            <div class="col-auto">
+                <label class="small text-muted me-1">To</label>
+                <input type="date" name="date_to" class="form-control form-control-sm d-inline-block w-auto" value="{{ date_to }}">
+            </div>
+            <div class="col-auto">
+                <select name="truck" class="form-select form-select-sm">
+                    <option value="">All Trucks</option>
+                    {% for t in trucks %}
+                    <option value="{{ t.pk }}" {% if selected_truck|stringformat:'s' == t.pk|stringformat:'s' %}selected{% endif %}>{{ t.unit_number }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-auto">
+                <select name="assigned_to" class="form-select form-select-sm">
+                    <option value="">All Assignees</option>
+                    {% for u in assignable_users %}
+                    <option value="{{ u.pk }}" {% if selected_assigned_to|stringformat:'s' == u.pk|stringformat:'s' %}selected{% endif %}>{{ u.get_full_name|default:u.username }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-auto">
                 <select name="status" class="form-select form-select-sm">
                     <option value="">All Status</option>
                     <option value="OPEN" {% if selected_status == 'OPEN' %}selected{% endif %}>Open</option>

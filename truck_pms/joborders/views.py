@@ -1,3 +1,4 @@
+from datetime import timedelta
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -6,6 +7,7 @@ from django.db.models import Q
 from django.utils import timezone
 from accounts.decorators import role_required
 from accounts.models import User
+from trucks.models import Truck
 from .models import JobOrder, JobOrderLineItem, LineItemPart
 from .forms import (JobOrderForm, JobOrderLineItemForm,
                     LineItemPartForm, JobOrderStatusForm,
@@ -20,6 +22,14 @@ def job_order_list(request):
     status = request.GET.get('status')
     job_type = request.GET.get('job_type')
     truck_id = request.GET.get('truck')
+    assigned_to_id = request.GET.get('assigned_to')
+    today = timezone.localdate()
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+    if not date_from:
+        date_from = (today - timedelta(days=today.weekday())).isoformat()
+    if not date_to:
+        date_to = today.isoformat()
     orders = JobOrder.objects.select_related(
         'truck', 'assigned_to', 'contractor'
     )
@@ -33,16 +43,31 @@ def job_order_list(request):
         orders = orders.filter(job_type=job_type)
     if truck_id:
         orders = orders.filter(truck_id=truck_id)
+    if assigned_to_id:
+        orders = orders.filter(assigned_to_id=assigned_to_id)
+    orders = orders.filter(
+        created_at__date__gte=date_from,
+        created_at__date__lte=date_to,
+    )
     orders = orders.order_by('-created_at')
     paginator = Paginator(orders, 50)
     page = request.GET.get('page')
     page_obj = paginator.get_page(page)
+    trucks = Truck.objects.all().order_by('unit_number')
+    assignable_users = User.objects.filter(
+        role__in=[User.Role.SUPER_ADMIN, User.Role.ADMIN, User.Role.STAFF, User.Role.MECHANIC]
+    ).order_by('username')
     return render(request, 'joborders/list.html', {
         'page_obj': page_obj,
         'orders': page_obj.object_list,
         'selected_status': status,
         'selected_job_type': job_type,
         'selected_truck': truck_id,
+        'selected_assigned_to': assigned_to_id,
+        'date_from': date_from,
+        'date_to': date_to,
+        'trucks': trucks,
+        'assignable_users': assignable_users,
     })
 
 
