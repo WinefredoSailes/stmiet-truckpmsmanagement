@@ -99,6 +99,132 @@ def truck_frequency(request):
 @login_required
 @role_required(User.Role.SUPER_ADMIN, User.Role.ADMIN)
 def predictive_analytics(request):
+    truck_id = request.GET.get('truck')
+    trucks = Truck.objects.all().order_by('unit_number')
+    twelve_months_ago = timezone.now() - timedelta(days=365)
+    six_months_ago = timezone.now() - timedelta(days=180)
+
+    if truck_id:
+        truck = get_object_or_404(Truck, pk=truck_id)
+
+        # ── Service Frequency (per month, last 12) ──────────
+        svc_freq = ServiceLogEntry.objects.filter(
+            truck=truck, performed_at__gte=twelve_months_ago
+        ).annotate(
+            month=TruncMonth('performed_at')
+        ).values('month').annotate(
+            count=Count('id')
+        ).order_by('month')
+        svc_freq_labels = []
+        svc_freq_counts = []
+        for s in svc_freq:
+            svc_freq_labels.append(s['month'].strftime('%b %Y') if s['month'] else '')
+            svc_freq_counts.append(s['count'])
+
+        # ── PM Compliance ──────────────────────────────────
+        schedules = list(PMSchedule.objects.filter(
+            truck=truck, is_active=True
+        ).exclude(
+            task_template__interval_type='VISUAL'
+        ).select_related('task_template'))
+        total_pm = len(schedules)
+        overdue_pm = ok_pm = due_pm = 0
+        for s in schedules:
+            st = s.status()
+            if st == 'overdue':
+                overdue_pm += 1
+            elif st == 'ok':
+                ok_pm += 1
+            elif st == 'due':
+                due_pm += 1
+        no_data_pm = total_pm - overdue_pm - ok_pm - due_pm
+
+        # ── Cost Trends ──────────────────────────────────
+        cost_data = ServiceLogEntry.objects.filter(
+            truck=truck, performed_at__gte=six_months_ago
+        ).annotate(
+            month=TruncMonth('performed_at')
+        ).values('month').annotate(
+            parts=Sum('parts_cost'),
+            hours=Sum('labor_hours')
+        ).order_by('month')
+        cost_labels = []
+        parts_cost = []
+        labor_cost = []
+        for c in cost_data:
+            cost_labels.append(c['month'].strftime('%b %Y') if c['month'] else '')
+            parts_cost.append(float(c['parts'] or 0))
+            labor_cost.append(float(c['hours'] or 0) * 250)
+
+        # ── Top Replaced Parts ──────────────────────────
+        top_parts = LineItemPart.objects.filter(
+            service_log__truck=truck
+        ).values('part_name').annotate(
+            count=Count('id')
+        ).order_by('-count')[:10]
+        part_labels = [p['part_name'] for p in top_parts]
+        part_counts = [p['count'] for p in top_parts]
+
+        # ── PM vs Repair Trend ──────────────────────────
+        job_trend = JobOrder.objects.filter(
+            truck=truck, created_at__gte=twelve_months_ago
+        ).annotate(
+            month=TruncMonth('created_at')
+        ).values('month', 'job_type').annotate(
+            count=Count('id')
+        ).order_by('month', 'job_type')
+        trend_months = []
+        trend_pm = {}
+        trend_repair = {}
+        trend_inspection = {}
+        for j in job_trend:
+            m = j['month'].strftime('%b %Y') if j['month'] else ''
+            if m not in trend_months:
+                trend_months.append(m)
+            c = j['count']
+            if j['job_type'] == 'PM':
+                trend_pm[m] = c
+            elif j['job_type'] == 'REPAIR':
+                trend_repair[m] = c
+            elif j['job_type'] == 'INSPECTION':
+                trend_inspection[m] = c
+        trend_pm_data = [trend_pm.get(m, 0) for m in trend_months]
+        trend_repair_data = [trend_repair.get(m, 0) for m in trend_months]
+        trend_inspection_data = [trend_inspection.get(m, 0) for m in trend_months]
+
+        # ── Recent Activity (last 10) ───────────────────
+        recent = ServiceLogEntry.objects.filter(
+            truck=truck
+        ).select_related('performed_by', 'job_order').order_by('-performed_at')[:10]
+        recent_activities = [{
+            'date': e.performed_at,
+            'action': e.action,
+            'description': e.description,
+            'performed_by': e.performed_by.get_full_name() or e.performed_by.username if e.performed_by else '',
+        } for e in recent]
+
+        ctx = {
+            'selected_truck': truck_id,
+            'truck_name': truck.unit_number,
+            'trucks': trucks,
+            'svc_freq_labels': json.dumps(svc_freq_labels),
+            'svc_freq_counts': json.dumps(svc_freq_counts),
+            'ok_pm': ok_pm, 'due_pm': due_pm, 'overdue_pm': overdue_pm, 'no_data_pm': no_data_pm, 'total_pm': total_pm,
+            'cost_labels': json.dumps(cost_labels),
+            'parts_cost': json.dumps(parts_cost),
+            'labor_cost': json.dumps(labor_cost),
+            'part_labels': json.dumps(part_labels),
+            'part_counts': json.dumps(part_counts),
+            'trend_months': json.dumps(trend_months),
+            'trend_pm_data': json.dumps(trend_pm_data),
+            'trend_repair_data': json.dumps(trend_repair_data),
+            'trend_inspection_data': json.dumps(trend_inspection_data),
+            'recent_activities': recent_activities,
+        }
+        return render(request, 'kpi/predictive.html', ctx)
+
+    # ── Fleet-wide view ──────────────────────────────────
+
     # ── Failure Frequency ──────────────────────────────────
     breakdowns = JobOrder.objects.filter(
         job_type='REPAIR', status='CLOSED'
@@ -132,7 +258,6 @@ def predictive_analytics(request):
     overdue_counts = [c for t, c in overdue_sorted[:10]]
 
     # ── Cost Trends (last 6 months) ────────────────────────
-    six_months_ago = timezone.now() - timedelta(days=180)
     cost_data = ServiceLogEntry.objects.filter(
         performed_at__gte=six_months_ago
     ).annotate(
@@ -157,7 +282,6 @@ def predictive_analytics(request):
     part_counts = [p['count'] for p in top_parts]
 
     # ── PM vs Repair Trend (last 12 months) ────────────────
-    twelve_months_ago = timezone.now() - timedelta(days=365)
     job_trend = JobOrder.objects.filter(
         created_at__gte=twelve_months_ago
     ).annotate(
@@ -185,6 +309,8 @@ def predictive_analytics(request):
     trend_inspection_data = [trend_inspection.get(m, 0) for m in trend_months]
 
     return render(request, 'kpi/predictive.html', {
+        'trucks': trucks,
+        'selected_truck': None,
         'failure_labels': json.dumps(failure_labels),
         'failure_counts': json.dumps(failure_counts),
         'total_pm': total_pm,

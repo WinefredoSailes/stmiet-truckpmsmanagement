@@ -1,5 +1,51 @@
-{% extends 'core/base.html' %}{% load static %}{% block title %}Predictive Analytics{% endblock %}{% block page_title %}Predictive Analytics{% endblock %}{% block content %}
+{% extends 'core/base.html' %}{% load static %}{% block title %}Predictive Analytics{% endblock %}{% block page_title %}{% if selected_truck %}Predictive Analytics — {{ truck_name }}{% else %}Predictive Analytics{% endif %}{% endblock %}{% block content %}
+<div class="card mb-3 filter-bar">
+    <div class="card-body py-2">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-auto">
+                <select name="truck" class="form-select form-select-sm">
+                    <option value="">All Trucks (Fleet View)</option>
+                    {% for t in trucks %}
+                    <option value="{{ t.pk }}" {% if selected_truck|stringformat:'s' == t.pk|stringformat:'s' %}selected{% endif %}>{{ t.unit_number }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-sm btn-outline-primary py-1"><i class="bi bi-funnel"></i> Apply</button>
+                <a href="{% url 'kpi:predictive' %}" class="btn btn-sm btn-outline-secondary py-1"><i class="bi bi-x"></i> Clear</a>
+            </div>
+        </form>
+    </div>
+</div>
 <div class="row g-3">
+{% if selected_truck %}
+    <div class="col-md-6">
+        <div class="card h-100"><div class="card-header fw-bold">Service Frequency</div>
+        <div class="card-body"><canvas id="serviceFreqChart" height="200"></canvas>
+        {% if not svc_freq_labels %}<p class="text-muted text-center mb-0">No service data for this truck.</p>{% endif %}
+        </div></div>
+    </div>
+    <div class="col-md-3">
+        <div class="card h-100"><div class="card-header fw-bold">PM Compliance</div>
+        <div class="card-body"><canvas id="complianceChart" height="200"></canvas></div></div>
+    </div>
+    <div class="col-md-3">
+        <div class="card h-100"><div class="card-header fw-bold">Recent Activity</div>
+        <div class="card-body p-0" style="max-height:280px;overflow-y:auto;">
+            <ul class="list-group list-group-flush small">
+                {% for act in recent_activities %}
+                <li class="list-group-item py-1 px-2">
+                    <span class="text-muted">{{ act.date|date:"M d" }}</span>
+                    <span class="badge bg-secondary badge-status">{{ act.action|truncatechars:20 }}</span>
+                    <br><span class="text-muted">{{ act.performed_by }}</span>
+                </li>
+                {% empty %}
+                <li class="list-group-item text-center py-3 text-muted">No recent activity.</li>
+                {% endfor %}
+            </ul>
+        </div></div>
+    </div>
+{% else %}
     <div class="col-md-6">
         <div class="card h-100"><div class="card-header fw-bold">Failure Frequency</div>
         <div class="card-body"><canvas id="failureChart" height="200"></canvas>
@@ -16,6 +62,7 @@
         {% if not overdue_trucks %}<p class="text-muted text-center mb-0">No overdue PMs.</p>{% endif %}
         </div></div>
     </div>
+{% endif %}
     <div class="col-md-8">
         <div class="card h-100"><div class="card-header fw-bold">Cost Trends (Parts & Labor)</div>
         <div class="card-body"><canvas id="costChart" height="200"></canvas>
@@ -40,6 +87,30 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <script>
 const COLORS = ['#dc3545','#fd7e14','#ffc107','#20c997','#0d6efd','#6610f2','#d63384','#198754','#0dcaf0','#6f42c1'];
+{% if selected_truck %}
+{% if svc_freq_labels %}
+new Chart(document.getElementById('serviceFreqChart'), {
+    type: 'bar', data: {
+        labels: {{ svc_freq_labels|safe }},
+        datasets: [{ label: 'Services', data: {{ svc_freq_counts|safe }}, backgroundColor: '#0d6efd' }]
+    }, options: { responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+    }
+});
+{% endif %}
+new Chart(document.getElementById('complianceChart'), {
+    type: 'doughnut', data: {
+        labels: ['OK ({{ ok_pm }})', 'Due ({{ due_pm }})', 'Overdue ({{ overdue_pm }})', 'No Data ({{ no_data_pm }})'],
+        datasets: [{
+            data: [{{ ok_pm }}, {{ due_pm }}, {{ overdue_pm }}, {{ no_data_pm }}],
+            backgroundColor: ['#198754','#ffc107','#dc3545','#6c757d']
+        }]
+    }, options: { responsive: true,
+        plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } }
+    }
+});
+{% else %}
 {% if failure_labels %}
 new Chart(document.getElementById('failureChart'), {
     type: 'bar', data: {
@@ -73,6 +144,7 @@ new Chart(document.getElementById('overdueChart'), {
         indexAxis: 'y'
     }
 });
+{% endif %}
 {% endif %}
 {% if cost_labels %}
 new Chart(document.getElementById('costChart'), {
