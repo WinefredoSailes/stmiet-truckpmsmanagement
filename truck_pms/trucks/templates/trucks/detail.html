@@ -185,6 +185,7 @@
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <span class="fw-bold">Service History</span>
+                <a href="{% url 'kpi:predictive' %}?truck={{ truck.pk }}" class="btn btn-sm btn-outline-info"><i class="bi bi-graph-up"></i> Predictive</a>
                 <a href="{% url 'service_log:truck_ledger' truck.pk %}" class="btn btn-sm btn-outline-primary"><i class="bi bi-arrow-right"></i> Full Ledger</a>
             </div>
             <div class="card-body p-0">
