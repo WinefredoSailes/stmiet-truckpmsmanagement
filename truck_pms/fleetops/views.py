@@ -618,6 +618,8 @@ def pull_cartrack(request):
     if not _staff_or_above(request.user):
         messages.error(request, 'Access denied.')
         return redirect('accounts:dashboard')
+    if request.method != 'POST':
+        return redirect('fleetops:daily_log')
 
     date_str = request.POST.get('date', '')
     date_end_str = request.POST.get('date_end', '')
@@ -651,8 +653,12 @@ def pull_cartrack(request):
             days_back = int(request.POST.get('days_back', 1))
             c_result = import_cartrack_data(days_back=days_back, data_types=data_types)
 
-        date_label = f"{c_result['import_date']}"
-        if c_result.get('import_date_end') and c_result['import_date'] != c_result['import_date_end']:
+        imported = c_result.get('import_date', import_date or date.today())
+        if isinstance(imported, date):
+            date_label = imported.isoformat()
+        else:
+            date_label = str(imported)
+        if c_result.get('import_date_end') and date_label != str(c_result['import_date_end']):
             date_label += f" – {c_result['import_date_end']}"
 
         if c_result['success'] and c_result['processed'] > 0:
@@ -676,7 +682,7 @@ def pull_cartrack(request):
                 msg += ' No active trucks found.'
             all_errors.append(msg)
         else:
-            all_errors.append(f"Cartrack import failed: {c_result['error']}")
+            all_errors.append(f"Cartrack import failed: {c_result.get('error', 'Unknown error')}")
 
     for err in all_errors:
         messages.warning(request, err)

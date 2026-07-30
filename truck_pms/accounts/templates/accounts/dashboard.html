@@ -103,7 +103,7 @@
             </div>
         </div>
     </div>
-    <div class="col-lg-4">
+    <div class="col-lg-4 d-flex flex-column gap-4">
         <div class="card">
             <div class="card-header">
                 <span class="fw-bold"><i class="bi bi-calendar-exclamation me-2"></i>PM Due / Overdue</span>
@@ -130,6 +130,41 @@
             </div>
             <div class="card-footer text-center p-2">
                 <a href="{% url 'pms:schedule_list' %}" class="small">View All PM Schedules</a>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header">
+                <span class="fw-bold"><i class="bi bi-shield-exclamation me-2"></i>Expiring Certificates</span>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    {% for item in expiring_items %}
+                    <li class="list-group-item py-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ item.truck.unit_number }}</strong>
+                                <br>
+                                <small class="text-muted">{{ item.label }}</small>
+                                {% if item.ref_number %}
+                                <br><small class="text-muted">{{ item.ref_number }}</small>
+                                {% endif %}
+                            </div>
+                            <div class="text-end">
+                                <span class="badge bg-{% if item.status == 'overdue' %}danger{% else %}warning{% endif %} badge-status">
+                                    {{ item.status|upper }}
+                                </span>
+                                <br>
+                                <small class="text-muted">{{ item.expiry|date:"M d, Y" }}</small>
+                            </div>
+                        </div>
+                    </li>
+                    {% empty %}
+                    <li class="list-group-item text-center py-4 text-muted">All certificates are valid.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div class="card-footer text-center p-2">
+                <a href="{% url 'fleetops:compliance_dashboard' %}" class="small">View All Compliance</a>
             </div>
         </div>
     </div>

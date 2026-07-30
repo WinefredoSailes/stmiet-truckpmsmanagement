@@ -1,3 +1,4 @@
+from datetime import date, timedelta
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login
 from django.contrib.auth.views import LoginView, LogoutView
@@ -47,6 +48,20 @@ def dashboard(request):
     recent_jobs = JobOrder.objects.select_related(
         'truck', 'assigned_to'
     ).order_by('-created_at')[:10]
+
+    expiring_items = []
+    for truck in Truck.objects.filter(status='ACTIVE').order_by('unit_number'):
+        for item in truck.compliance_items():
+            if item['status'] in ('overdue', 'due_soon'):
+                expiring_items.append({
+                    'truck': truck,
+                    'label': item['label'],
+                    'expiry': item['expiry'],
+                    'ref_number': item['ref_number'],
+                    'status': item['status'],
+                })
+    expiring_items.sort(key=lambda x: x['expiry'] or date.max)
+
     context = {
         'open_jo_count': open_jo_count,
         'active_truck_count': active_truck_count,
@@ -54,6 +69,7 @@ def dashboard(request):
         'overdue_pm_count': sum(1 for p in due_now if p.status() == 'overdue'),
         'due_pm_list': due_now[:10],
         'recent_jobs': recent_jobs,
+        'expiring_items': expiring_items,
     }
     return render(request, 'accounts/dashboard.html', context)
 
