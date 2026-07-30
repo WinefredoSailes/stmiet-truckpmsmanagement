@@ -200,7 +200,7 @@ def predictive_analytics(request):
             'date': e.performed_at,
             'action': e.action,
             'description': e.description,
-            'performed_by': e.performed_by.get_full_name() or e.performed_by.username if e.performed_by else '',
+            'performed_by': (e.performed_by.get_full_name() or e.performed_by.username) if e.performed_by else '',
         } for e in recent]
 
         ctx = {
