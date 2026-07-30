@@ -1,5 +1,6 @@
 from datetime import date, timedelta
 from django.shortcuts import render, redirect, get_object_or_404
+from django.utils import timezone
 from django.contrib.auth import login
 from django.contrib.auth import login
 from django.contrib.auth.views import LoginView, LogoutView
@@ -47,9 +48,10 @@ def dashboard(request):
         st = pm.status()
         if st in ('overdue', 'due'):
             due_now.append(pm)
+    start_of_week = timezone.localdate() - timedelta(days=timezone.localdate().weekday())
     recent_jobs = JobOrder.objects.select_related(
         'truck', 'assigned_to'
-    ).order_by('-created_at')[:10]
+    ).filter(created_at__gte=start_of_week).order_by('-created_at')[:10]
 
     expiring_items = []
     for truck in Truck.objects.filter(status='ACTIVE').order_by('unit_number'):
