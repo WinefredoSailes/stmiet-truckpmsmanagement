@@ -266,10 +266,10 @@ def fleet_performance(request):
             'operating_hours': round(op, 2),
             'idle_hours': round(idl, 2),
         })
-    total_distance = sum(p['distance'] for p in perf)
-    total_fuel = sum((p['fuel'] or 0) for p in perf)
-    total_op = sum(p['operating_hours'] for p in perf)
-    total_idl = sum(p['idle_hours'] for p in perf)
+    total_distance = round(sum(p['distance'] for p in perf), 2)
+    total_fuel = round(sum((p['fuel'] or 0) for p in perf), 1)
+    total_op = round(sum(p['operating_hours'] for p in perf), 2)
+    total_idl = round(sum(p['idle_hours'] for p in perf), 2)
     total_harsh = sum(p['harsh_events'] for p in perf)
     total_efficiency = round(total_distance / total_fuel, 2) if total_fuel > 0 else None
     total_utilization = round(total_op / (total_op + total_idl) * 100, 1) if (total_op + total_idl) > 0 else None
