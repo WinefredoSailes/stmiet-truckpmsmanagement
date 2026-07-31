@@ -807,6 +807,55 @@ class ViewTests(TestCase):
         self.assertIsNotNone(entry)
         self.assertEqual(entry.performed_by, self.admin)
 
+    def test_e2e_repair_jo_close_autocompletes_due_pm(self):
+        """Closing a REPAIR JO auto-completes due/overdue PM schedules."""
+        self.client.login(username='admin', password='pass')
+        # Overdue schedule: last 5000 + interval 5000 = due at 10000, truck at 10000
+        overdue = PMSchedule.objects.get(truck=self.truck, task_template=self.tmpl)
+        overdue.last_mileage_km = 5000
+        overdue.save()
+        # Healthy schedule: due at 20000, truck at 10000 -> ok
+        tmpl2 = TaskTemplate.objects.create(
+            category=self.cat, name='Air Filter', interval_type='MILEAGE',
+            interval_value=5000, estimated_labor_hours=0.5,
+        )
+        healthy = PMSchedule.objects.create(
+            truck=self.truck, task_template=tmpl2, last_mileage_km=15000,
+        )
+        self.assertEqual(overdue.status(), 'overdue')
+        self.assertEqual(healthy.status(), 'ok')
+        # REPAIR job order with free-text line item (no task_template)
+        jo = JobOrder.objects.create(
+            truck=self.truck, title='Repair Test', description='Test',
+            priority='MEDIUM', job_type='REPAIR', created_by=self.admin,
+            assigned_to=self.mechanic, status='IN_PROGRESS',
+        )
+        JobOrderLineItem.objects.create(
+            job_order=jo, description='Free text repair work', status='DONE',
+        )
+        response = self.client.post(reverse('joborders:close', args=[jo.pk]), {
+            'status': 'CLOSED',
+            'completed_mileage_km': 12000,
+            'completed_engine_hours': 250,
+        })
+        self.assertRedirects(response, reverse('joborders:detail', args=[jo.pk]))
+        # Overdue schedule auto-completed
+        overdue.refresh_from_db()
+        self.assertIsNotNone(overdue.last_completed_at)
+        self.assertEqual(overdue.last_mileage_km, 12000)
+        self.assertEqual(overdue.last_engine_hours, 250)
+        self.assertEqual(overdue.status(), 'ok')
+        # Healthy schedule untouched
+        healthy.refresh_from_db()
+        self.assertIsNone(healthy.last_completed_at)
+        self.assertEqual(healthy.last_mileage_km, 15000)
+        # PM completion log entry created
+        entry = ServiceLogEntry.objects.filter(
+            job_order=jo, action=f'PM completed: {self.tmpl.name}'
+        ).first()
+        self.assertIsNotNone(entry)
+        self.assertEqual(entry.mileage_at, 12000)
+
     def test_e2e_truck_detail_pm_list_loads(self):
         """Truck detail page shows PM schedules with ✅ button."""
         self.client.login(username='admin', password='pass')

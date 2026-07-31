@@ -238,6 +238,27 @@ def job_order_close(request, pk):
                             order.completed_engine_hours
                         )
                         pm_schedule.save()
+            for sched in PMSchedule.objects.filter(
+                truck=order.truck, is_active=True
+            ).exclude(task_template__interval_type='VISUAL'):
+                if sched.status() in ('due', 'overdue'):
+                    sched.last_completed_at = order.completed_at
+                    sched.last_mileage_km = order.completed_mileage_km
+                    sched.last_engine_hours = order.completed_engine_hours
+                    sched.save()
+                    ServiceLogEntry.objects.create(
+                        truck=order.truck, job_order=order,
+                        action=f'PM completed: {sched.task_template.name}',
+                        description=(
+                            f'PM task "{sched.task_template.name}" '
+                            f'auto-completed on job order '
+                            f'{order.jo_number} close.'
+                        ),
+                        performed_by=request.user,
+                        performed_at=order.completed_at,
+                        mileage_at=order.completed_mileage_km,
+                        engine_hours_at=order.completed_engine_hours,
+                    )
             messages.success(
                 request,
                 f'Job order {order.jo_number} closed.'
