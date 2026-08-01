@@ -797,15 +797,21 @@ class ViewTests(TestCase):
             'completed_engine_hours': 250,
         })
         self.assertRedirects(response, reverse('joborders:detail', args=[jo.pk]))
-        # PMSchedule updated
+        # PMSchedule updated with JOB_ORDER source and audit trail
         pm = PMSchedule.objects.get(truck=self.truck, task_template=self.tmpl)
         self.assertIsNotNone(pm.last_completed_at)
         self.assertEqual(pm.last_mileage_km, 12000)
         self.assertEqual(pm.last_engine_hours, 250)
-        # Audit entry created
-        entry = ServiceLogEntry.objects.filter(job_order=jo).latest('pk')
-        self.assertIsNotNone(entry)
-        self.assertEqual(entry.performed_by, self.admin)
+        self.assertEqual(pm.last_completed_by, self.admin)
+        self.assertEqual(pm.last_completed_source,
+                         PMSchedule.CompletionSource.JOB_ORDER)
+        # Audit entries created (close entry + line-item sync entry)
+        entries = ServiceLogEntry.objects.filter(job_order=jo).order_by('pk')
+        self.assertGreaterEqual(entries.count(), 2)
+        sync_entry = entries.filter(line_item=item).first()
+        self.assertIsNotNone(sync_entry)
+        self.assertIn('PM completed', sync_entry.action)
+        self.assertEqual(sync_entry.performed_by, self.admin)
 
     def test_e2e_repair_jo_close_autocompletes_due_pm(self):
         """Closing a REPAIR JO auto-completes due/overdue PM schedules."""
@@ -839,11 +845,14 @@ class ViewTests(TestCase):
             'completed_engine_hours': 250,
         })
         self.assertRedirects(response, reverse('joborders:detail', args=[jo.pk]))
-        # Overdue schedule auto-completed
+        # Overdue schedule auto-completed with AUTO_CLOSE audit trail
         overdue.refresh_from_db()
         self.assertIsNotNone(overdue.last_completed_at)
         self.assertEqual(overdue.last_mileage_km, 12000)
         self.assertEqual(overdue.last_engine_hours, 250)
+        self.assertEqual(overdue.last_completed_by, self.admin)
+        self.assertEqual(overdue.last_completed_source,
+                         PMSchedule.CompletionSource.AUTO_CLOSE)
         self.assertEqual(overdue.status(), 'ok')
         # Healthy schedule untouched
         healthy.refresh_from_db()
@@ -855,6 +864,36 @@ class ViewTests(TestCase):
         ).first()
         self.assertIsNotNone(entry)
         self.assertEqual(entry.mileage_at, 12000)
+
+    def test_e2e_close_form_in_progress_does_not_touch_pm(self):
+        """Marking IN_PROGRESS via the close form must NOT auto-complete PMs."""
+        self.client.login(username='admin', password='pass')
+        overdue = PMSchedule.objects.get(truck=self.truck, task_template=self.tmpl)
+        overdue.last_mileage_km = 5000
+        overdue.save()
+        self.assertEqual(overdue.status(), 'overdue')
+        jo = JobOrder.objects.create(
+            truck=self.truck, title='Repair Test', description='Test',
+            priority='MEDIUM', job_type='REPAIR', created_by=self.admin,
+            assigned_to=self.mechanic, status='OPEN',
+        )
+        response = self.client.post(reverse('joborders:close', args=[jo.pk]), {
+            'status': 'IN_PROGRESS',
+            'completed_mileage_km': 12000,
+            'completed_engine_hours': 250,
+        })
+        self.assertRedirects(response, reverse('joborders:detail', args=[jo.pk]))
+        jo.refresh_from_db()
+        self.assertEqual(jo.status, 'IN_PROGRESS')
+        # PM schedule untouched
+        overdue.refresh_from_db()
+        self.assertIsNone(overdue.last_completed_at)
+        self.assertEqual(overdue.last_mileage_km, 5000)
+        self.assertEqual(overdue.status(), 'overdue')
+        # No fabricated PM completion entries
+        self.assertFalse(ServiceLogEntry.objects.filter(
+            job_order=jo, action__startswith='PM completed'
+        ).exists())
 
     def test_e2e_truck_detail_pm_list_loads(self):
         """Truck detail page shows PM schedules with ✅ button."""

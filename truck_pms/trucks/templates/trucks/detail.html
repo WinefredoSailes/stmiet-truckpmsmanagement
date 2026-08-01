@@ -190,12 +190,16 @@
             </div>
             <div class="card-body p-0">
                 <table class="table table-hover mb-0 small">
-                    <thead><tr><th>Date</th><th>Action</th><th>By</th><th>Labor</th><th>Parts Cost</th><th></th></tr></thead>
+                    <thead><tr><th>Date</th><th>JO #</th><th>Work Done</th><th>By</th><th>Labor</th><th>Parts Cost</th><th></th></tr></thead>
                     <tbody>
                         {% for log in service_logs %}
                         <tr>
                             <td>{{ log.performed_at|date:"M d, H:i" }}</td>
-                            <td>{{ log.action }}</td>
+                            <td>{% if log.job_order %}<a href="{% url 'joborders:detail' log.job_order.pk %}">{{ log.job_order.jo_number }}</a>{% else %}-{% endif %}</td>
+                            <td>
+                                <div class="fw-medium">{{ log.action }}</div>
+                                {% if log.description %}<div class="text-muted" title="{{ log.description }}">{{ log.description|truncatechars:40 }}</div>{% endif %}
+                            </td>
                             <td>{{ log.performed_by.get_full_name|default:log.performed_by.username|default:'-' }}</td>
                             <td>{{ log.labor_hours|default:'-' }} hrs</td>
                             <td>{% if log.parts_cost %}P{{ log.parts_cost|floatformat:2 }}{% else %}-{% endif %}</td>
@@ -203,7 +207,7 @@
                         </tr>
                         {% if log.parts.all %}
                         <tr class="collapse" id="logParts-{{ log.pk }}">
-                            <td colspan="6" class="bg-light p-2">
+                            <td colspan="7" class="bg-light p-2">
                                 <ul class="mb-0 small">
                                     {% for p in log.parts.all %}
                                     <li>{{ p.part_name }} — {{ p.quantity }} x P{{ p.unit_cost|floatformat:2 }} = <strong>P{{ p.total_cost|floatformat:2 }}</strong></li>
@@ -213,7 +217,7 @@
                         </tr>
                         {% endif %}
                         {% empty %}
-                        <tr><td colspan="6" class="text-center py-3 text-muted">No service history.</td></tr>
+                        <tr><td colspan="7" class="text-center py-3 text-muted">No service history.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>

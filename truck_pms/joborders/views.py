@@ -213,18 +213,38 @@ def job_order_close(request, pk):
                     item.status = 'DONE'
                     item.save()
             order.save()
+            work_done = [
+                item.task_template.name if item.task_template
+                else (item.description or 'Line item')[:60]
+                for item in order.line_items.filter(status='DONE')
+            ]
+            if order.status == 'CLOSED':
+                work_done_text = (
+                    ' Work done: ' + '; '.join(work_done) + '.'
+                    if work_done else ''
+                )
+            else:
+                work_done_text = ''
             ServiceLogEntry.objects.create(
                 job_order=order,
                 truck=order.truck,
                 action=f'Job {order.get_status_display()}',
                 description=f'Job order {order.jo_number} '
-                            f'marked as {order.get_status_display()}',
+                            f'marked as {order.get_status_display()}.'
+                            f'{work_done_text}',
                 performed_by=request.user,
                 mileage_at=order.completed_mileage_km,
                 engine_hours_at=order.completed_engine_hours,
             )
-            for item in order.line_items.all():
-                if item.status == 'DONE' and item.task_template:
+            if order.status != 'CLOSED':
+                messages.success(
+                    request,
+                    f'Job order {order.jo_number} marked as '
+                    f'{order.get_status_display()}.'
+                )
+                return redirect('joborders:detail', pk=pk)
+            for item in order.line_items.filter(status='DONE'):
+                if item.task_template:
                     pm_schedule = PMSchedule.objects.filter(
                         truck=order.truck,
                         task_template=item.task_template
@@ -237,7 +257,28 @@ def job_order_close(request, pk):
                         pm_schedule.last_engine_hours = (
                             order.completed_engine_hours
                         )
+                        pm_schedule.last_completed_by = request.user
+                        pm_schedule.last_completed_source = (
+                            PMSchedule.CompletionSource.JOB_ORDER
+                        )
                         pm_schedule.save()
+                        ServiceLogEntry.objects.create(
+                            truck=order.truck, job_order=order,
+                            line_item=item,
+                            action=(
+                                f'PM completed: '
+                                f'{pm_schedule.task_template.name}'
+                            ),
+                            description=(
+                                f'PM task "{pm_schedule.task_template.name}" '
+                                f'completed via job order {order.jo_number} '
+                                f'line item.'
+                            ),
+                            performed_by=request.user,
+                            performed_at=order.completed_at,
+                            mileage_at=order.completed_mileage_km,
+                            engine_hours_at=order.completed_engine_hours,
+                        )
             for sched in PMSchedule.objects.filter(
                 truck=order.truck, is_active=True
             ).exclude(task_template__interval_type='VISUAL'):
@@ -245,6 +286,10 @@ def job_order_close(request, pk):
                     sched.last_completed_at = order.completed_at
                     sched.last_mileage_km = order.completed_mileage_km
                     sched.last_engine_hours = order.completed_engine_hours
+                    sched.last_completed_by = request.user
+                    sched.last_completed_source = (
+                        PMSchedule.CompletionSource.AUTO_CLOSE
+                    )
                     sched.save()
                     ServiceLogEntry.objects.create(
                         truck=order.truck, job_order=order,

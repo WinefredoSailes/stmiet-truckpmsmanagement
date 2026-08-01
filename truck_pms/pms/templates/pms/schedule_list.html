@@ -55,7 +55,12 @@
                     <td>{{ s.task_template.name }}</td>
                     <td><span class="badge bg-secondary badge-status">{{ s.task_template.category.name }}</span></td>
                     <td>{% if s.task_template.interval_type == 'VISUAL' %}Visual{% else %}{{ s.task_template.interval_value }} {{ s.task_template.get_interval_type_display }}{% endif %}</td>
-                    <td>{{ s.last_completed_at|date:"M d, Y"|default:'Never' }}</td>
+                    <td>
+                        {{ s.last_completed_at|date:"M d, Y"|default:'Never' }}
+                        {% if s.last_completed_at and s.last_completed_source %}
+                        <div class="text-muted small">via {{ s.get_last_completed_source_display }}{% if s.last_completed_by %} · {{ s.last_completed_by.get_full_name|default:s.last_completed_by.username }}{% endif %}</div>
+                        {% endif %}
+                    </td>
                     <td>
                         {% if s.task_template.interval_type == 'MILEAGE' and s.next_due_mileage %}
                             {{ s.next_due_mileage }} km

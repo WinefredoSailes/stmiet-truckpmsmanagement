@@ -144,6 +144,15 @@ def schedule_update(request, pk):
         form = PMScheduleForm(request.POST, instance=schedule)
         if form.is_valid():
             form.save()
+            changed = set(form.changed_data)
+            if changed & {'last_completed_at', 'last_mileage_km', 'last_engine_hours'}:
+                schedule.last_completed_by = request.user
+                schedule.last_completed_source = (
+                    PMSchedule.CompletionSource.ADMIN
+                )
+                schedule.save(update_fields=[
+                    'last_completed_by', 'last_completed_source'
+                ])
             messages.success(request, 'PM schedule updated.')
             return redirect('pms:schedule_list')
     else:
@@ -351,6 +360,10 @@ def complete_task(request, pk):
         schedule.last_completed_at = dt
         schedule.last_mileage_km = mileage
         schedule.last_engine_hours = hours
+        schedule.last_completed_by = request.user
+        schedule.last_completed_source = (
+            PMSchedule.CompletionSource.MANUAL
+        )
         schedule.save()
 
         labor = request.POST.get('labor_hours')
@@ -399,6 +412,8 @@ def complete_task(request, pk):
             f'{truck.unit_number}.'
         )
         next_url = request.POST.get('next', 'pms:schedule_list')
+        if not next_url.startswith('/'):
+            next_url = 'pms:schedule_list'
         return redirect(next_url)
 
     now = timezone.now()

@@ -52,7 +52,7 @@ def truck_detail(request, pk):
         'assigned_to', 'created_by', 'contractor'
     ).order_by('-created_at')[:20]
     service_logs = truck.service_logs.select_related(
-        'performed_by'
+        'performed_by', 'job_order'
     ).prefetch_related('parts').order_by('-performed_at')[:20]
     cr_fields = [
         truck.mv_file_no, truck.cr_number, truck.or_number,

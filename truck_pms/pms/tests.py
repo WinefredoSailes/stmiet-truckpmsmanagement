@@ -303,6 +303,17 @@ class ScheduleViewTests(TestCase):
             truck=self.truck, action__icontains='Change Oil'
         ).exists())
 
+    def test_complete_task_records_source_and_performer(self):
+        self.client.login(username='admin', password='pass')
+        self.client.post(
+            reverse('pms:complete_task', args=[self.schedule.pk]),
+            {'actual_hours': 1.0},
+            follow=True,
+        )
+        self.schedule.refresh_from_db()
+        self.assertEqual(self.schedule.last_completed_source, 'MANUAL')
+        self.assertEqual(self.schedule.last_completed_by.username, 'admin')
+
     def test_complete_task_creates_audit_entry(self):
         self.client.login(username='admin', password='pass')
         self.client.post(

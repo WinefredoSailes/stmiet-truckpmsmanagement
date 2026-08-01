@@ -52,6 +52,12 @@ class TaskTemplate(models.Model):
 
 
 class PMSchedule(models.Model):
+    class CompletionSource(models.TextChoices):
+        MANUAL = 'MANUAL', 'Manual'
+        JOB_ORDER = 'JOB_ORDER', 'Job Order'
+        AUTO_CLOSE = 'AUTO_CLOSE', 'Auto-complete on close'
+        ADMIN = 'ADMIN', 'Admin edit'
+
     truck = models.ForeignKey(
         'trucks.Truck', on_delete=models.CASCADE,
         related_name='pm_schedules'
@@ -65,6 +71,13 @@ class PMSchedule(models.Model):
     last_mileage_km = models.IntegerField(null=True, blank=True)
     last_engine_hours = models.DecimalField(
         max_digits=10, decimal_places=1, null=True, blank=True
+    )
+    last_completed_by = models.ForeignKey(
+        'accounts.User', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='pm_completions'
+    )
+    last_completed_source = models.CharField(
+        max_length=20, choices=CompletionSource.choices, blank=True
     )
 
     class Meta:

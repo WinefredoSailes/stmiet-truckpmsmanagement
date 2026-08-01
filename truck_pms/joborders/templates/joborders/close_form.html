@@ -12,7 +12,8 @@
             {% endif %}
             <div class="alert alert-info py-2 small mb-4">
                 <i class="bi bi-info-circle"></i>
-                Closing will mark all pending line items as Done, auto-complete the truck's due/overdue PM tasks, and log to service history.
+                <strong>Close Job Order:</strong> marks all pending line items as Done, auto-completes the truck's due/overdue PM tasks (audited in service history with the job order reference), and records the work done.
+                <br><strong>Mark In Progress</strong> only changes the status — it does <em>not</em> touch line items or PM schedules.
             </div>
             <div class="row g-3">
                 {% for field in form %}
@@ -27,7 +28,7 @@
                 <button type="submit" name="status" value="CLOSED" class="btn btn-success" onclick="return confirm('Close this job order? This will log service history and update PM schedules.')">
                     <i class="bi bi-check-circle"></i> Close Job Order
                 </button>
-                <button type="submit" name="status" value="IN_PROGRESS" class="btn btn-warning">
+                <button type="submit" name="status" value="IN_PROGRESS" class="btn btn-warning" title="Only changes status — does not auto-complete PM schedules">
                     <i class="bi bi-play-circle"></i> Mark In Progress
                 </button>
                 <a href="{% url 'joborders:detail' order.pk %}" class="btn btn-outline-secondary">Cancel</a>
