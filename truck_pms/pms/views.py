@@ -354,6 +354,19 @@ def complete_task(request, pk):
             dt = parse_datetime(raw_dt)
         else:
             dt = timezone.now()
+        if dt is None:
+            dt = timezone.now()
+        if timezone.is_naive(dt):
+            dt = timezone.make_aware(dt)
+        completed_date = timezone.localtime(dt).date()
+        if schedule.completed_on(completed_date):
+            messages.error(
+                request,
+                f'"{schedule.task_template.name}" was already completed '
+                f'for {truck.unit_number} on {completed_date:%b %d, %Y}. '
+                'Only one completion per day per task is allowed.'
+            )
+            return redirect('pms:complete_task', pk=schedule.pk)
         mileage = request.POST.get('mileage_km', truck.current_mileage_km)
         hours = request.POST.get('engine_hours', truck.current_engine_hours)
 

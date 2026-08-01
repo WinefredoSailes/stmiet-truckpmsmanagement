@@ -100,6 +100,22 @@ class PMScheduleModelTests(TestCase):
         self.schedule.refresh_from_db()
         self.assertEqual(self.schedule.status(), 'overdue')
 
+    def test_completed_on(self):
+        self.schedule.last_completed_at = timezone.now()
+        self.schedule.save()
+        self.assertTrue(self.schedule.completed_on())
+        self.assertTrue(self.schedule.completed_on(timezone.localdate()))
+        self.assertFalse(self.schedule.completed_on(
+            timezone.localdate() - timedelta(days=1)
+        ))
+
+    def test_completed_on_returns_false_when_never_completed(self):
+        tmpl2 = create_template(self.cat, 'CALENDAR', 30)
+        sched = PMSchedule.objects.create(
+            truck=self.truck, task_template=tmpl2,
+        )
+        self.assertFalse(sched.completed_on())
+
     def test_status_calendar_overdue(self):
         tmpl = create_template(self.cat, 'CALENDAR', 30)
         sched = PMSchedule.objects.create(
@@ -313,6 +329,57 @@ class ScheduleViewTests(TestCase):
         self.schedule.refresh_from_db()
         self.assertEqual(self.schedule.last_completed_source, 'MANUAL')
         self.assertEqual(self.schedule.last_completed_by.username, 'admin')
+
+    def test_complete_task_blocks_same_day_duplicate(self):
+        self.client.login(username='admin', password='pass')
+        url = reverse('pms:complete_task', args=[self.schedule.pk])
+        local_now = timezone.localtime(timezone.now())
+        data = {
+            'completed_at': local_now.strftime('%Y-%m-%dT%H:%M'),
+            'mileage_km': 10000, 'engine_hours': 500, 'labor_hours': 1.0,
+        }
+        self.client.post(url, data)
+        self.schedule.refresh_from_db()
+        first_completed = self.schedule.last_completed_at
+        log_count = ServiceLogEntry.objects.filter(
+            truck=self.truck, action__startswith='PM completed'
+        ).count()
+        self.assertEqual(log_count, 1)
+        # Second person tries to complete the same PM on the same date
+        resp = self.client.post(url, data)
+        self.assertRedirects(resp, url)
+        self.schedule.refresh_from_db()
+        self.assertEqual(self.schedule.last_completed_at, first_completed)
+        self.assertEqual(ServiceLogEntry.objects.filter(
+            truck=self.truck, action__startswith='PM completed'
+        ).count(), 1)
+
+    def test_complete_task_allows_different_dates(self):
+        self.client.login(username='admin', password='pass')
+        url = reverse('pms:complete_task', args=[self.schedule.pk])
+        past = timezone.localtime(timezone.now()) - timedelta(days=5)
+        self.client.post(url, {
+            'completed_at': past.strftime('%Y-%m-%dT%H:%M'),
+            'mileage_km': 9000, 'engine_hours': 450,
+        })
+        self.schedule.refresh_from_db()
+        self.assertEqual(
+            timezone.localtime(self.schedule.last_completed_at).date(),
+            past.date()
+        )
+        # Backdating to an EMPTY date is allowed (staff may log late)
+        resp = self.client.post(url, {
+            'completed_at': timezone.localtime(timezone.now()).strftime(
+                '%Y-%m-%dT%H:%M'
+            ),
+            'mileage_km': 10000, 'engine_hours': 500,
+        })
+        self.assertRedirects(resp, reverse('pms:schedule_list'))
+        self.schedule.refresh_from_db()
+        self.assertTrue(self.schedule.completed_on())
+        self.assertEqual(ServiceLogEntry.objects.filter(
+            truck=self.truck, action__startswith='PM completed'
+        ).count(), 2)
 
     def test_complete_task_creates_audit_entry(self):
         self.client.login(username='admin', password='pass')

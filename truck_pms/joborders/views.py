@@ -249,7 +249,7 @@ def job_order_close(request, pk):
                         truck=order.truck,
                         task_template=item.task_template
                     ).first()
-                    if pm_schedule:
+                    if pm_schedule and not pm_schedule.completed_on():
                         pm_schedule.last_completed_at = timezone.now()
                         pm_schedule.last_mileage_km = (
                             order.completed_mileage_km

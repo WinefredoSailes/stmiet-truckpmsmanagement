@@ -110,6 +110,14 @@ class PMSchedule(models.Model):
             )
         return None
 
+    def completed_on(self, date=None):
+        """True if the last completion falls on the given local date."""
+        d = date or timezone.localdate()
+        return (
+            self.last_completed_at is not None
+            and timezone.localtime(self.last_completed_at).date() == d
+        )
+
     def status(self):
         if not self.is_active:
             return 'inactive'

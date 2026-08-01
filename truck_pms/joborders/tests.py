@@ -865,6 +865,43 @@ class ViewTests(TestCase):
         self.assertIsNotNone(entry)
         self.assertEqual(entry.mileage_at, 12000)
 
+    def test_e2e_close_line_item_skips_schedule_completed_today(self):
+        """JO close must not re-complete a PM already completed on the same date."""
+        self.client.login(username='admin', password='pass')
+        pm = PMSchedule.objects.get(truck=self.truck, task_template=self.tmpl)
+        pm.last_completed_at = timezone.now()
+        pm.last_mileage_km = 10000
+        pm.last_engine_hours = 250
+        pm.last_completed_by = self.admin
+        pm.last_completed_source = PMSchedule.CompletionSource.MANUAL
+        pm.save()
+        jo = JobOrder.objects.create(
+            truck=self.truck, title='PM Close Test', description='Test',
+            priority='MEDIUM', job_type='PM', created_by=self.admin,
+            assigned_to=self.mechanic, status='IN_PROGRESS',
+        )
+        JobOrderLineItem.objects.create(
+            job_order=jo, task_template=self.tmpl,
+            category=self.cat, description='Oil Change',
+            status='DONE', actual_hours=1.0,
+        )
+        response = self.client.post(reverse('joborders:close', args=[jo.pk]), {
+            'status': 'CLOSED',
+            'completed_mileage_km': 12000,
+            'completed_engine_hours': 250,
+        })
+        self.assertRedirects(response, reverse('joborders:detail', args=[jo.pk]))
+        # Schedule untouched — same date completion exists
+        pm.refresh_from_db()
+        self.assertEqual(pm.last_mileage_km, 10000)
+        self.assertEqual(pm.last_engine_hours, 250)
+        self.assertEqual(pm.last_completed_source,
+                         PMSchedule.CompletionSource.MANUAL)
+        # No second 'PM completed' entry for that task on this date
+        self.assertFalse(ServiceLogEntry.objects.filter(
+            job_order=jo, action=f'PM completed: {self.tmpl.name}'
+        ).exists())
+
     def test_e2e_close_form_in_progress_does_not_touch_pm(self):
         """Marking IN_PROGRESS via the close form must NOT auto-complete PMs."""
         self.client.login(username='admin', password='pass')
