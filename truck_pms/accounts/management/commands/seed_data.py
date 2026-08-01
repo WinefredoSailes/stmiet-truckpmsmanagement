@@ -233,6 +233,13 @@ class Command(BaseCommand):
             ('SUSPENSION', 'Shock Absorber Check', 'VISUAL', None, False, '', 0.3),
             ('SUSPENSION', 'Air Suspension Bag Inspection', 'MILEAGE', 10000, False, '', 0.3),
             ('SUSPENSION', 'Stabilizer Bar Link Check', 'MILEAGE', 20000, False, '', 0.3),
+            ('SUSPENSION', 'Tie Rod Ends Inspection', 'MILEAGE', 10000, False, '', 0.4),
+            ('SUSPENSION', 'Ball Joint Inspection', 'MILEAGE', 10000, False, '', 0.4),
+            ('SUSPENSION', 'Steering King Pin & Bushing Inspection', 'MILEAGE', 10000, False, '', 0.5),
+            ('SUSPENSION', 'Lubricate Steering King Pins & Tie Rod Ends', 'MILEAGE', 5000, False, '', 0.3),
+            ('SUSPENSION', 'Tie Rod End Replacement', 'VISUAL', None, False, '', 1.5),
+            ('SUSPENSION', 'Ball Joint Replacement', 'VISUAL', None, False, '', 2.0),
+            ('SUSPENSION', 'King Pin Bushing Replacement', 'VISUAL', None, False, '', 3.0),
             # ── EXHAUST ──
             ('EXHAUST', 'Exhaust System Inspection', 'MILEAGE', 20000, False, '', 0.5),
             ('EXHAUST', 'DPF Regeneration Check', 'MILEAGE', 50000, False, '', 0.5),
