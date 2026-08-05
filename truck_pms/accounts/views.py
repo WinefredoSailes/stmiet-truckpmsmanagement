@@ -48,10 +48,10 @@ def dashboard(request):
         st = pm.status()
         if st in ('overdue', 'due'):
             due_now.append(pm)
-    start_of_week = timezone.localdate() - timedelta(days=timezone.localdate().weekday())
+    last_30_days = timezone.localdate() - timedelta(days=30)
     recent_jobs = JobOrder.objects.select_related(
         'truck', 'assigned_to'
-    ).filter(created_at__gte=start_of_week).order_by('-created_at')[:10]
+    ).filter(created_at__date__gte=last_30_days).order_by('-created_at')[:10]
 
     expiring_items = []
     for truck in Truck.objects.filter(status='ACTIVE').order_by('unit_number'):
