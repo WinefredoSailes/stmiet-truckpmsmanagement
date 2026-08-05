@@ -26,3 +26,6 @@ Thumbs.db
 
 # Internal documents
 compensation_review.md
+
+# Database backups (production data — never commit)
+backups/
