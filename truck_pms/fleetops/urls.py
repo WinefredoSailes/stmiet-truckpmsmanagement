@@ -14,6 +14,7 @@ urlpatterns = [
     path('assignments/', views.assignment_list, name='assignment_list'),
     path('assignments/create/', views.assignment_create, name='assignment_create'),
     path('pull-cartrack/', views.pull_cartrack, name='pull_cartrack'),
+    path('sync/', views.sync_cartrack, name='sync_cartrack'),
     path('compliance/', views.compliance_dashboard, name='compliance_dashboard'),
     path('weekly-report/', views.weekly_report, name='weekly_report'),
 ]

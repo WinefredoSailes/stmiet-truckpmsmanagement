@@ -1,9 +1,14 @@
 import logging
+import hmac
+import json
+import os
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
 
 logger = logging.getLogger(__name__)
 from django.db.models import Q, Avg, Sum, Count, F, Case, Value, When, FloatField, Max
@@ -67,6 +72,7 @@ def daily_log_list(request):
             total_brake=Sum('harsh_braking_count'),
             total_accel=Sum('harsh_acceleration_count'),
             total_turn=Sum('harsh_turning_count'),
+            total_speed=Sum('speeding_count'),
             max_speed=Max('max_speed_kmh'),
             latest_mileage=Max('mileage_km'),
             latest_eng_hrs=Max('engine_hours'),
@@ -96,6 +102,7 @@ def daily_log_list(request):
                 'brake': int(r['total_brake'] or 0),
                 'accel': int(r['total_accel'] or 0),
                 'turn': int(r['total_turn'] or 0),
+                'speed': int(r['total_speed'] or 0),
             })
         return render(request, 'fleetops/daily_log.html', {
             'date_start': date_start,
@@ -148,6 +155,7 @@ def daily_log_load(request):
             brake_key = f'brake_{t.pk}'
             accel_key = f'accel_{t.pk}'
             turn_key = f'turn_{t.pk}'
+            speed_key = f'speed_{t.pk}'
 
             if mileage_key not in request.POST:
                 continue
@@ -194,6 +202,8 @@ def daily_log_load(request):
                 log.harsh_acceleration_count = int(request.POST[accel_key])
             if turn_key in request.POST and request.POST[turn_key]:
                 log.harsh_turning_count = int(request.POST[turn_key])
+            if speed_key in request.POST and request.POST[speed_key]:
+                log.speeding_count = int(request.POST[speed_key])
             if log.data_source == DailyLog.DataSource.MANUAL:
                 log.data_source = DailyLog.DataSource.MANUAL
             log.save()
@@ -691,6 +701,50 @@ def pull_cartrack(request):
     if import_date == import_date_end:
         return redirect(reverse('fleetops:daily_log') + f'?date={import_date}')
     return redirect(reverse('fleetops:daily_log') + f'?start={import_date}&end={import_date_end}')
+
+
+# ── Automated Sync (token-guarded) ──
+
+@csrf_exempt
+@require_POST
+def sync_cartrack(request):
+    """POST /fleetops/sync/ — Bearer SYNC_TOKEN guarded, runs last 7 days.
+
+    Used by the GitHub Actions nightly job. Returns JSON summary.
+    """
+    token = request.headers.get('Authorization', '').removeprefix('Bearer ').strip()
+    expected = os.environ.get('SYNC_TOKEN', '')
+    if not expected or not token or not hmac.compare_digest(token, expected):
+        return JsonResponse({'success': False, 'error': 'Unauthorized'}, status=401)
+
+    try:
+        body = json.loads(request.body.decode('utf-8')) if request.body else {}
+    except (ValueError, UnicodeDecodeError):
+        body = {}
+
+    days_back = int(body.get('days_back', 7))
+    days_back = min(max(days_back, 1), 31)
+    data_types = body.get('data_types') or ['trips', 'events', 'fuel']
+
+    logger.info('sync_cartrack: days_back=%d data_types=%s', days_back, data_types)
+    result = import_cartrack_data(days_back=days_back, data_types=data_types)
+
+    end = result.get('import_date_end')
+    start = result.get('import_date')
+    payload = {
+        'success': bool(result.get('success')),
+        'processed': result.get('processed', 0),
+        'date_start': start.isoformat() if isinstance(start, date) else str(start),
+        'date_end': end.isoformat() if isinstance(end, date) else str(end),
+        'errors': result.get('errors', []),
+        'fuel_warnings': result.get('fuel_warnings', []),
+        'trucks_found': result.get('trucks_found', 0),
+        'data_types': data_types,
+    }
+    if not payload['success']:
+        payload['error'] = result.get('error', 'Unknown error')
+        return JsonResponse(payload, status=502)
+    return JsonResponse(payload)
 
 
 # ── Compliance Dashboard ──

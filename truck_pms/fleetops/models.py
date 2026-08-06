@@ -97,6 +97,7 @@ class DailyLog(models.Model):
     harsh_braking_count = models.IntegerField(default=0)
     harsh_acceleration_count = models.IntegerField(default=0)
     harsh_turning_count = models.IntegerField(default=0)
+    speeding_count = models.IntegerField(default=0)
     data_source = models.CharField(
         max_length=10, choices=DataSource.choices, default=DataSource.MANUAL
     )

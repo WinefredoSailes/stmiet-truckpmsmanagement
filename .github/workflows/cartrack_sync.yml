@@ -1,0 +1,50 @@
+name: Cartrack Daily Sync
+
+on:
+  schedule:
+    # 07:00 Manila (UTC+8) = 23:00 UTC
+    - cron: '0 23 * * *'
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Wake app (cold start)
+        run: |
+          curl -fsS -m 120 "${{ secrets.FLEETPULSE_SYNC_URL }}" \
+            || echo "wake curl failed (app may already be up)"
+        shell: bash
+
+      - name: Wait for cold boot
+        run: sleep 60
+
+      - name: Trigger Cartrack sync
+        env:
+          SYNC_URL: ${{ secrets.FLEETPULSE_SYNC_URL }}
+          SYNC_TOKEN: ${{ secrets.CARTRACK_SYNC_TOKEN }}
+        run: |
+          url="${SYNC_URL%/}/fleetops/sync/"
+          body='{"days_back":7,"data_types":["trips","events","fuel"]}'
+          for attempt in 1 2 3 4 5; do
+            echo "attempt $attempt"
+            resp=$(curl -sS -m 240 -w '\n%{http_code}' \
+              -X POST "$url" \
+              -H "Authorization: Bearer ${SYNC_TOKEN}" \
+              -H "Content-Type: application/json" \
+              -d "$body")
+            http_code=$(printf '%s' "$resp" | tail -n1)
+            payload=$(printf '%s' "$resp" | sed '$d')
+            echo "http_code=$http_code"
+            if [ "$http_code" = "200" ]; then
+              echo "$payload"
+              echo "SYNC OK"
+              exit 0
+            fi
+            echo "sync attempt $attempt failed: $payload"
+            sleep 60
+          done
+          echo "All sync attempts failed"
+          exit 1
+        shell: bash

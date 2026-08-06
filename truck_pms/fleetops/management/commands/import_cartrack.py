@@ -1,6 +1,7 @@
 from django.core.management.base import BaseCommand
 from fleetops.cartrack_import import import_cartrack_data, REQUESTS_AVAILABLE, DEFAULT_API_URL
-from datetime import date, timedelta, datetime
+from datetime import timedelta
+from django.utils import timezone
 
 
 class Command(BaseCommand):
@@ -21,11 +22,11 @@ class Command(BaseCommand):
             ))
             return
 
-        import_date = date.today() - timedelta(days=options['days_back'])
+        import_date = timezone.localdate() - timedelta(days=options['days_back'])
         end = None
         if options['end_date']:
             try:
-                end = datetime.strptime(options['end_date'], '%Y-%m-%d').date()
+                end = timezone.datetime.strptime(options['end_date'], '%Y-%m-%d').date()
             except ValueError:
                 self.stdout.write(self.style.ERROR('Invalid --end-date format. Use YYYY-MM-DD.'))
                 return
@@ -50,6 +51,12 @@ class Command(BaseCommand):
         if result['errors']:
             for err in result['errors']:
                 self.stdout.write(self.style.WARNING(err))
+        if result.get('fuel_endpoint'):
+            self.stdout.write(f"Fuel endpoint used: {result['fuel_endpoint']}, trucks with fuel data: {result['fuel_count']}")
+        if result.get('fuel_warnings'):
+            self.stdout.write(self.style.WARNING('Fuel warnings:'))
+            for w in result['fuel_warnings']:
+                self.stdout.write(f'  - {w}')
 
         if options['dry_run']:
             self.stdout.write(self.style.SUCCESS(

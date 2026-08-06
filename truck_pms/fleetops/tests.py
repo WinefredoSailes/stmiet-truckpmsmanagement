@@ -577,6 +577,81 @@ class PullCartrackViewTests(TestCase):
         self.assertEqual(resp.status_code, 302)
 
 
+class SyncCartrackViewTests(TestCase):
+    def setUp(self):
+        self.today = timezone.now().date()
+
+    def _post(self, body=None, token='secret-token', **headers):
+        hdrs = {'HTTP_AUTHORIZATION': f'Bearer {token}'}
+        hdrs.update(headers)
+        payload = json.dumps(body) if body is not None else ''
+        return self.client.post(
+            reverse('fleetops:sync_cartrack'),
+            data=payload,
+            content_type='application/json',
+            **hdrs,
+        )
+
+    @patch('fleetops.views.import_cartrack_data')
+    def test_sync_requires_token(self, mock_import):
+        resp = self.client.post(reverse('fleetops:sync_cartrack'))
+        self.assertEqual(resp.status_code, 401)
+        mock_import.assert_not_called()
+
+    @patch('fleetops.views.import_cartrack_data')
+    def test_sync_wrong_token_rejected(self, mock_import):
+        resp = self._post(token='wrong-token')
+        self.assertEqual(resp.status_code, 401)
+        mock_import.assert_not_called()
+
+    @patch('fleetops.views.import_cartrack_data')
+    def test_sync_no_token_configured_rejected(self, mock_import):
+        with patch.dict('os.environ', {}, clear=False):
+            import os as _os
+            _os.environ.pop('SYNC_TOKEN', None)
+            resp = self._post(token='secret-token')
+        self.assertEqual(resp.status_code, 401)
+        mock_import.assert_not_called()
+
+    @patch('fleetops.views.import_cartrack_data')
+    def test_sync_ok(self, mock_import):
+        mock_import.return_value = {
+            'success': True, 'processed': 6, 'trucks_found': 1,
+            'import_date': self.today - timedelta(days=6),
+            'import_date_end': self.today,
+            'errors': [], 'fuel_warnings': ['Truck X: no sensor'],
+        }
+        with patch.dict('os.environ', {'SYNC_TOKEN': 'secret-token'}):
+            resp = self._post({'days_back': 7})
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertTrue(data['success'])
+        self.assertEqual(data['processed'], 6)
+        self.assertEqual(data['date_start'], (self.today - timedelta(days=6)).isoformat())
+        mock_import.assert_called_once()
+        kwargs = mock_import.call_args.kwargs
+        self.assertEqual(kwargs['days_back'], 7)
+
+    @patch('fleetops.views.import_cartrack_data')
+    def test_sync_failure_status(self, mock_import):
+        mock_import.return_value = {
+            'success': False, 'processed': 0, 'trucks_found': 0,
+            'import_date': self.today, 'import_date_end': self.today,
+            'errors': [], 'error': 'Boom',
+        }
+        with patch.dict('os.environ', {'SYNC_TOKEN': 'secret-token'}):
+            resp = self._post()
+        self.assertEqual(resp.status_code, 502)
+        self.assertEqual(resp.json()['error'], 'Boom')
+
+    @patch('fleetops.views.import_cartrack_data')
+    def test_sync_get_method_not_allowed(self, mock_import):
+        with patch.dict('os.environ', {'SYNC_TOKEN': 'secret-token'}):
+            resp = self.client.get(reverse('fleetops:sync_cartrack'))
+        self.assertEqual(resp.status_code, 405)
+        mock_import.assert_not_called()
+
+
 class CartrackImportIntegrationTests(TestCase):
     def setUp(self):
         self.truck = create_truck(
@@ -607,9 +682,9 @@ class CartrackImportIntegrationTests(TestCase):
             'error': None,
         }
         mock_client.fetch_events.return_value = {'data': [], 'error': None}
-        mock_client.fetch_fuel.return_value = {
-            'data': [{'registration': 'INT-001', 'fuel_consumed_litres': 100.0}],
-            'error': None, 'endpoint': 'reports/fuel-efficiency',
+        mock_client.fetch_fuel_consumed.return_value = {
+            'data': [{'registration': 'INT-001', 'fuel_consumed': 100.0}],
+            'error': None,
         }
 
         result = import_cartrack_data(
@@ -624,7 +699,7 @@ class CartrackImportIntegrationTests(TestCase):
         ).exists())
         log = DailyLog.objects.get(truck=self.truck, date=self.today)
         self.assertAlmostEqual(float(log.distance_traveled_km), 123.46, places=1)
-        self.assertAlmostEqual(float(log.operating_hours), 8.0, places=1)
+        self.assertAlmostEqual(float(log.operating_hours), 7.0, places=1)
         self.assertAlmostEqual(float(log.idle_hours), 1.0, places=1)
         self.assertEqual(log.max_speed_kmh, 80.0)
         self.assertEqual(log.data_source, DailyLog.DataSource.CARTRACK)
@@ -648,7 +723,9 @@ class CartrackImportIntegrationTests(TestCase):
             'error': None,
         }
         mock_client.fetch_events.return_value = {'data': [], 'error': None}
-        mock_client.fetch_fuel.return_value = {'data': [], 'error': None, 'endpoint': 'none'}
+        mock_client.fetch_fuel_consumed.return_value = {'data': [], 'error': None}
+        mock_client.fetch_fuel_level.return_value = {'data': [], 'error': None}
+        mock_client.fetch_fuel_fills_all.return_value = {'data': [], 'error': None}
 
         result = import_cartrack_data(
             import_date=self.today, dry_run=True,
@@ -702,9 +779,11 @@ class CartrackImportIntegrationTests(TestCase):
             'error': None,
         }
         mock_client.fetch_events.return_value = {'data': [], 'error': None}
-        mock_client.fetch_fuel.return_value = {
-            'data': [{'registration': 'INT-001', 'fuel_consumed_litres': 50.0}],
-            'error': None, 'endpoint': 'fuel/fills',
+        mock_client.fetch_fuel_consumed.return_value = {'data': [], 'error': None}
+        mock_client.fetch_fuel_level.return_value = {'data': [], 'error': None}
+        mock_client.fetch_fuel_fills_all.return_value = {
+            'data': [{'registration': 'INT-001', 'fill_amount_litres': 50.0}],
+            'error': None,
         }
         result = import_cartrack_data(
             import_date=self.today, data_types=['trips', 'fuel'],

@@ -51,6 +51,7 @@
                 <li><label class="dropdown-item d-flex align-items-center gap-2"><input type="checkbox" data-col="12"> Brk</label></li>
                 <li><label class="dropdown-item d-flex align-items-center gap-2"><input type="checkbox" data-col="13"> Acc</label></li>
                 <li><label class="dropdown-item d-flex align-items-center gap-2"><input type="checkbox" data-col="14"> Trn</label></li>
+                <li><label class="dropdown-item d-flex align-items-center gap-2"><input type="checkbox" data-col="15"> Spd</label></li>
                 <li><hr class="dropdown-divider"></li>
                 <li><button class="dropdown-item small text-primary" id="resetColumns">Reset to defaults</button></li>
             </ul>
@@ -84,6 +85,7 @@
                         <th>Brk</th>
                         <th>Acc</th>
                         <th>Trn</th>
+                        <th>Spd</th>
                         <th>Days</th>
                     </tr>
                 </thead>
@@ -102,10 +104,11 @@
                         <td>{{ row.brake|default:'0' }}</td>
                         <td>{{ row.accel|default:'0' }}</td>
                         <td>{{ row.turn|default:'0' }}</td>
+                        <td>{{ row.speed|default:'0' }}</td>
                         <td>{{ row.days|default:'0' }}</td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="13" class="text-center text-muted py-4">No data for the selected period.</td></tr>
+                    <tr><td colspan="15" class="text-center text-muted py-4">No data for the selected period.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
@@ -143,6 +146,7 @@
                             <th data-col="12" style="min-width:45px" title="Harsh Braking">Brk</th>
                             <th data-col="13" style="min-width:45px" title="Harsh Acceleration">Acc</th>
                             <th data-col="14" style="min-width:45px" title="Harsh Turning">Trn</th>
+                            <th data-col="15" style="min-width:45px" title="Speeding Occurrences">Spd</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -171,10 +175,11 @@
                             <td><input type="number" name="brake_{{ t.pk }}" value="{% if log %}{{ log.harsh_braking_count }}{% endif %}" min="0" class="form-control form-control-sm"></td>
                             <td><input type="number" name="accel_{{ t.pk }}" value="{% if log %}{{ log.harsh_acceleration_count }}{% endif %}" min="0" class="form-control form-control-sm"></td>
                             <td><input type="number" name="turn_{{ t.pk }}" value="{% if log %}{{ log.harsh_turning_count }}{% endif %}" min="0" class="form-control form-control-sm"></td>
+                            <td><input type="number" name="speed_{{ t.pk }}" value="{% if log %}{{ log.speeding_count }}{% endif %}" min="0" class="form-control form-control-sm"></td>
                         </tr>
                         {% endwith %}
                         {% empty %}
-                        <tr><td colspan="15" class="text-center text-muted py-4">No active trucks.</td></tr>
+                        <tr><td colspan="16" class="text-center text-muted py-4">No active trucks.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
