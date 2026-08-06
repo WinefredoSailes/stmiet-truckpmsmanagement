@@ -726,8 +726,12 @@ def sync_cartrack(request):
     days_back = min(max(days_back, 1), 31)
     data_types = body.get('data_types') or ['trips', 'events', 'fuel']
 
-    logger.info('sync_cartrack: days_back=%d data_types=%s', days_back, data_types)
-    result = import_cartrack_data(days_back=days_back, data_types=data_types)
+    # Rolling window ending yesterday (Manila local), self-healing across missed days
+    end = timezone.localdate() - timedelta(days=1)
+    start = end - timedelta(days=days_back - 1)
+
+    logger.info('sync_cartrack: %s..%s data_types=%s', start, end, data_types)
+    result = import_cartrack_data(import_date=start, import_date_end=end, data_types=data_types)
 
     end = result.get('import_date_end')
     start = result.get('import_date')

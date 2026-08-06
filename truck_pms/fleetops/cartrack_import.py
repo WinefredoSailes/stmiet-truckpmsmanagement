@@ -26,8 +26,17 @@ class CartrackAPIClient:
         self.token = token or os.environ.get('CARTRACK_API_TOKEN', '')
         encoded = base64.b64encode(f'{self.username}:{self.token}'.encode()).decode()
         self.headers = {'Authorization': f'Basic {encoded}', 'Accept': 'application/json'}
+        self._last_request = 0.0
+
+    def _pace(self):
+        """Keep requests within the API's 10/minute rate limit."""
+        elapsed = time.monotonic() - self._last_request
+        if elapsed < 6.5:
+            time.sleep(6.5 - elapsed)
+        self._last_request = time.monotonic()
 
     def _fetch(self, endpoint, params):
+        self._pace()
         url = f'{self.api_url}/{endpoint.lstrip("/")}'
         resp = requests.get(url, headers=self.headers, params=params, timeout=(3, 30))
         resp.raise_for_status()
@@ -89,6 +98,7 @@ class CartrackAPIClient:
         }
         url = f'{self.api_url}/fuel/consumed'
         try:
+            self._pace()
             resp = requests.post(
                 url, headers=self.headers, json=payload, timeout=(3, 30)
             )
@@ -117,6 +127,7 @@ class CartrackAPIClient:
         }
         url = f'{self.api_url}/fuel/level'
         try:
+            self._pace()
             resp = requests.post(
                 url, headers=self.headers, json=payload, timeout=(3, 30)
             )
@@ -135,6 +146,7 @@ class CartrackAPIClient:
         end = end_date or start_date
         url = f'{self.api_url}/fuel/fills/{registration}'
         try:
+            self._pace()
             resp = requests.get(url, headers=self.headers, timeout=(3, 30), params={
                 'start_timestamp': f'{start_date} 00:00:00',
                 'end_timestamp': f'{end} 23:59:59',
@@ -153,6 +165,7 @@ class CartrackAPIClient:
         end = end_date or start_date
         url = f'{self.api_url}/fuel/fills'
         try:
+            self._pace()
             resp = requests.get(url, headers=self.headers, timeout=(3, 30), params={
                 'start_timestamp': f'{start_date} 00:00:00',
                 'end_timestamp': f'{end} 23:59:59',
@@ -284,10 +297,19 @@ def import_cartrack_data(import_date=None, import_date_end=None, days_back=1, ap
             result['errors'].append(f'Trips: {r["error"]}')
         trips = r['data']
     if 'events' in data_types:
-        r = client.fetch_events(import_date.strftime(date_fmt), import_date_end.strftime(date_fmt))
-        if r['error']:
-            result['errors'].append(f'Events: {r["error"]}')
-        events = r['data']
+        # /vehicles/events caps at 24h per request -> fetch per day
+        events_all = []
+        raw_errors = set()
+        day = import_date
+        while day <= import_date_end:
+            r = client.fetch_events(day.strftime(date_fmt), day.strftime(date_fmt))
+            if r['error']:
+                raw_errors.add(r['error'])
+            events_all.extend(r['data'])
+            day += timedelta(days=1)
+        if raw_errors:
+            result['errors'].append('Events: ' + '; '.join(sorted(raw_errors)))
+        events = events_all
 
     if not trips and not events and 'trips' in data_types:
         result['errors'].append('No trip or event data returned from Cartrack API.')
@@ -381,8 +403,6 @@ def import_cartrack_data(import_date=None, import_date_end=None, days_back=1, ap
                     fuel_warnings.add(f'{day_str}: /fuel/fills {r_fills["error"]}')
 
             day += timedelta(days=1)
-            if day <= import_date_end:
-                time.sleep(7)   # respect 10/min rate limit
 
     result['fuel_count'] = sum(len(v) for v in fuel_by_date.values())
 

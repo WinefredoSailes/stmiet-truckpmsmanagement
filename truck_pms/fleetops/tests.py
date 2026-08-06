@@ -630,7 +630,11 @@ class SyncCartrackViewTests(TestCase):
         self.assertEqual(data['date_start'], (self.today - timedelta(days=6)).isoformat())
         mock_import.assert_called_once()
         kwargs = mock_import.call_args.kwargs
-        self.assertEqual(kwargs['days_back'], 7)
+        # rolling window: last 7 days ending yesterday
+        expected_end = self.today - timedelta(days=1)
+        expected_start = expected_end - timedelta(days=6)
+        self.assertEqual(kwargs['import_date'], expected_start)
+        self.assertEqual(kwargs['import_date_end'], expected_end)
 
     @patch('fleetops.views.import_cartrack_data')
     def test_sync_failure_status(self, mock_import):
