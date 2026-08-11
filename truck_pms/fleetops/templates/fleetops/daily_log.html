@@ -66,7 +66,7 @@
 <div class="card">
     <div class="card-header fw-bold d-flex justify-content-between align-items-center">
         <span><i class="bi bi-journal-text me-1"></i> Log Summary — {{ date_start|date:'M d, Y' }} to {{ date_end|date:'M d, Y' }}</span>
-        <small class="text-muted">Aggregated totals over the selected period</small>
+        <small class="text-muted">Logbook totals. Full metrics are in the <a href="{% url 'fleetops:fleet_performance' %}">Fleet Performance</a> tab.</small>
     </div>
     <div class="card-body p-0">
         <div class="table-responsive" style="min-width:500px">
@@ -78,14 +78,7 @@
                         <th>Mileage (km)</th>
                         <th>Eng Hrs</th>
                         <th>Fuel (L)</th>
-                        <th>Idle (hrs)</th>
-                        <th>Op (hrs)</th>
                         <th>Dist (km)</th>
-                        <th>Max (km/h)</th>
-                        <th>Brk</th>
-                        <th>Acc</th>
-                        <th>Trn</th>
-                        <th>Spd</th>
                         <th>Days</th>
                     </tr>
                 </thead>
@@ -97,18 +90,11 @@
                         <td>{{ row.mileage|default:'—' }}</td>
                         <td>{{ row.eng_hrs|default:'—' }}</td>
                         <td>{{ row.fuel|default:'—' }}</td>
-                        <td>{{ row.idle_hrs|default:'0.00' }}</td>
-                        <td>{{ row.op_hrs|default:'0.00' }}</td>
                         <td>{{ row.dist|default:'0.0' }}</td>
-                        <td>{{ row.max_spd|default:'—' }}</td>
-                        <td>{{ row.brake|default:'0' }}</td>
-                        <td>{{ row.accel|default:'0' }}</td>
-                        <td>{{ row.turn|default:'0' }}</td>
-                        <td>{{ row.speed|default:'0' }}</td>
                         <td>{{ row.days|default:'0' }}</td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="15" class="text-center text-muted py-4">No data for the selected period.</td></tr>
+                    <tr><td colspan="7" class="text-center text-muted py-4">No data for the selected period.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>

@@ -2,9 +2,12 @@
    Truck PMS — Master Stylesheet
    ════════════════════════════════════════════════════════════ */
 :root {
-  /* brand palette */
-  --primary: #2d3a5c;
-  --primary-dark: #1a2035;
+  /* brand palette — navy + cyan */
+  --primary: #0e2a52;
+  --primary-dark: #081b36;
+  --primary-light: #1b4a8a;
+  --accent: #06b6d4;
+  --accent-soft: rgba(6, 182, 212, .12);
   --success: #1cc88a;
   --warning: #f6c23e;
   --danger: #e74a3b;
@@ -17,9 +20,10 @@
   --text-muted: #858796;
 
   /* sidebar */
-  --sidebar-bg: linear-gradient(180deg, #1a2035 0%, #2d3a5c 100%);
-  --sidebar-hover: rgba(255, 255, 255, .1);
-  --sidebar-active: rgba(255, 255, 255, .15);
+  --sidebar-bg: linear-gradient(180deg, #060f1f 0%, #0e2a52 100%);
+  --sidebar-hover: rgba(255, 255, 255, .08);
+  --sidebar-active: linear-gradient(90deg, rgba(6, 182, 212, .22), rgba(6, 182, 212, .05));
+  --sidebar-active-border: var(--accent);
   --sidebar-text: rgba(255, 255, 255, .7);
   --sidebar-text-hover: #fff;
   --sidebar-width: 240px;
@@ -82,6 +86,7 @@ body {
 .sidebar-brand i {
   font-size: 1.3rem;
   flex-shrink: 0;
+  color: var(--accent);
 }
 
 .sidebar.collapsed .sidebar-brand span,
@@ -169,6 +174,7 @@ body {
 .sidebar .nav-link.active {
   color: #fff;
   background: var(--sidebar-active);
+  box-shadow: inset 3px 0 0 var(--sidebar-active-border);
 }
 
 .sidebar .nav-link i {
@@ -283,6 +289,101 @@ body {
   font-size: 2rem;
   opacity: .15;
 }
+
+/* gradient icon chips for stat cards */
+.stat-icon-chip {
+  width: 46px;
+  height: 46px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: .75rem;
+  color: #fff;
+  font-size: 1.3rem;
+  box-shadow: 0 .3rem .8rem rgba(0, 0, 0, .18);
+}
+
+.stat-card-primary .stat-icon-chip { background: linear-gradient(135deg, var(--primary-light), var(--accent)); }
+.stat-card-success .stat-icon-chip { background: linear-gradient(135deg, #17a673, var(--success)); }
+.stat-card-warning .stat-icon-chip { background: linear-gradient(135deg, #d4a017, var(--warning)); }
+.stat-card-danger .stat-icon-chip { background: linear-gradient(135deg, #c0392b, var(--danger)); }
+
+.stat-card .card-body {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: .75rem;
+}
+
+.stat-spark canvas {
+  width: 100% !important;
+  max-width: 130px;
+  height: 26px !important;
+}
+
+/* dashboard tabs */
+.dashboard-tabs .nav-tabs {
+  border-bottom: 2px solid var(--border-color);
+  margin-bottom: 1.25rem;
+}
+
+.dashboard-tabs .nav-tabs .nav-link {
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: var(--fs-sm);
+  padding: .55rem 1rem;
+  border-radius: 0;
+}
+
+.dashboard-tabs .nav-tabs .nav-link:hover {
+  color: var(--primary);
+  border-color: var(--border-color);
+}
+
+.dashboard-tabs .nav-tabs .nav-link.active {
+  color: var(--primary);
+  background: transparent;
+  border-bottom-color: var(--accent);
+}
+
+/* fleet performance stat cards */
+.perf-stat-card .card-body {
+  display: flex;
+  align-items: center;
+  gap: .85rem;
+  padding: .85rem 1rem;
+}
+
+.perf-stat-icon {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: .6rem;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 1.2rem;
+}
+
+/* driver score badges */
+.score-badge {
+  display: inline-block;
+  min-width: 40px;
+  padding: .2em .55em;
+  border-radius: 50rem;
+  font-weight: 700;
+  font-size: var(--fs-xs);
+}
+
+.score-good { background: rgba(28, 200, 138, .15); color: #12845c; }
+.score-fair { background: rgba(246, 194, 62, .2); color: #9a6d00; }
+.score-poor { background: rgba(231, 74, 59, .15); color: #b23b2f; }
 
 /* ────────────────────────────────────────────── Tables */
 .table {
@@ -525,7 +626,7 @@ textarea.form-control {
   width: 100%;
   height: 3px;
   z-index: 9999;
-  background: #0d6efd;
+  background: var(--accent);
   animation: loader-progress 2s ease-in-out infinite;
   transform-origin: left;
 }
@@ -579,16 +680,87 @@ textarea.form-control {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #1a2035 0%, #2d3a5c 50%, #3b5998 100%);
+  background: linear-gradient(135deg, #060f1f 0%, #0e2a52 55%, #06283d 100%);
   font-family: system-ui, -apple-system, sans-serif;
+  padding: 1rem;
+}
+
+.login-shell {
+  display: flex;
+  width: 100%;
+  max-width: 900px;
+  min-height: 520px;
+  border-radius: 1.25rem;
+  overflow: hidden;
+  box-shadow: 0 1.5rem 4rem rgba(0, 0, 0, .45);
+  background: #fff;
+}
+
+.login-panel {
+  flex: 1.15;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1.4rem;
+  padding: 2.75rem;
+  background: linear-gradient(160deg, #081b36 0%, #0e2a52 60%, #063a5e 100%);
+  color: #fff;
+}
+
+.login-brand {
+  display: flex;
+  align-items: center;
+  gap: .9rem;
+}
+
+.login-brand-icon {
+  font-size: 2.4rem;
+  color: var(--accent);
+}
+
+.login-brand-sub {
+  color: rgba(255, 255, 255, .65);
+  font-size: var(--fs-xs);
+}
+
+.login-panel-quote {
+  font-style: italic;
+  font-size: .95rem;
+  color: rgba(255, 255, 255, .85);
+  margin-bottom: 0;
+}
+
+.login-panel-cite {
+  color: var(--accent);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+}
+
+.login-logos {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-top: auto;
+}
+
+.login-logos img {
+  height: 42px;
+  max-width: 130px;
+  object-fit: contain;
+  filter: drop-shadow(0 .2rem .4rem rgba(0, 0, 0, .35));
+  background: rgba(255, 255, 255, .08);
+  border-radius: .5rem;
+  padding: .35rem .6rem;
 }
 
 .login-card {
+  flex: 1;
   border: none;
-  border-radius: 1rem;
-  box-shadow: 0 1rem 3rem rgba(0, 0, 0, .3);
-  max-width: 420px;
-  width: 100%;
+  border-radius: 0;
+  box-shadow: none;
+  max-width: none;
+  width: auto;
+  margin: 0;
 }
 
 .login-card .login-header {
@@ -597,12 +769,21 @@ textarea.form-control {
 }
 
 .login-card .login-header i {
-  font-size: 3rem;
-  color: #2d3a5c;
+  font-size: 2.6rem;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: .9rem;
+  padding: .6rem;
 }
 
 .login-card .login-body {
   padding: 2rem;
+}
+
+@media (max-width: 768px) {
+  .login-panel {
+    display: none;
+  }
 }
 
 /* ────────────────────────────────────────────── Print */

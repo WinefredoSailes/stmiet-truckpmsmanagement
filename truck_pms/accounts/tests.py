@@ -69,6 +69,63 @@ class DashboardTests(TestCase):
         resp = self.client.get(reverse('accounts:dashboard'))
         self.assertEqual(resp.status_code, 200)
 
+    def test_dashboard_staff_gets_performance_context(self):
+        self.client.login(username='staff', password='pass')
+        resp = self.client.get(reverse('accounts:dashboard'))
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(resp.context['show_performance'])
+        self.assertIn('performance', resp.context)
+        self.assertContains(resp, 'Fleet Performance')
+
+    def test_dashboard_mechanic_hides_performance_tab(self):
+        self.client.login(username='mechanic', password='pass')
+        resp = self.client.get(reverse('accounts:dashboard'))
+        self.assertEqual(resp.status_code, 200)
+        self.assertFalse(resp.context['show_performance'])
+        self.assertNotIn('performance', resp.context)
+        self.assertNotContains(resp, 'Fleet Performance')
+
+    def test_dashboard_trend_series(self):
+        self.client.login(username='staff', password='pass')
+        resp = self.client.get(reverse('accounts:dashboard'))
+        self.assertEqual(len(resp.context['trend_days']), 14)
+        self.assertEqual(len(resp.context['trend_jo']), 14)
+        self.assertEqual(len(resp.context['trend_pm']), 14)
+
+    def test_dashboard_performance_tab_param(self):
+        self.client.login(username='staff', password='pass')
+        resp = self.client.get(reverse('accounts:dashboard'), {'tab': 'performance'})
+        self.assertEqual(resp.context['active_tab'], 'performance')
+
+    def test_dashboard_overview_default_tab(self):
+        self.client.login(username='staff', password='pass')
+        resp = self.client.get(reverse('accounts:dashboard'))
+        self.assertEqual(resp.context['active_tab'], 'overview')
+
+    def test_dashboard_performance_values(self):
+        from fleetops.models import DailyLog
+        from trucks.models import Truck
+        from datetime import timedelta
+        from django.utils import timezone
+        Truck.objects.create(
+            unit_number='T-DASH', plate_number='DASH-1',
+            make='Isuzu', model='FVR', year=2020,
+            current_mileage_km=1000, current_engine_hours=100,
+            status='ACTIVE',
+        )
+        DailyLog.objects.create(
+            truck=Truck.objects.get(unit_number='T-DASH'),
+            date=timezone.localdate(),
+            fuel_liters=50, distance_traveled_km=400,
+            idle_hours=2, operating_hours=8,
+        )
+        self.client.login(username='staff', password='pass')
+        resp = self.client.get(reverse('accounts:dashboard'))
+        self.assertEqual(resp.context['total_distance'], 400)
+        self.assertEqual(resp.context['total_fuel'], 50)
+        self.assertEqual(resp.context['total_efficiency'], 8.0)
+        self.assertEqual(resp.context['total_utilization'], 80.0)
+
 
 class UserManagementTests(TestCase):
     def setUp(self):

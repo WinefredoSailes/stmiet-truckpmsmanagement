@@ -5,214 +5,585 @@
 {% block page_title %}Dashboard{% endblock %}
 
 {% block content %}
-<div class="row g-4 mb-4">
-    <div class="col-xl-3 col-md-6">
-        <a href="{% url 'joborders:list' %}" class="text-decoration-none text-reset">
-        <div class="card stat-card border-start border-primary border-4">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <div class="text-muted text-uppercase small fw-bold">Open Job Orders</div>
-                        <div class="h3 mt-2 mb-0 fw-bold">{{ open_jo_count }}</div>
-                    </div>
-                    <div class="stat-icon"><i class="bi bi-clipboard-check text-primary"></i></div>
-                </div>
-            </div>
-        </div>
-        </a>
-    </div>
-    <div class="col-xl-3 col-md-6">
-        <a href="{% url 'trucks:list' %}" class="text-decoration-none text-reset">
-        <div class="card stat-card border-start border-success border-4">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <div class="text-muted text-uppercase small fw-bold">Active Trucks</div>
-                        <div class="h3 mt-2 mb-0 fw-bold">{{ active_truck_count }}</div>
-                    </div>
-                    <div class="stat-icon"><i class="bi bi-truck text-success"></i></div>
-                </div>
-            </div>
-        </div>
-        </a>
-    </div>
-    <div class="col-xl-3 col-md-6">
-        <a href="{% url 'joborders:my_assignments' %}" class="text-decoration-none text-reset">
-        <div class="card stat-card border-start border-warning border-4">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <div class="text-muted text-uppercase small fw-bold">My Assignments</div>
-                        <div class="h3 mt-2 mb-0 fw-bold">{{ my_assigned_count }}</div>
-                    </div>
-                    <div class="stat-icon"><i class="bi bi-person-workspace text-warning"></i></div>
-                </div>
-            </div>
-        </div>
-        </a>
-    </div>
-    <div class="col-xl-3 col-md-6">
-        <a href="{% url 'pms:schedule_list' %}" class="text-decoration-none text-reset">
-        <div class="card stat-card border-start border-danger border-4">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <div class="text-muted text-uppercase small fw-bold">Overdue PM</div>
-                        <div class="h3 mt-2 mb-0 fw-bold">{{ overdue_pm_count }}</div>
-                    </div>
-                    <div class="stat-icon"><i class="bi bi-exclamation-triangle text-danger"></i></div>
-                </div>
-            </div>
-        </div>
-        </a>
-    </div>
-</div>
+<div class="dashboard-tabs">
+    <ul class="nav nav-tabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {% if active_tab != 'performance' %}active{% endif %}" data-bs-toggle="tab"
+                    data-bs-target="#tab-overview" type="button" role="tab">
+                <i class="bi bi-speedometer2 me-1"></i> Overview
+            </button>
+        </li>
+        {% if show_performance %}
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {% if active_tab == 'performance' %}active{% endif %}" data-bs-toggle="tab"
+                    data-bs-target="#tab-performance" type="button" role="tab">
+                <i class="bi bi-graph-up me-1"></i> Fleet Performance
+            </button>
+        </li>
+        {% endif %}
+    </ul>
 
-<div class="row g-4">
-    <div class="col-lg-8">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <span class="fw-bold"><i class="bi bi-clock-history me-2"></i>Recent Job Orders (30 days)</span>
-                <a href="{% url 'joborders:list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+    <div class="tab-content">
+        {# ────────────────────── OVERVIEW TAB ────────────────────── #}
+        <div class="tab-pane fade {% if active_tab != 'performance' %}show active{% endif %}" id="tab-overview" role="tabpanel">
+            <div class="row g-4 mb-4">
+                <div class="col-xl-3 col-md-6">
+                    <a href="{% url 'joborders:list' %}" class="text-decoration-none text-reset">
+                    <div class="card stat-card stat-card-primary">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <div class="text-muted text-uppercase small fw-bold">Open Job Orders</div>
+                                    <div class="h3 mt-2 mb-1 fw-bold">{{ open_jo_count }}</div>
+                                    <div class="stat-spark"><canvas data-spark="jo" height="26"></canvas></div>
+                                </div>
+                                <div class="stat-icon-chip"><i class="bi bi-clipboard-check"></i></div>
+                            </div>
+                        </div>
+                    </div>
+                    </a>
+                </div>
+                <div class="col-xl-3 col-md-6">
+                    <a href="{% url 'trucks:list' %}" class="text-decoration-none text-reset">
+                    <div class="card stat-card stat-card-success">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <div class="text-muted text-uppercase small fw-bold">Active Trucks</div>
+                                    <div class="h3 mt-2 mb-1 fw-bold">{{ active_truck_count }}</div>
+                                </div>
+                                <div class="stat-icon-chip"><i class="bi bi-truck"></i></div>
+                            </div>
+                        </div>
+                    </div>
+                    </a>
+                </div>
+                <div class="col-xl-3 col-md-6">
+                    <a href="{% url 'joborders:my_assignments' %}" class="text-decoration-none text-reset">
+                    <div class="card stat-card stat-card-warning">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <div class="text-muted text-uppercase small fw-bold">My Assignments</div>
+                                    <div class="h3 mt-2 mb-1 fw-bold">{{ my_assigned_count }}</div>
+                                </div>
+                                <div class="stat-icon-chip"><i class="bi bi-person-workspace"></i></div>
+                            </div>
+                        </div>
+                    </div>
+                    </a>
+                </div>
+                <div class="col-xl-3 col-md-6">
+                    <a href="{% url 'pms:schedule_list' %}" class="text-decoration-none text-reset">
+                    <div class="card stat-card stat-card-danger">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <div class="text-muted text-uppercase small fw-bold">Overdue PM</div>
+                                    <div class="h3 mt-2 mb-1 fw-bold">{{ overdue_pm_count }}</div>
+                                    <div class="stat-spark"><canvas data-spark="pm" height="26"></canvas></div>
+                                </div>
+                                <div class="stat-icon-chip"><i class="bi bi-exclamation-triangle"></i></div>
+                            </div>
+                        </div>
+                    </div>
+                    </a>
+                </div>
             </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead>
-                            <tr>
-                                <th>JO #</th>
-                                <th>Truck</th>
-                                <th>Title</th>
-                                <th>Status</th>
-                                <th>Assigned To</th>
-                                <th>Date</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for jo in recent_jobs %}
-                            <tr>
-                                <td><a href="{% url 'joborders:detail' jo.pk %}">{{ jo.jo_number }}</a></td>
-                                <td>{{ jo.truck.unit_number }}</td>
-                                <td>{{ jo.title|truncatechars:30 }}</td>
-                                <td>
-                                    <span class="badge bg-{% if jo.status == 'OPEN' %}primary{% elif jo.status == 'IN_PROGRESS' %}warning{% else %}success{% endif %} badge-status">
-                                        {{ jo.get_status_display }}
-                                    </span>
-                                </td>
-                                <td>{% if jo.assigned_to %}{{ jo.assigned_to.get_full_name|default:jo.assigned_to.username }}{% else %}-{% endif %}</td>
-                                <td class="small">{{ jo.created_at|date:"M d, H:i" }}</td>
-                            </tr>
-                            {% empty %}
-                            <tr><td colspan="6" class="text-center py-4 text-muted">No job orders yet.</td></tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+
+            <div class="row g-4">
+                <div class="col-lg-8">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <span class="fw-bold"><i class="bi bi-clock-history me-2"></i>Recent Job Orders (30 days)</span>
+                            <a href="{% url 'joborders:list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>JO #</th>
+                                            <th>Truck</th>
+                                            <th>Title</th>
+                                            <th>Status</th>
+                                            <th>Assigned To</th>
+                                            <th>Date</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for jo in recent_jobs %}
+                                        <tr>
+                                            <td><a href="{% url 'joborders:detail' jo.pk %}">{{ jo.jo_number }}</a></td>
+                                            <td>{{ jo.truck.unit_number }}</td>
+                                            <td>{{ jo.title|truncatechars:30 }}</td>
+                                            <td>
+                                                <span class="badge bg-{% if jo.status == 'OPEN' %}primary{% elif jo.status == 'IN_PROGRESS' %}warning{% else %}success{% endif %} badge-status">
+                                                    {{ jo.get_status_display }}
+                                                </span>
+                                            </td>
+                                            <td>{% if jo.assigned_to %}{{ jo.assigned_to.get_full_name|default:jo.assigned_to.username }}{% else %}-{% endif %}</td>
+                                            <td class="small">{{ jo.created_at|date:"M d, H:i" }}</td>
+                                        </tr>
+                                        {% empty %}
+                                        <tr><td colspan="6" class="text-center py-4 text-muted">No job orders yet.</td></tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 d-flex flex-column gap-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="fw-bold"><i class="bi bi-calendar-exclamation me-2"></i>PM Due / Overdue</span>
+                        </div>
+                        <div class="card-body p-0">
+                            <ul class="list-group list-group-flush">
+                                {% for pm in due_pm_list %}
+                                <li class="list-group-item py-2">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <a href="{% url 'trucks:detail' pm.truck.pk %}" class="text-decoration-none">
+                                                <strong>{{ pm.truck.unit_number }}</strong>
+                                            </a>
+                                            <br>
+                                            <small class="text-muted">{{ pm.task_template.name }}</small>
+                                        </div>
+                                        <span class="badge bg-{% if pm.status == 'overdue' %}danger{% else %}warning{% endif %} badge-status">
+                                            {{ pm.status|upper }}
+                                        </span>
+                                    </div>
+                                </li>
+                                {% empty %}
+                                <li class="list-group-item text-center py-4 text-muted">All PMs are on schedule.</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        <div class="card-footer text-center p-2">
+                            <a href="{% url 'pms:schedule_list' %}" class="small">View All PM Schedules</a>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="fw-bold"><i class="bi bi-person-badge me-2"></i>Expiring Driver Licenses</span>
+                        </div>
+                        <div class="card-body p-0">
+                            <ul class="list-group list-group-flush">
+                                {% for dl in drivers_expiring %}
+                                <li class="list-group-item py-2">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <a href="{% url 'fleetops:driver_scorecard' dl.driver.pk %}" class="text-decoration-none">
+                                                <strong>{{ dl.driver.name }}</strong>
+                                            </a>
+                                            <br>
+                                            <small class="text-muted">{{ dl.license_number }}</small>
+                                        </div>
+                                        <div class="text-end">
+                                            <span class="badge bg-{% if dl.status == 'overdue' %}danger{% else %}warning{% endif %} badge-status">
+                                                {{ dl.status|upper }}
+                                            </span>
+                                            <br>
+                                            <small class="text-muted">{{ dl.expiry|date:"M d, Y" }}</small>
+                                        </div>
+                                    </div>
+                                </li>
+                                {% empty %}
+                                <li class="list-group-item text-center py-4 text-muted">All driver licenses are valid.</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        <div class="card-footer text-center p-2">
+                            <a href="{% url 'fleetops:driver_list' %}" class="small">View All Drivers</a>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="fw-bold"><i class="bi bi-shield-exclamation me-2"></i>Expiring Certificates</span>
+                        </div>
+                        <div class="card-body p-0">
+                            <ul class="list-group list-group-flush">
+                                {% for item in expiring_items %}
+                                <li class="list-group-item py-2">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <a href="{% url 'trucks:detail' item.truck.pk %}" class="text-decoration-none">
+                                                <strong>{{ item.truck.unit_number }}</strong>
+                                            </a>
+                                            <br>
+                                            <small class="text-muted">{{ item.label }}</small>
+                                            {% if item.ref_number %}
+                                            <br><small class="text-muted">{{ item.ref_number }}</small>
+                                            {% endif %}
+                                        </div>
+                                        <div class="text-end">
+                                            <span class="badge bg-{% if item.status == 'overdue' %}danger{% else %}warning{% endif %} badge-status">
+                                                {{ item.status|upper }}
+                                            </span>
+                                            <br>
+                                            <small class="text-muted">{{ item.expiry|date:"M d, Y" }}</small>
+                                        </div>
+                                    </div>
+                                </li>
+                                {% empty %}
+                                <li class="list-group-item text-center py-4 text-muted">All certificates are valid.</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        <div class="card-footer text-center p-2">
+                            <a href="{% url 'fleetops:compliance_dashboard' %}" class="small">View All Compliance</a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-    <div class="col-lg-4 d-flex flex-column gap-4">
-        <div class="card">
-            <div class="card-header">
-                <span class="fw-bold"><i class="bi bi-calendar-exclamation me-2"></i>PM Due / Overdue</span>
+
+        {# ────────────────────── FLEET PERFORMANCE TAB ────────────────────── #}
+        {% if show_performance %}
+        <div class="tab-pane fade {% if active_tab == 'performance' %}show active{% endif %}" id="tab-performance" role="tabpanel">
+            <div class="page-header">
+                <form method="get" class="d-flex align-items-center gap-2 flex-wrap">
+                    <input type="hidden" name="tab" value="performance">
+                    <label class="form-label mb-0 small fw-medium">From:</label>
+                    <input type="date" name="start" value="{{ date_start|date:'Y-m-d' }}" class="form-control form-control-sm" style="width:auto">
+                    <label class="form-label mb-0 small fw-medium">To:</label>
+                    <input type="date" name="end" value="{{ date_end|date:'Y-m-d' }}" class="form-control form-control-sm" style="width:auto">
+                    <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-search"></i> Load</button>
+                    <span class="text-muted small">{{ date_start|date:'M d' }} — {{ date_end|date:'M d, Y' }}</span>
+                </form>
+                <div class="d-flex gap-1 flex-wrap align-items-center">
+                    <a href="{% url 'accounts:dashboard' %}?tab=performance&week={{ this_week|date:'Y-m-d' }}" class="btn btn-outline-primary btn-sm">This Week</a>
+                    <a href="{% url 'accounts:dashboard' %}?tab=performance&start={{ last7_start|date:'Y-m-d' }}&end={{ last7_end|date:'Y-m-d' }}" class="btn btn-outline-primary btn-sm">Last 7 Days</a>
+                    <a href="{% url 'fleetops:daily_log' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-journal-text"></i> Daily Log</a>
+                </div>
             </div>
-            <div class="card-body p-0">
-                <ul class="list-group list-group-flush">
-                    {% for pm in due_pm_list %}
-                    <li class="list-group-item py-2">
-                        <div class="d-flex justify-content-between align-items-center">
+
+            {% if performance %}
+            <div class="row g-3 mb-4">
+                <div class="col-md-6 col-xl-4">
+                    <div class="card perf-stat-card">
+                        <div class="card-body">
+                            <div class="perf-stat-icon"><i class="bi bi-sign-turn-right"></i></div>
                             <div>
-                                <a href="{% url 'trucks:detail' pm.truck.pk %}" class="text-decoration-none">
-                                    <strong>{{ pm.truck.unit_number }}</strong>
-                                </a>
-                                <br>
-                                <small class="text-muted">{{ pm.task_template.name }}</small>
-                            </div>
-                            <span class="badge bg-{% if pm.status == 'overdue' %}danger{% else %}warning{% endif %} badge-status">
-                                {{ pm.status|upper }}
-                            </span>
-                        </div>
-                    </li>
-                    {% empty %}
-                    <li class="list-group-item text-center py-4 text-muted">All PMs are on schedule.</li>
-                    {% endfor %}
-                </ul>
-            </div>
-            <div class="card-footer text-center p-2">
-                <a href="{% url 'pms:schedule_list' %}" class="small">View All PM Schedules</a>
-            </div>
-        </div>
-        <div class="card">
-            <div class="card-header">
-                <span class="fw-bold"><i class="bi bi-person-badge me-2"></i>Expiring Driver Licenses</span>
-            </div>
-            <div class="card-body p-0">
-                <ul class="list-group list-group-flush">
-                    {% for dl in drivers_expiring %}
-                    <li class="list-group-item py-2">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <a href="{% url 'fleetops:driver_scorecard' dl.driver.pk %}" class="text-decoration-none">
-                                    <strong>{{ dl.driver.name }}</strong>
-                                </a>
-                                <br>
-                                <small class="text-muted">{{ dl.license_number }}</small>
-                            </div>
-                            <div class="text-end">
-                                <span class="badge bg-{% if dl.status == 'overdue' %}danger{% else %}warning{% endif %} badge-status">
-                                    {{ dl.status|upper }}
-                                </span>
-                                <br>
-                                <small class="text-muted">{{ dl.expiry|date:"M d, Y" }}</small>
+                                <div class="small text-muted">Total Distance</div>
+                                <div class="h5 mb-0 fw-bold">{{ total_distance|floatformat:2 }} km</div>
                             </div>
                         </div>
-                    </li>
-                    {% empty %}
-                    <li class="list-group-item text-center py-4 text-muted">All driver licenses are valid.</li>
-                    {% endfor %}
-                </ul>
-            </div>
-            <div class="card-footer text-center p-2">
-                <a href="{% url 'fleetops:driver_list' %}" class="small">View All Drivers</a>
-            </div>
-        </div>
-        <div class="card">
-            <div class="card-header">
-                <span class="fw-bold"><i class="bi bi-shield-exclamation me-2"></i>Expiring Certificates</span>
-            </div>
-            <div class="card-body p-0">
-                <ul class="list-group list-group-flush">
-                    {% for item in expiring_items %}
-                    <li class="list-group-item py-2">
-                        <div class="d-flex justify-content-between align-items-center">
+                    </div>
+                </div>
+                <div class="col-md-6 col-xl-4">
+                    <div class="card perf-stat-card">
+                        <div class="card-body">
+                            <div class="perf-stat-icon"><i class="bi bi-droplet-half"></i></div>
                             <div>
-                                <a href="{% url 'trucks:detail' item.truck.pk %}" class="text-decoration-none">
-                                    <strong>{{ item.truck.unit_number }}</strong>
-                                </a>
-                                <br>
-                                <small class="text-muted">{{ item.label }}</small>
-                                {% if item.ref_number %}
-                                <br><small class="text-muted">{{ item.ref_number }}</small>
-                                {% endif %}
-                            </div>
-                            <div class="text-end">
-                                <span class="badge bg-{% if item.status == 'overdue' %}danger{% else %}warning{% endif %} badge-status">
-                                    {{ item.status|upper }}
-                                </span>
-                                <br>
-                                <small class="text-muted">{{ item.expiry|date:"M d, Y" }}</small>
+                                <div class="small text-muted">Total Fuel</div>
+                                <div class="h5 mb-0 fw-bold">{{ total_fuel|floatformat:1 }} L</div>
                             </div>
                         </div>
-                    </li>
-                    {% empty %}
-                    <li class="list-group-item text-center py-4 text-muted">All certificates are valid.</li>
-                    {% endfor %}
-                </ul>
+                    </div>
+                </div>
+                <div class="col-md-6 col-xl-4">
+                    <div class="card perf-stat-card">
+                        <div class="card-body">
+                            <div class="perf-stat-icon"><i class="bi bi-speedometer"></i></div>
+                            <div>
+                                <div class="small text-muted">Avg Efficiency</div>
+                                <div class="h5 mb-0 fw-bold">{{ total_efficiency|default:'—' }} km/L</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-xl-3">
+                    <div class="card perf-stat-card">
+                        <div class="card-body">
+                            <div class="perf-stat-icon"><i class="bi bi-graph-up-arrow"></i></div>
+                            <div>
+                                <div class="small text-muted">Utilization</div>
+                                <div class="h5 mb-0 fw-bold">{{ total_utilization|default:'—' }}%</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-xl-3">
+                    <div class="card perf-stat-card">
+                        <div class="card-body">
+                            <div class="perf-stat-icon"><i class="bi bi-exclamation-octagon"></i></div>
+                            <div>
+                                <div class="small text-muted">Harsh Events</div>
+                                <div class="h5 mb-0 fw-bold">{{ total_harsh }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-xl-3">
+                    <div class="card perf-stat-card">
+                        <div class="card-body">
+                            <div class="perf-stat-icon"><i class="bi bi-truck"></i></div>
+                            <div>
+                                <div class="small text-muted">Operating Hours</div>
+                                <div class="h5 mb-0 fw-bold">{{ total_operating|floatformat:1 }} h</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-xl-3">
+                    <div class="card perf-stat-card">
+                        <div class="card-body">
+                            <div class="perf-stat-icon"><i class="bi bi-hourglass-split"></i></div>
+                            <div>
+                                <div class="small text-muted">Idle Hours</div>
+                                <div class="h5 mb-0 fw-bold">{{ total_idle|floatformat:1 }} h</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="card-footer text-center p-2">
-                <a href="{% url 'fleetops:compliance_dashboard' %}" class="small">View All Compliance</a>
+
+            <div class="card mb-4">
+                <div class="card-header"><span class="fw-bold"><i class="bi bi-activity me-2"></i>Fleet Trend ({{ date_start|date:'M d' }} — {{ date_end|date:'M d, Y' }})</span></div>
+                <div class="card-body">
+                    <canvas id="fleetTrendChart" height="110"></canvas>
+                </div>
             </div>
+
+            <h4 class="mb-2">Per-Truck Summary</h4>
+            <div class="card mb-4">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover text-center align-middle mb-0" style="font-size:11px">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Unit</th>
+                                    <th>Plate</th>
+                                    <th>Driver</th>
+                                    <th>14-Day Trend</th>
+                                    <th>Days</th>
+                                    <th>Dist (km)</th>
+                                    <th>Fuel (L)</th>
+                                    <th>km/L</th>
+                                    <th>L/hr</th>
+                                    <th>Op Hrs</th>
+                                    <th>Idle Hrs</th>
+                                    <th>Idle%</th>
+                                    <th>Brk</th>
+                                    <th>Acc</th>
+                                    <th>Trn</th>
+                                    <th>Harsh</th>
+                                    <th>Max (km/h)</th>
+                                    <th>Avg (km/h)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for p in performance %}
+                                <tr>
+                                    <td class="ps-3 fw-medium">{{ p.truck.unit_number }}</td>
+                                    <td>{{ p.truck.plate_number }}</td>
+                                    <td>{{ p.driver_name }}</td>
+                                    <td>
+                                        {% if p.spark_points %}
+                                        <svg width="90" height="24" viewBox="0 0 100 28" preserveAspectRatio="none" title="Daily distance trend">
+                                            <polyline points="{{ p.spark_points }}" fill="none" stroke="#06b6d4" stroke-width="2"/>
+                                        </svg>
+                                        {% else %}—{% endif %}
+                                    </td>
+                                    <td>{{ p.days }}</td>
+                                    <td>{{ p.distance }}</td>
+                                    <td>{% if p.fuel != None %}{{ p.fuel }}{% else %}—{% endif %}</td>
+                                    <td>{{ p.efficiency|default:'—' }}</td>
+                                    <td>{{ p.efficiency_lph|default:'—' }}</td>
+                                    <td>{{ p.operating_hours }}</td>
+                                    <td>{{ p.idle_hours }}</td>
+                                    <td>{{ p.idle_pct|default:'—' }}%</td>
+                                    <td>{{ p.brake }}</td>
+                                    <td>{{ p.accel }}</td>
+                                    <td>{{ p.turn }}</td>
+                                    <td>{{ p.harsh_total }}</td>
+                                    <td>{{ p.max_speed|default:'—'|floatformat:0 }}</td>
+                                    <td>{{ p.avg_speed|default:'—' }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="18" class="text-center py-4 text-muted">No data for this period. <a href="{% url 'fleetops:daily_log' %}">Enter daily logs</a> or try different dates.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            {% if driver_scores %}
+            <h4 class="mb-2">Driver Scorecard</h4>
+            <div class="card mb-4">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover text-center align-middle mb-0" style="font-size:11px">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Driver</th>
+                                    <th>Dist (km)</th>
+                                    <th>Brake</th>
+                                    <th>Accel</th>
+                                    <th>Turn</th>
+                                    <th>Idle</th>
+                                    <th>Avg Score</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for s in driver_scores %}
+                                <tr>
+                                    <td class="ps-3 fw-medium">{{ s.driver.name }}</td>
+                                    <td>{{ s.distance }}</td>
+                                    <td>{{ s.brake_score }}</td>
+                                    <td>{{ s.accel_score }}</td>
+                                    <td>{{ s.turn_score }}</td>
+                                    <td>{{ s.idle_score }}</td>
+                                    <td>
+                                        <span class="score-badge {% if s.average_score >= 80 %}score-good{% elif s.average_score >= 60 %}score-fair{% else %}score-poor{% endif %}">
+                                            {{ s.average_score }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if idle_report %}
+            <h4 class="mb-2">Idle Report</h4>
+            <div class="card mb-4">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover text-center align-middle mb-0" style="font-size:11px">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Unit</th>
+                                    <th>Plate</th>
+                                    <th>Driver</th>
+                                    <th>Op Hrs</th>
+                                    <th>Idle Hrs</th>
+                                    <th>Idle%</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for r in idle_report %}
+                                <tr>
+                                    <td class="ps-3 fw-medium">{{ r.truck.unit_number }}</td>
+                                    <td>{{ r.truck.plate_number }}</td>
+                                    <td>{{ r.driver_name }}</td>
+                                    <td>{{ r.operating_hours }}</td>
+                                    <td>{{ r.idle_hours }}</td>
+                                    <td>{{ r.idle_pct|default:'—' }}%</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            {% else %}
+            <div class="alert alert-info">No data for this period. <a href="{% url 'fleetops:daily_log' %}">Enter daily logs</a> or try different dates.</div>
+            {% endif %}
         </div>
+        {% endif %}
     </div>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+{{ trend_days|json_script:'trend-days' }}
+{{ trend_jo|json_script:'trend-jo' }}
+{{ trend_pm|json_script:'trend-pm' }}
+{% if show_performance %}
+{{ fleet_trend.days|json_script:'trend-fleet-days' }}
+{{ fleet_trend.dist|json_script:'trend-fleet-dist' }}
+{{ fleet_trend.fuel|json_script:'trend-fleet-fuel' }}
+{% endif %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+(function() {
+    function spark(selector, dataKey, color) {
+        var canvas = document.querySelector(selector);
+        var labels = document.querySelector(dataKey);
+        if (!canvas || !labels) return;
+        var data = JSON.parse(labels.textContent);
+        if (!data.length) return;
+        new Chart(canvas, {
+            type: 'line',
+            data: {
+                labels: Array(data.length).fill(''),
+                datasets: [{
+                    data: data,
+                    borderColor: color,
+                    borderWidth: 1.5,
+                    pointRadius: 0,
+                    fill: true,
+                    backgroundColor: 'rgba(6,182,212,.12)',
+                    tension: .4,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { x: { display: false }, y: { display: false } },
+            }
+        });
+    }
+    spark('[data-spark="jo"]', '#trend-jo', '#06b6d4');
+    spark('[data-spark="pm"]', '#trend-pm', '#f59e0b');
+
+    var fleetCanvas = document.getElementById('fleetTrendChart');
+    if (fleetCanvas) {
+        var labelsEl = document.getElementById('trend-fleet-days');
+        var distEl = document.getElementById('trend-fleet-dist');
+        var fuelEl = document.getElementById('trend-fleet-fuel');
+        if (labelsEl && distEl && fuelEl) {
+            new Chart(fleetCanvas, {
+                type: 'line',
+                data: {
+                    labels: JSON.parse(labelsEl.textContent),
+                    datasets: [
+                        {
+                            label: 'Distance (km)',
+                            data: JSON.parse(distEl.textContent),
+                            borderColor: '#06b6d4',
+                            backgroundColor: 'rgba(6,182,212,.12)',
+                            borderWidth: 2,
+                            pointRadius: 1,
+                            fill: true,
+                            tension: .35,
+                            yAxisID: 'y',
+                        },
+                        {
+                            label: 'Fuel (L)',
+                            data: JSON.parse(fuelEl.textContent),
+                            borderColor: '#f59e0b',
+                            backgroundColor: 'rgba(245,158,11,.1)',
+                            borderWidth: 2,
+                            pointRadius: 1,
+                            fill: false,
+                            tension: .35,
+                            yAxisID: 'y',
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'top' } },
+                    scales: {
+                        y: { beginAtZero: true, ticks: { font: { size: 10 } } },
+                        x: { ticks: { font: { size: 10 }, maxTicksLimit: 10 } }
+                    }
+                }
+            });
+        }
+    }
+})();
+</script>
 {% endblock %}

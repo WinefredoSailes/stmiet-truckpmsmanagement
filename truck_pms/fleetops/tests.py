@@ -8,6 +8,7 @@ from accounts.models import User
 from trucks.models import Truck
 from .models import Driver, DriverAssignment, DailyLog
 from .cartrack_import import import_cartrack_data
+from .performance import compute_fleet_performance
 
 
 def create_admin():
@@ -437,32 +438,161 @@ class FleetPerformanceTests(TestCase):
                                 {'start': far_past, 'end': far_past})
         self.assertEqual(resp.status_code, 200)
 
+    def test_fleet_performance_values(self):
+        self.client.login(username='admin', password='pass')
+        resp = self.client.get(reverse('fleetops:fleet_performance'))
+        self.assertEqual(resp.context['total_distance'], 400)
+        self.assertEqual(resp.context['total_fuel'], 50)
+        self.assertEqual(resp.context['total_efficiency'], 8.0)
+        self.assertEqual(resp.context['total_utilization'], 80.0)
+        self.assertEqual(resp.context['total_harsh'], 3)
+        self.assertEqual(resp.context['truck_count'], 1)
+        self.assertEqual(resp.context['active_tab'], 'performance')
 
-class WeeklyReportTests(TestCase):
+    def test_fleet_performance_renders_merged_template(self):
+        self.client.login(username='admin', password='pass')
+        resp = self.client.get(reverse('fleetops:fleet_performance'))
+        self.assertContains(resp, 'Per-Truck Summary')
+        self.assertContains(resp, 'tab-overview')
+
+
+class FleetReportMergedTests(TestCase):
+    """The former Weekly Report content now lives in the Fleet Performance tab."""
+
     def setUp(self):
         self.admin = create_admin()
         self.staff = create_staff()
+        self.driver = create_driver()
         self.truck = create_truck()
         self.today = timezone.now().date()
+        DriverAssignment.objects.create(
+            driver=self.driver, truck=self.truck,
+            assigned_from=self.today - timedelta(days=10),
+        )
         DailyLog.objects.create(
-            truck=self.truck, date=self.today,
+            truck=self.truck, driver=self.driver, date=self.today,
             mileage_km=5000, engine_hours=100,
             fuel_liters=50, distance_traveled_km=400,
             idle_hours=2, operating_hours=8,
+            harsh_braking_count=3,
         )
 
-    def test_weekly_report_admin(self):
+    def test_merged_tab_shows_driver_scorecard(self):
         self.client.login(username='admin', password='pass')
-        resp = self.client.get(reverse('fleetops:weekly_report'))
+        resp = self.client.get(reverse('fleetops:fleet_performance'))
         self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'Driver Scorecard')
+        self.assertContains(resp, self.driver.name)
+        self.assertEqual(len(resp.context['driver_scores']), 1)
 
-    def test_weekly_report_with_dates(self):
+    def test_merged_tab_shows_idle_report(self):
+        self.client.login(username='staff', password='pass')
+        resp = self.client.get(reverse('fleetops:fleet_performance'))
+        self.assertContains(resp, 'Idle Report')
+        self.assertContains(resp, 'Idle%')
+
+    def test_merged_tab_respects_dates(self):
         self.client.login(username='staff', password='pass')
         start = (self.today - timedelta(days=7)).isoformat()
         end = self.today.isoformat()
-        resp = self.client.get(reverse('fleetops:weekly_report'),
+        resp = self.client.get(reverse('fleetops:fleet_performance'),
                                 {'start': start, 'end': end})
         self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.context['date_start'].isoformat(), start)
+        self.assertEqual(resp.context['date_end'].isoformat(), end)
+
+    def test_merged_tab_mechanic_denied(self):
+        self.client.login(username='mech', password='pass')
+        resp = self.client.get(reverse('fleetops:fleet_performance'))
+        self.assertEqual(resp.status_code, 302)
+
+
+class ComputeFleetPerformanceTests(TestCase):
+    def setUp(self):
+        self.truck1 = create_truck(unit_number='T-001', plate_number='ABC-123')
+        self.truck2 = create_truck(unit_number='T-002', plate_number='XYZ-789')
+        self.today = timezone.now().date()
+
+    def test_empty_period(self):
+        far = self.today - timedelta(days=365)
+        result = compute_fleet_performance(far, far)
+        self.assertEqual(result['performance'], [])
+        self.assertEqual(result['truck_count'], 0)
+        self.assertEqual(result['total_distance'], 0)
+
+    def test_totals_and_math(self):
+        DailyLog.objects.create(
+            truck=self.truck1, date=self.today,
+            fuel_liters=50, distance_traveled_km=400,
+            idle_hours=2, operating_hours=8,
+        )
+        DailyLog.objects.create(
+            truck=self.truck2, date=self.today,
+            fuel_liters=10, distance_traveled_km=100,
+            idle_hours=1, operating_hours=4,
+        )
+        result = compute_fleet_performance(self.today, self.today)
+        self.assertEqual(result['truck_count'], 2)
+        self.assertEqual(result['total_distance'], 500)
+        self.assertEqual(result['total_fuel'], 60)
+        self.assertEqual(result['total_efficiency'], 8.33)
+        self.assertEqual(result['total_utilization'], 80.0)
+        by_unit = {r['truck'].unit_number: r for r in result['performance']}
+        self.assertEqual(by_unit['T-001']['efficiency'], 8.0)
+        self.assertEqual(by_unit['T-001']['utilization'], 80.0)
+
+    def test_fuel_gating(self):
+        DailyLog.objects.create(
+            truck=self.truck1, date=self.today,
+            fuel_liters=0, distance_traveled_km=400,
+            operating_hours=8,
+        )
+        result = compute_fleet_performance(self.today, self.today)
+        row = result['performance'][0]
+        self.assertIsNone(row['fuel'])
+        self.assertIsNone(row['efficiency'])
+
+    def test_driver_scores_sorted(self):
+        d1 = create_driver(name='Driver A', license_number='DL-A')
+        d2 = create_driver(name='Driver B', license_number='DL-B')
+        DailyLog.objects.create(
+            truck=self.truck1, driver=d1, date=self.today,
+            fuel_liters=50, distance_traveled_km=400,
+            idle_hours=2, operating_hours=8,
+        )
+        DailyLog.objects.create(
+            truck=self.truck2, driver=d2, date=self.today,
+            fuel_liters=50, distance_traveled_km=400,
+            idle_hours=5, operating_hours=5,
+        )
+        result = compute_fleet_performance(self.today, self.today)
+        scores = {s['driver']['name']: s['average_score'] for s in result['driver_scores']}
+        self.assertEqual(set(scores), {'Driver A', 'Driver B'})
+        self.assertGreater(scores['Driver A'], scores['Driver B'])
+
+    def test_sparkline_series(self):
+        DailyLog.objects.create(
+            truck=self.truck1, date=self.today,
+            fuel_liters=50, distance_traveled_km=400,
+            operating_hours=8,
+        )
+        result = compute_fleet_performance(self.today, self.today)
+        row = result['performance'][0]
+        self.assertEqual(len(row['spark']), 1)
+        self.assertNotEqual(row['spark_points'], '')
+
+    def test_idle_report_sorted(self):
+        DailyLog.objects.create(
+            truck=self.truck1, date=self.today,
+            distance_traveled_km=400, idle_hours=1, operating_hours=9,
+        )
+        DailyLog.objects.create(
+            truck=self.truck2, date=self.today,
+            distance_traveled_km=400, idle_hours=8, operating_hours=2,
+        )
+        result = compute_fleet_performance(self.today, self.today)
+        pcts = [r['idle_pct'] for r in result['idle_report']]
+        self.assertEqual(pcts, sorted(pcts, reverse=True))
 
 
 class ComplianceDashboardTests(TestCase):
