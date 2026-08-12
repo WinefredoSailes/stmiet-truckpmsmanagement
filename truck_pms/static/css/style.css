@@ -277,6 +277,7 @@ body {
 }
 
 .stat-card {
+  position: relative;
   transition: transform .15s, box-shadow .15s;
 }
 
@@ -290,11 +291,14 @@ body {
   opacity: .15;
 }
 
-/* gradient icon chips for stat cards */
+/* gradient icon chips for stat cards — pinned to the right edge, centered */
 .stat-icon-chip {
+  position: absolute;
+  top: 50%;
+  right: 1rem;
+  transform: translateY(-50%);
   width: 46px;
   height: 46px;
-  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -310,10 +314,7 @@ body {
 .stat-card-danger .stat-icon-chip { background: linear-gradient(135deg, #c0392b, var(--danger)); }
 
 .stat-card .card-body {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: .75rem;
+  padding-right: 70px;
 }
 
 .stat-spark canvas {

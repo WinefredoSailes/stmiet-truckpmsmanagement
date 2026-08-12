@@ -31,14 +31,10 @@
                     <a href="{% url 'joborders:list' %}" class="text-decoration-none text-reset">
                     <div class="card stat-card stat-card-primary">
                         <div class="card-body">
-                            <div class="d-flex justify-content-between">
-                                <div>
-                                    <div class="text-muted text-uppercase small fw-bold">Open Job Orders</div>
-                                    <div class="h3 mt-2 mb-1 fw-bold">{{ open_jo_count }}</div>
-                                    <div class="stat-spark"><canvas data-spark="jo" height="26"></canvas></div>
-                                </div>
-                                <div class="stat-icon-chip"><i class="bi bi-clipboard-check"></i></div>
-                            </div>
+                            <div class="stat-icon-chip"><i class="bi bi-clipboard-check"></i></div>
+                            <div class="text-muted text-uppercase small fw-bold">Open Job Orders</div>
+                            <div class="h3 mt-2 mb-1 fw-bold">{{ open_jo_count }}</div>
+                            <div class="stat-spark"><canvas data-spark="jo" height="26"></canvas></div>
                         </div>
                     </div>
                     </a>
@@ -47,13 +43,9 @@
                     <a href="{% url 'trucks:list' %}" class="text-decoration-none text-reset">
                     <div class="card stat-card stat-card-success">
                         <div class="card-body">
-                            <div class="d-flex justify-content-between">
-                                <div>
-                                    <div class="text-muted text-uppercase small fw-bold">Active Trucks</div>
-                                    <div class="h3 mt-2 mb-1 fw-bold">{{ active_truck_count }}</div>
-                                </div>
-                                <div class="stat-icon-chip"><i class="bi bi-truck"></i></div>
-                            </div>
+                            <div class="stat-icon-chip"><i class="bi bi-truck"></i></div>
+                            <div class="text-muted text-uppercase small fw-bold">Active Trucks</div>
+                            <div class="h3 mt-2 mb-1 fw-bold">{{ active_truck_count }}</div>
                         </div>
                     </div>
                     </a>
@@ -62,13 +54,9 @@
                     <a href="{% url 'joborders:my_assignments' %}" class="text-decoration-none text-reset">
                     <div class="card stat-card stat-card-warning">
                         <div class="card-body">
-                            <div class="d-flex justify-content-between">
-                                <div>
-                                    <div class="text-muted text-uppercase small fw-bold">My Assignments</div>
-                                    <div class="h3 mt-2 mb-1 fw-bold">{{ my_assigned_count }}</div>
-                                </div>
-                                <div class="stat-icon-chip"><i class="bi bi-person-workspace"></i></div>
-                            </div>
+                            <div class="stat-icon-chip"><i class="bi bi-person-workspace"></i></div>
+                            <div class="text-muted text-uppercase small fw-bold">My Assignments</div>
+                            <div class="h3 mt-2 mb-1 fw-bold">{{ my_assigned_count }}</div>
                         </div>
                     </div>
                     </a>
@@ -77,14 +65,10 @@
                     <a href="{% url 'pms:schedule_list' %}" class="text-decoration-none text-reset">
                     <div class="card stat-card stat-card-danger">
                         <div class="card-body">
-                            <div class="d-flex justify-content-between">
-                                <div>
-                                    <div class="text-muted text-uppercase small fw-bold">Overdue PM</div>
-                                    <div class="h3 mt-2 mb-1 fw-bold">{{ overdue_pm_count }}</div>
-                                    <div class="stat-spark"><canvas data-spark="pm" height="26"></canvas></div>
-                                </div>
-                                <div class="stat-icon-chip"><i class="bi bi-exclamation-triangle"></i></div>
-                            </div>
+                            <div class="stat-icon-chip"><i class="bi bi-exclamation-triangle"></i></div>
+                            <div class="text-muted text-uppercase small fw-bold">Overdue PM</div>
+                            <div class="h3 mt-2 mb-1 fw-bold">{{ overdue_pm_count }}</div>
+                            <div class="stat-spark"><canvas data-spark="pm" height="26"></canvas></div>
                         </div>
                     </div>
                     </a>
