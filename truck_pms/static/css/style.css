@@ -314,6 +314,7 @@ body {
 .stat-card-danger .stat-icon-chip { background: linear-gradient(135deg, #c0392b, var(--danger)); }
 
 .stat-card .card-body {
+  min-height: 120px;
   padding-right: 70px;
 }
 
