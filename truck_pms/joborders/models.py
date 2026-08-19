@@ -52,6 +52,10 @@ class JobOrder(models.Model):
     completed_engine_hours = models.DecimalField(
         max_digits=10, decimal_places=1, null=True, blank=True
     )
+    labor_cost_pesos = models.DecimalField(
+        max_digits=12, decimal_places=2, null=True, blank=True,
+        help_text='Labor charge in pesos (e.g. contractor billing amount).'
+    )
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

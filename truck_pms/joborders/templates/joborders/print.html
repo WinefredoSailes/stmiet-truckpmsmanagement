@@ -56,10 +56,8 @@ tr:nth-child(even){background:#f9f9f9}
     </div>
     <div style="flex:1">
         <div class="cost-box">
-            <div style="font-size:10px;color:#666">Total Parts</div>
-            <strong style="color:#dc3545">P{{ order.total_parts_cost|floatformat:2 }}</strong>
-            <div style="font-size:10px;color:#666;margin-top:6px">Total Labor</div>
-            <strong style="color:#0d6efd">{{ order.total_labor_hours|floatformat:2 }} hrs</strong>
+            <div style="font-size:10px;color:#666">Total Labor (Pesos)</div>
+            <strong style="color:#0d6efd">P{{ order.labor_cost_pesos|default:'0.00'|floatformat:2 }}</strong>
         </div>
     </div>
 </div>

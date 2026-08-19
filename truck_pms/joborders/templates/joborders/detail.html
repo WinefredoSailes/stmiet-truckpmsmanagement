@@ -109,7 +109,7 @@
             <div class="card-body small">
                 <dl class="row mb-0 dl-table">
                     <dt class="col-6">Total Parts</dt><dd class="col-6 text-end fw-bold">P{{ order.total_parts_cost|floatformat:2 }}</dd>
-                    <dt class="col-6">Total Labor</dt><dd class="col-6 text-end fw-bold">{{ order.total_labor_hours|floatformat:2 }} hrs</dd>
+                    <dt class="col-6">Labor Cost</dt><dd class="col-6 text-end fw-bold">P{{ order.labor_cost_pesos|default:'0.00'|floatformat:2 }}</dd>
                 </dl>
             </div>
         </div>
