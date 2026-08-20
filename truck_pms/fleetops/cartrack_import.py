@@ -191,11 +191,13 @@ def _parse_date(ts, fallback):
 
 
 def _vehicle_id(entry):
-    return entry.get('registration', entry.get('vehiclePlate', '')).upper()
+    reg = entry.get('registration')
+    plate = entry.get('vehiclePlate')
+    return str(reg if reg is not None else (plate or '')).upper()
 
 
 def _vehicle_id2(entry):
-    return str(entry.get('vehicle_id', '')).upper()
+    return str(entry.get('vehicle_id', '') or '').upper()
 
 
 def _as_list(data):
@@ -243,7 +245,8 @@ def _aggregate_trips(trips):
     if not trips:
         return {}
     total_dist = sum(float(t.get('trip_distance', 0) or 0) for t in trips) / 1000
-    latest = max(trips, key=lambda t: t.get('end_timestamp', ''))
+    latest = max((t for t in trips if t.get('end_timestamp') is not None),
+                 key=lambda t: t.get('end_timestamp', ''), default={})
     total_dur = sum(float(t.get('trip_duration_seconds', 0) or 0) for t in trips)
     total_idle = sum(float(t.get('idle_time_seconds', 0) or 0) for t in trips)
     return {
@@ -251,15 +254,15 @@ def _aggregate_trips(trips):
         'max_speed': max((float(t.get('max_speed', 0) or 0) for t in trips), default=None),
         'idle': total_idle / 3600,
         'op': max(total_dur - total_idle, 0) / 3600,
-        'brake': sum(int(t.get('harsh_braking_events', 0) or 0) for t in trips),
-        'accel': sum(int(t.get('harsh_acceleration_events', 0) or 0) for t in trips),
-        'turn': sum(int(t.get('harsh_cornering_events', 0) or 0) for t in trips),
+        'brake': sum(int(float(t.get('harsh_braking_events', 0) or 0)) for t in trips),
+        'accel': sum(int(float(t.get('harsh_acceleration_events', 0) or 0)) for t in trips),
+        'turn': sum(int(float(t.get('harsh_cornering_events', 0) or 0)) for t in trips),
         'speed': sum(
-            int(t.get('thresholds_speeding_events', 0) or 0)
-            + int(t.get('road_speeding_events', 0) or 0)
+            int(float(t.get('thresholds_speeding_events', 0) or 0))
+            + int(float(t.get('road_speeding_events', 0) or 0))
             for t in trips
         ),
-        'idle_count': sum(int(t.get('events_idle', 0) or 0) for t in trips),
+        'idle_count': sum(int(float(t.get('events_idle', 0) or 0)) for t in trips),
         'mileage': int(float(latest.get('end_odometer', 0) or 0) / 1000),
         'eng_hrs': float(latest.get('clock_end', 0) or 0) / 3600,
     }
@@ -427,8 +430,8 @@ def import_cartrack_data(import_date=None, import_date_end=None, days_back=1, ap
         day_ev = ev_index.get(current, {})
 
         for truck in trucks:
-            plate = truck.plate_number.upper()
-            unit = truck.unit_number.upper()
+            plate = truck.plate_number.strip().upper() if truck.plate_number else ''
+            unit = truck.unit_number.strip().upper() if truck.unit_number else ''
 
             matched_trips = _match_vehicle(trips, plate, unit)
 

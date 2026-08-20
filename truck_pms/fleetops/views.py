@@ -504,7 +504,13 @@ def sync_cartrack(request):
     start = end - timedelta(days=days_back - 1)
 
     logger.info('sync_cartrack: %s..%s data_types=%s', start, end, data_types)
-    result = import_cartrack_data(import_date=start, import_date_end=end, data_types=data_types)
+    try:
+        result = import_cartrack_data(import_date=start, import_date_end=end, data_types=data_types)
+    except Exception as e:
+        logger.exception('sync_cartrack crashed')
+        return JsonResponse(
+            {'success': False, 'error': f'{type(e).__name__}: {e}'}, status=502
+        )
 
     end = result.get('import_date_end')
     start = result.get('import_date')
