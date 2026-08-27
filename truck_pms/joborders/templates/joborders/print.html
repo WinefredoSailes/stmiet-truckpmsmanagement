@@ -1,31 +1,43 @@
 {% load static %}<html><head><meta charset="utf-8"><title>{{ order.jo_number }} - Print</title>
 <style>
-@page{size:A5 landscape;margin:10mm}
-body{font-family:Arial,sans-serif;font-size:10px;color:#333;margin:0;padding:0}
-.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;border-bottom:2px solid #1a3c6e;padding-bottom:8px}
-.logo{height:48px}
-.header-center{text-align:center}
-.header-center h1{margin:0;font-size:14px;color:#1a3c6e}
-.header-center p{margin:2px 0 0;font-size:9px;color:#666}
-.section{margin-bottom:12px}
-.section h2{font-size:12px;color:#1a3c6e;border-bottom:1px solid #ddd;padding-bottom:3px;margin:0 0 7px}
-table{width:100%;border-collapse:collapse;margin-bottom:9px}
-th{background:#1a3c6e;color:#fff;padding:4px 6px;text-align:left;font-size:9px}
-td{padding:3px 6px;border-bottom:1px solid #ddd;font-size:9px}
+@page{size:A5 landscape;margin:6mm}
+*{box-sizing:border-box}
+html,body{width:100%}
+body{font-family:Arial,sans-serif;font-size:8px;line-height:1.3;color:#333;margin:0;padding:0}
+.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;border-bottom:2px solid #1a3c6e;padding-bottom:4px}
+.logo{height:30px}
+.header-center{text-align:center;flex:1}
+.header-center h1{margin:0;font-size:12px;color:#1a3c6e}
+.header-center p{margin:1px 0 0;font-size:8px;color:#666}
+.section{margin-bottom:6px}
+.section h2{font-size:9px;color:#1a3c6e;border-bottom:1px solid #ddd;padding-bottom:2px;margin:0 0 3px}
+table{width:100%;border-collapse:collapse;margin-bottom:5px;table-layout:fixed}
+thead{display:table-header-group}
+th{background:#1a3c6e;color:#fff;padding:2px 4px;text-align:left;font-size:7px;font-weight:bold}
+td{padding:2px 4px;border-bottom:1px solid #ddd;font-size:7px;word-break:break-word;overflow-wrap:break-word}
+tr{page-break-inside:avoid}
 tr:nth-child(even){background:#f9f9f9}
-.dl-table{width:100%}
-.dl-table dt{float:left;width:40%;font-weight:600;padding:3px 0;font-size:9px;color:#555}
-.dl-table dd{padding:3px 0;font-size:9px;border-bottom:1px solid #eee}
-.badge-status{display:inline-block;padding:1px 5px;border-radius:3px;font-size:8px;font-weight:bold}
+.dl-table{width:100%;margin:0}
+.dl-table dt{float:left;width:42%;font-weight:600;padding:1px 0;font-size:7px;color:#555;margin:0}
+.dl-table dd{padding:1px 0;margin:0;font-size:7px;border-bottom:1px solid #eee;width:58%;float:right}
+.dl-table:after{content:"";display:table;clear:both}
+.badge-status{display:inline-block;padding:0 4px;border-radius:2px;font-size:7px;font-weight:bold;white-space:nowrap}
 .bg-info{background:#17a2b5;color:#fff}
 .bg-success{background:#28a745;color:#fff}
 .bg-warning{background:#ffc107;color:#333}
 .bg-danger{background:#dc3545;color:#fff}
 .bg-primary{background:#0d6efd;color:#fff}
 .bg-secondary{background:#6c757d;color:#fff}
-.cost-box{background:#f8f9fa;border:1px solid #dee2e6;border-radius:6px;padding:8px;margin-bottom:10px;text-align:center}
-.cost-box strong{font-size:12px}
-.footer{text-align:center;font-size:8px;color:#999;margin-top:15px;padding-top:6px;border-top:1px solid #ddd}
+.cost-box{background:#f8f9fa;border:1px solid #dee2e6;border-radius:4px;padding:4px 6px;text-align:center}
+.cost-box .lbl{font-size:7px;color:#666}
+.cost-box .val{font-size:10px;font-weight:bold}
+.cost-box .tot{color:#0d6efd}
+.cost-box .pay{color:#28a745}
+.cost-box .bal{color:#dc3545}
+.cost-box .row{display:flex;justify-content:space-between;align-items:baseline;margin:1px 0}
+.cost-box .row .lbl{text-align:left}
+.cost-box .row .val{text-align:right}
+.footer{text-align:center;font-size:7px;color:#999;margin-top:6px;padding-top:3px;border-top:1px solid #ddd}
 .no-print{display:none}
 @media print{.no-print{display:none}}
 </style></head><body>
@@ -37,8 +49,8 @@ tr:nth-child(even){background:#f9f9f9}
     </div>
     <img src="{% static 'img/stpc-trans-logo.png' %}" alt="STPC" class="logo">
 </div>
-<div style="display:flex;gap:15px">
-    <div style="flex:1">
+<div style="display:flex;gap:10px">
+    <div style="flex:1.3">
         <div class="section">
             <h2>Details</h2>
             <dl class="dl-table">
@@ -56,19 +68,17 @@ tr:nth-child(even){background:#f9f9f9}
     </div>
     <div style="flex:1">
         <div class="cost-box">
-            <div style="font-size:10px;color:#666">Total Labor (Pesos)</div>
-            <strong style="color:#0d6efd">P{{ order.labor_cost_pesos|default:'0.00'|floatformat:2 }}</strong>
-            <div style="font-size:10px;color:#666;margin-top:6px">Amount Paid</div>
-            <strong style="color:#28a745">P{{ order.labor_amount_paid_pesos|default:'0.00'|floatformat:2 }}</strong>
-            <div style="font-size:10px;color:#666;margin-top:6px">Balance</div>
-            <strong style="color:#dc3545">P{{ order.labor_balance_pesos|default:'0.00'|floatformat:2 }}</strong>
+            <div class="row"><span class="lbl">Total Labor (Pesos)</span><span class="val tot">P{{ order.labor_cost_pesos|default:'0.00'|floatformat:2 }}</span></div>
+            <div class="row"><span class="lbl">Amount Paid</span><span class="val pay">P{{ order.labor_amount_paid_pesos|default:'0.00'|floatformat:2 }}</span></div>
+            <div class="row"><span class="lbl">Balance</span><span class="val bal">P{{ order.labor_balance_pesos|default:'0.00'|floatformat:2 }}</span></div>
         </div>
     </div>
 </div>
 <div class="section">
     <h2>Line Items</h2>
     <table>
-        <thead><tr><th>Task</th><th>Category</th><th>Est. Hrs</th><th>Actual Hrs</th><th>Status</th><th>Parts Cost</th></tr></thead>
+        <colgroup><col style="width:34%"><col style="width:18%"><col style="width:12%"><col style="width:12%"><col style="width:14%"><col style="width:10%"></colgroup>
+        <thead><tr><th>Task</th><th>Category</th><th>Est. Hrs</th><th>Actual Hrs</th><th>Status</th><th>Parts</th></tr></thead>
         <tbody>
             {% for item in line_items %}
             <tr>
@@ -80,15 +90,15 @@ tr:nth-child(even){background:#f9f9f9}
                 <td>P{{ item.total_parts_cost|floatformat:2|default:'0.00' }}</td>
             </tr>
             {% if item.parts.all %}
-            <tr style="background:#f1f3f5"><td colspan="6" style="padding:2px 7px">
-                <strong style="font-size:9px">Parts:</strong>
+            <tr style="background:#f1f3f5"><td colspan="6" style="padding:1px 5px">
+                <strong style="font-size:7px">Parts:</strong>
                 {% for p in item.parts.all %}
-                <span style="font-size:9px;color:#555">{{ p.part_name }} ({{ p.quantity }} x P{{ p.unit_cost|floatformat:2 }}){% if not forloop.last %}, {% endif %}</span>
+                <span style="font-size:7px;color:#555">{{ p.part_name }} ({{ p.quantity }} x P{{ p.unit_cost|floatformat:2 }}){% if not forloop.last %}, {% endif %}</span>
                 {% endfor %}
             </td></tr>
             {% endif %}
             {% empty %}
-            <tr><td colspan="6" style="text-align:center;padding:10px;color:#999">No line items.</td></tr>
+            <tr><td colspan="6" style="text-align:center;padding:6px;color:#999">No line items.</td></tr>
             {% endfor %}
         </tbody>
     </table>
@@ -97,6 +107,7 @@ tr:nth-child(even){background:#f9f9f9}
 <div class="section">
     <h2>Activity Log</h2>
     <table>
+        <colgroup><col style="width:25%"><col style="width:45%"><col style="width:30%"></colgroup>
         <thead><tr><th>Date</th><th>Action</th><th>By</th></tr></thead>
         <tbody>
             {% for log in logs %}
@@ -109,13 +120,13 @@ tr:nth-child(even){background:#f9f9f9}
 {% if order.description %}
 <div class="section">
     <h2>Description</h2>
-    <p style="font-size:10px;margin:0">{{ order.description|linebreaksbr }}</p>
+    <p style="font-size:8px;margin:0">{{ order.description|linebreaksbr }}</p>
 </div>
 {% endif %}
 {% if order.notes %}
 <div class="section">
     <h2>Remarks / Notes</h2>
-    <p style="font-size:10px;margin:0">{{ order.notes|linebreaksbr }}</p>
+    <p style="font-size:8px;margin:0">{{ order.notes|linebreaksbr }}</p>
 </div>
 {% endif %}
 <div class="footer">
