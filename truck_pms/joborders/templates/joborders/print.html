@@ -9,6 +9,7 @@ body{font-family:Arial,sans-serif;font-size:8px;line-height:1.3;color:#333;margi
 .header-center{text-align:center;flex:1}
 .header-center h1{margin:0;font-size:12px;color:#1a3c6e}
 .header-center p{margin:1px 0 0;font-size:8px;color:#666}
+.header-center .company{margin:2px 0 0;font-size:8px;color:#1a3c6e;font-weight:bold}
 .section{margin-bottom:6px}
 .section h2{font-size:9px;color:#1a3c6e;border-bottom:1px solid #ddd;padding-bottom:2px;margin:0 0 3px}
 table{width:100%;border-collapse:collapse;margin-bottom:5px;table-layout:fixed}
@@ -46,6 +47,7 @@ tr:nth-child(even){background:#f9f9f9}
     <div class="header-center">
         <h1>JOB ORDER</h1>
         <p>{{ order.jo_number }} — {{ order.title }}</p>
+        <p class="company">Seventrent Machineries Industrial Equipment Trading</p>
     </div>
     <img src="{% static 'img/stpc-trans-logo.png' %}" alt="STPC" class="logo">
 </div>
