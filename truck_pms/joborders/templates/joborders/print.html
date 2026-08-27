@@ -71,6 +71,7 @@ tr:nth-child(even){background:#f9f9f9}
     <div style="flex:1">
         <div class="cost-box">
             <div class="row"><span class="lbl">Total Labor (Pesos)</span><span class="val tot">P{{ order.labor_cost_pesos|default:'0.00'|floatformat:2 }}</span></div>
+            <div class="row"><span class="lbl">Amount Requested</span><span class="val pay">P{{ order.labor_amount_requested_pesos|default:'0.00'|floatformat:2 }}</span></div>
             <div class="row"><span class="lbl">Amount Paid</span><span class="val pay">P{{ order.labor_amount_paid_pesos|default:'0.00'|floatformat:2 }}</span></div>
             <div class="row"><span class="lbl">Balance</span><span class="val bal">P{{ order.labor_balance_pesos|default:'0.00'|floatformat:2 }}</span></div>
         </div>

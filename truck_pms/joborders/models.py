@@ -56,9 +56,15 @@ class JobOrder(models.Model):
         max_digits=12, decimal_places=2, null=True, blank=True,
         help_text='Total labor charge in pesos (contractor billing amount).'
     )
+    labor_amount_requested_pesos = models.DecimalField(
+        max_digits=12, decimal_places=2, null=True, blank=True,
+        verbose_name='Amount Requested',
+        help_text='Amount requested for partial release.'
+    )
     labor_amount_paid_pesos = models.DecimalField(
         max_digits=12, decimal_places=2, null=True, blank=True,
-        help_text='Amount paid so far (partial releases).'
+        verbose_name='Amount Paid',
+        help_text='Amount actually paid/released so far.'
     )
     class PaymentStatus(models.TextChoices):
         PENDING = 'PENDING', 'Pending'
@@ -95,10 +101,13 @@ class JobOrder(models.Model):
 
     def _derive_payment_status(self):
         paid = self.labor_amount_paid_pesos
+        requested = self.labor_amount_requested_pesos
         total = self.labor_cost_pesos
         if paid and paid > 0:
             if total and total > 0:
                 return self.PaymentStatus.PAID if paid >= total else self.PaymentStatus.PARTIAL
+            return self.PaymentStatus.PARTIAL
+        if requested and requested > 0:
             return self.PaymentStatus.PARTIAL
         return self.PaymentStatus.PENDING
 

@@ -9,7 +9,7 @@ class JobOrderForm(BootstrapFormMixin, forms.ModelForm):
         fields = [
             'truck', 'title', 'description', 'priority', 'job_type',
             'assigned_to', 'contractor', 'labor_cost_pesos',
-            'labor_amount_paid_pesos', 'notes'
+            'labor_amount_requested_pesos', 'labor_amount_paid_pesos', 'notes'
         ]
         widgets = {
             'description': forms.Textarea(attrs={'rows': 3}),
@@ -66,7 +66,7 @@ class JobOrderStatusForm(BootstrapFormMixin, forms.ModelForm):
         model = JobOrder
         fields = ['status', 'completed_mileage_km',
                   'completed_engine_hours', 'labor_cost_pesos',
-                  'labor_amount_paid_pesos', 'notes']
+                  'labor_amount_requested_pesos', 'labor_amount_paid_pesos', 'notes']
         widgets = {
             'notes': forms.Textarea(attrs={'rows': 3}),
         }
