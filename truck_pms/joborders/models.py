@@ -54,7 +54,19 @@ class JobOrder(models.Model):
     )
     labor_cost_pesos = models.DecimalField(
         max_digits=12, decimal_places=2, null=True, blank=True,
-        help_text='Labor charge in pesos (e.g. contractor billing amount).'
+        help_text='Total labor charge in pesos (contractor billing amount).'
+    )
+    labor_amount_paid_pesos = models.DecimalField(
+        max_digits=12, decimal_places=2, null=True, blank=True,
+        help_text='Amount paid so far (partial releases).'
+    )
+    class PaymentStatus(models.TextChoices):
+        PENDING = 'PENDING', 'Pending'
+        PARTIAL = 'PARTIAL', 'Partial'
+        PAID = 'PAID', 'Paid'
+    labor_payment_status = models.CharField(
+        max_length=10, choices=PaymentStatus.choices,
+        default=PaymentStatus.PENDING
     )
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -75,6 +87,21 @@ class JobOrder(models.Model):
     def total_labor_hours(self):
         return sum(item.actual_hours or 0 for item in self.line_items.all())
 
+    @property
+    def labor_balance_pesos(self):
+        if self.labor_cost_pesos is None or self.labor_amount_paid_pesos is None:
+            return None
+        return self.labor_cost_pesos - self.labor_amount_paid_pesos
+
+    def _derive_payment_status(self):
+        paid = self.labor_amount_paid_pesos
+        total = self.labor_cost_pesos
+        if paid and paid > 0:
+            if total and total > 0:
+                return self.PaymentStatus.PAID if paid >= total else self.PaymentStatus.PARTIAL
+            return self.PaymentStatus.PARTIAL
+        return self.PaymentStatus.PENDING
+
     def save(self, *args, **kwargs):
         if not self.jo_number:
             year = timezone.now().year
@@ -86,6 +113,7 @@ class JobOrder(models.Model):
                 self.jo_number = f'JO-{year}-{last_num + 1:04d}'
             else:
                 self.jo_number = f'JO-{year}-0001'
+        self.labor_payment_status = self._derive_payment_status()
         super().save(*args, **kwargs)
 
 

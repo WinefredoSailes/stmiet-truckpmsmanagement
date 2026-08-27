@@ -110,6 +110,9 @@
                 <dl class="row mb-0 dl-table">
                     <dt class="col-6">Total Parts</dt><dd class="col-6 text-end fw-bold">P{{ order.total_parts_cost|floatformat:2 }}</dd>
                     <dt class="col-6">Labor Cost</dt><dd class="col-6 text-end fw-bold">P{{ order.labor_cost_pesos|default:'0.00'|floatformat:2 }}</dd>
+                    <dt class="col-6">Amount Paid</dt><dd class="col-6 text-end fw-bold">P{{ order.labor_amount_paid_pesos|default:'0.00'|floatformat:2 }}</dd>
+                    <dt class="col-6">Balance</dt><dd class="col-6 text-end fw-bold">P{{ order.labor_balance_pesos|default:'0.00'|floatformat:2 }}</dd>
+                    <dt class="col-6">Payment</dt><dd class="col-6 text-end fw-bold">{{ order.get_labor_payment_status_display }}</dd>
                 </dl>
             </div>
         </div>

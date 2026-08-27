@@ -58,6 +58,10 @@ tr:nth-child(even){background:#f9f9f9}
         <div class="cost-box">
             <div style="font-size:10px;color:#666">Total Labor (Pesos)</div>
             <strong style="color:#0d6efd">P{{ order.labor_cost_pesos|default:'0.00'|floatformat:2 }}</strong>
+            <div style="font-size:10px;color:#666;margin-top:6px">Amount Paid</div>
+            <strong style="color:#28a745">P{{ order.labor_amount_paid_pesos|default:'0.00'|floatformat:2 }}</strong>
+            <div style="font-size:10px;color:#666;margin-top:6px">Balance</div>
+            <strong style="color:#dc3545">P{{ order.labor_balance_pesos|default:'0.00'|floatformat:2 }}</strong>
         </div>
     </div>
 </div>
