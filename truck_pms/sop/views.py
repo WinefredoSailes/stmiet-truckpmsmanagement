@@ -1,6 +1,8 @@
+import re
+
 from django.shortcuts import render
 from django.conf import settings
-from django.http import FileResponse, Http404
+from django.http import HttpResponse, Http404
 from pathlib import Path
 
 
@@ -20,16 +22,38 @@ def view_tl(request):
 
 
 def _serve_pdf(request, filename):
-    """Serve PDF file directly; 404 if not found."""
+    """Serve PDF with HTTP Range support; 404 if not generated."""
     pdf_path = Path(settings.BASE_DIR) / 'static' / 'sop' / filename
-    if pdf_path.exists():
-        return FileResponse(
-            open(pdf_path, 'rb'),
-            as_attachment=True,
-            filename=filename,
-            content_type='application/pdf',
-        )
-    raise Http404('PDF not found. Run `python manage.py build_sop` to generate it.')
+    if not pdf_path.exists():
+        raise Http404('PDF not found. Run `python manage.py build_sop` to generate it.')
+
+    file_size = pdf_path.stat().st_size
+    data = pdf_path.read_bytes()
+
+    def make_response(body, status=200):
+        response = HttpResponse(body, status=status, content_type='application/pdf')
+        response['Accept-Ranges'] = 'bytes'
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        response['Content-Length'] = str(len(body))
+        return response
+
+    range_header = request.META.get('HTTP_RANGE')
+    if range_header:
+        match = re.match(r'bytes=(\d*)-(\d*)', range_header.strip())
+        if match and (match.group(1) or match.group(2)):
+            start = int(match.group(1)) if match.group(1) else 0
+            end = int(match.group(2)) if match.group(2) else file_size - 1
+            if start >= file_size or start > end:
+                response = HttpResponse(status=416)
+                response['Content-Range'] = f'bytes */{file_size}'
+                return response
+            end = min(end, file_size - 1)
+            chunk = data[start:end + 1]
+            response = make_response(chunk, status=206)
+            response['Content-Range'] = f'bytes {start}-{end}/{file_size}'
+            return response
+
+    return make_response(data)
 
 
 def download_en(request):

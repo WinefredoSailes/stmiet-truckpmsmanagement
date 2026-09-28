@@ -17,39 +17,43 @@ class Command(BaseCommand):
                 'WeasyPrint not available — skipping PDF generation. '
                 'HTML files will still be generated.'
             ))
-            output_dir = Path(settings.BASE_DIR) / 'static' / 'sop'
-            output_dir.mkdir(parents=True, exist_ok=True)
 
-            editions = [
-                ('en', 'sop/sop_manual_en.html', 'Truck_PMS_SOP_Manual_EN.pdf'),
-                ('tl', 'sop/sop_manual_tl.html', 'Truck_PMS_SOP_Manual_TL.pdf'),
-            ]
+        output_dir = Path(settings.BASE_DIR) / 'static' / 'sop'
+        output_dir.mkdir(parents=True, exist_ok=True)
 
-            for lang_code, template_name, filename in editions:
-                self.stdout.write(f'Rendering {lang_code.upper()} manual...')
-                html_string = render_to_string(template_name)
+        editions = [
+            ('en', 'sop/sop_manual_en.html', 'Truck_PMS_SOP_Manual_EN.pdf'),
+            ('tl', 'sop/sop_manual_tl.html', 'Truck_PMS_SOP_Manual_TL.pdf'),
+        ]
 
-                # Write intermediate HTML for browser viewing / debug fallback
-                html_path = output_dir / f'{lang_code}.html'
-                html_path.write_text(html_string, encoding='utf-8')
-                self.stdout.write(self.style.SUCCESS(f'  ok {lang_code}.html generated'))
+        for lang_code, template_name, filename in editions:
+            self.stdout.write(f'Rendering {lang_code.upper()} manual...')
+            html_string = render_to_string(template_name)
 
-                if WeasyprintHTML is None:
-                    continue
+            # Write intermediate HTML for browser viewing / debug fallback
+            html_path = output_dir / f'{lang_code}.html'
+            html_path.write_text(html_string, encoding='utf-8')
+            self.stdout.write(self.style.SUCCESS(f'  ok {lang_code}.html generated'))
 
-                # Resolve static URLs to absolute file:// paths for WeasyPrint
-                static_url = settings.STATIC_URL
-                static_dir = str((settings.BASE_DIR / 'static').resolve())
-                file_prefix = 'file:///' + static_dir.replace('\\', '/')
-                pdf_html = html_string.replace(static_url, file_prefix + '/')
-
-                pdf_path = output_dir / filename
-                self.stdout.write(f'  Generating PDF: {pdf_path}...')
-                WeasyprintHTML(string=pdf_html, encoding='utf-8').write_pdf(str(pdf_path))
-
-                file_size = pdf_path.stat().st_size
-                self.stdout.write(self.style.SUCCESS(
-                    f'  ✓ {filename} generated ({file_size / 1024:.0f} KB)'
+            if WeasyprintHTML is None:
+                self.stdout.write(self.style.WARNING(
+                    f'  skipping PDF - {filename} not generated'
                 ))
+                continue
 
-            self.stdout.write(self.style.SUCCESS('\nSOP manual generation complete.'))
+            # Resolve static URLs to absolute file:// paths for WeasyPrint
+            static_url = settings.STATIC_URL
+            static_dir = str((settings.BASE_DIR / 'static').resolve())
+            file_prefix = 'file:///' + static_dir.replace('\\', '/')
+            pdf_html = html_string.replace(static_url, file_prefix + '/')
+
+            pdf_path = output_dir / filename
+            self.stdout.write(f'  Generating PDF: {pdf_path}...')
+            WeasyprintHTML(string=pdf_html, encoding='utf-8').write_pdf(str(pdf_path))
+
+            file_size = pdf_path.stat().st_size
+            self.stdout.write(self.style.SUCCESS(
+                f'  [OK] {filename} generated ({file_size / 1024:.0f} KB)'
+            ))
+
+        self.stdout.write(self.style.SUCCESS('\nSOP manual generation complete.'))

@@ -13,6 +13,7 @@ venv/
 truck_pms/db.sqlite3
 truck_pms/staticfiles/
 truck_pms/media/
+server.log
 
 # IDE
 .vscode/

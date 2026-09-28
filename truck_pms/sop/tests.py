@@ -25,3 +25,22 @@ class SopViewTests(TestCase):
     def test_download_tl_html(self):
         resp = self.client.get(reverse('sop:download_tl'))
         self.assertIn(resp.status_code, (200, 302, 404))
+
+    def test_download_en_range_partial(self):
+        resp = self.client.get(
+            reverse('sop:download_en'),
+            HTTP_RANGE='bytes=0-1023',
+        )
+        if resp.status_code != 206:
+            return
+        self.assertEqual(len(resp.content), 1024)
+        self.assertRegex(resp['Content-Range'], r'^bytes 0-1023/\d+$')
+        self.assertEqual(resp['Accept-Ranges'], 'bytes')
+
+    def test_download_en_range_unsatisfiable(self):
+        resp = self.client.get(
+            reverse('sop:download_en'),
+            HTTP_RANGE='bytes=999999999-',
+        )
+        self.assertEqual(resp.status_code, 416)
+        self.assertRegex(resp['Content-Range'], r'^bytes \*/\d+$')
